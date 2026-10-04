@@ -1,7 +1,7 @@
 {
   "name": "TravelVT",
   "short_name": "TravelVT",
-  "start_url": "/travelvt/",
+  "start_url": "/bd1/",
   "scope": "/travelvt/",
   "display": "standalone",
   "background_color": "#ffffff",
