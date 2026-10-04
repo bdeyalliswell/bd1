@@ -507,7 +507,7 @@
       try {
         let response = await fetch(M3U_URL);
         if (!response.ok) {
-          response = await fetch('https://bdeyalliswell.github.io/travelvt/indiantv/tv.m3u');
+          response = await fetch('https://bdeyalliswell.github.io/travelvtt/indiantv/tv.m3u');
         }
         const text = await response.text();
         allChannels = parseM3U(text);
