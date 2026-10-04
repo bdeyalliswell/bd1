@@ -2,7 +2,7 @@
   "name": "TravelVT",
   "short_name": "TravelVT",
   "start_url": "/bd1/",
-  "scope": "/travelvt/",
+  "scope": "/bd1/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
