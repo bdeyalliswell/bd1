@@ -1,8 +1,8 @@
 {
-  "name": "TravelVT",
-  "short_name": "TravelVT",
-  "start_url": "/bd1/",
-  "scope": "/bd1/",
+  "name": "Bdeyonline",
+  "short_name": "Bdey",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
