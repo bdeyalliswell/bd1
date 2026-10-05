@@ -8,14 +8,19 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- HLS.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <!-- Google Fonts Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
+
   <style>
+    /* Old Typewriter Font Setup */
+    @font-face {
+      font-family: 'Old Typewriter';
+      src: url('./OldTypewriter.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Old Typewriter', monospace, sans-serif;
       background: radial-gradient(circle at top left, #0f172a 0%, #030712 100%);
       color: #f3f4f6;
     }
