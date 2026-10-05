@@ -29,7 +29,7 @@
       <div class="relative flex items-center justify-center p-1 bg-slate-800/60 rounded-xl border border-slate-700/60 shadow-inner">
         <!-- Logo Image -->
         <img 
-          src="https://i.postimg.cc/kg3j4FHQ/txp.png" 
+          src="https://i.postimg.cc/59rL94rN/images.png" 
           alt="TravelXP Logo" 
           id="brandLogo" 
           class="h-8 md:h-10 w-auto object-contain transition-transform duration-300 hover:scale-105" 
@@ -113,49 +113,6 @@
               </button>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Quick Control Ribbon -->
-      <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-lg backdrop-blur-md">
-        <div class="flex items-center space-x-3">
-          <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
-          <div>
-            <h2 id="currentStreamTitle" class="text-base font-semibold text-white">Travel Xp (SD Hindi)</h2>
-            <p id="currentStreamBitrate" class="text-xs text-slate-400">Source: Amagi Playouts / HLS adaptive</p>
-          </div>
-        </div>
-
-        <div class="flex items-center space-x-2.5">
-          <!-- Unmute / Sound -->
-          <button id="muteBtn" onclick="toggleMute()" class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700" title="Toggle Sound">
-            <svg id="muteIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
-            </svg>
-          </button>
-
-          <!-- PiP Action Button -->
-          <button onclick="togglePictureInPicture()" class="inline-flex items-center space-x-2 px-3 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 text-sm font-semibold transition" title="Picture in Picture Mode">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-            </svg>
-            <span>PiP Player</span>
-          </button>
-
-          <!-- Reload -->
-          <button onclick="retryCurrentStream()" class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700" title="Reload Feed">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-          </button>
-
-          <!-- Fullscreen -->
-          <button onclick="toggleFullscreen()" class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700" title="Fullscreen">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
-            </svg>
-          </button>
         </div>
       </div>
     </section>
@@ -248,12 +205,10 @@
     const STREAM_SOURCES = [
       {
         name: "Travel Xp (SD Hindi)",
-        sourceInfo: "Source: Amagi Playouts / HLS adaptive",
         url: "https://amg00416-amg00416c9-samsung-in-4882.playouts.now.amagi.tv/ts-ap-s1-n1/playlist/amg00416-travelxp-travelxphd-samsungin/y3w-Gnt3b4yayzVu0PBIqt8GatBdYtEyZ6BXxCTBFQrUtfnJ5Urpbn7AYoErUzENDHjOB95sGaCHJPwOcz8HCv6Is3vHmRkZ1YFRLC64alZX-hcFoWUTftzeHwquNKE2UEC_Rz0AcsWWIckLLtmQVtIkfJvaiDJiIkNP7AUfuv0LvP7kXFvYcqGvHFj2fhO2wBvW0R-8ntddjFePdqISnZv2gs4ZgNOYfqhW5GVEAXR5nM19xZAN7tnKOGmecyp0CD-JywUhY0bkbm0endbFu2z-YaHjR6BTR3CEBS3-VKt4owjdjCY8JZatJWo2qM9adSbikMh7JxlB31HZ2ILqdm-NtjZ9Sc5s1GhDUvaqm0TUkkzE9EvgxfEuuwVqoc29yxJ7mrSs5BPqjZi5LktPLC8Nilajjmzh5LwSp-McO1VBSKzVAIrWmRYHa0GCj0nHUzWNm9rTkV5gilcSVL40ghsdOph9LF31PfWfC2mLDQORemioD3vTFLzwB92T9slKe7nXzEe_SOq2Ad2_QoplLlYPtr19ChQCLZ6-KF1wSsJD5cHDriJaV6Kkm4y1OVIwMBlWA5zxpyHL_KcHKVaQA2gwDlN98CPZZtgMTHpe6hbBowRxxUthGu-pO1JNf9SvlYSU3d5LpXWxna3ZTpzC2Q5Vy2cCYQBszXUuuuvlvj7iMg/20/640x360_750000/index.m3u8"
       },
       {
         name: "Travel Xp (4K international)",
-        sourceInfo: "Source: Akamai Edge Network Feed",
         url: "https://deltatesttatasky.akamaized.net/out/i/968284.m3u8"
       }
     ];
@@ -265,9 +220,6 @@
     const loadingOverlay = document.getElementById("loadingOverlay");
     const errorOverlay = document.getElementById("errorOverlay");
     const errorMessage = document.getElementById("errorMessage");
-    const currentStreamTitle = document.getElementById("currentStreamTitle");
-    const currentStreamBitrate = document.getElementById("currentStreamBitrate");
-    const muteIcon = document.getElementById("muteIcon");
 
     function handleLogoError(img) {
       img.style.display = 'none';
@@ -279,8 +231,6 @@
       activeStreamIndex = index;
       const target = STREAM_SOURCES[index];
 
-      currentStreamTitle.textContent = target.name;
-      currentStreamBitrate.textContent = target.sourceInfo;
       updateSidebarCards(index);
 
       loadingOverlay.classList.remove("hidden");
@@ -391,38 +341,6 @@
       }
     }
 
-    function toggleMute() {
-      videoEl.muted = !videoEl.muted;
-      updateMuteIcon();
-    }
-
-    function updateMuteIcon() {
-      if (videoEl.muted) {
-        muteIcon.innerHTML = `
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
-        `;
-      } else {
-        muteIcon.innerHTML = `
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
-        `;
-      }
-    }
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        if (videoEl.requestFullscreen) {
-          videoEl.requestFullscreen();
-        } else if (videoEl.webkitRequestFullscreen) {
-          videoEl.webkitRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
-      }
-    }
-
     videoEl.addEventListener("playing", () => {
       loadingOverlay.classList.add("hidden");
     });
@@ -433,7 +351,6 @@
 
     window.addEventListener("DOMContentLoaded", () => {
       initPlayer(0);
-      updateMuteIcon();
     });
   </script>
 </body>
