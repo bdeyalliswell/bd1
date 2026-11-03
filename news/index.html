@@ -13,7 +13,7 @@
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // UPDATED REAL FIREBASE CONFIG
+    // 100% CORRECT FIREBASE CONFIG FROM SCREENSHOT
     const firebaseConfig = {
       apiKey: "AIzaSyAFRH-zF2kTQ-AtvBhp2U7c00smrR8GsqM",
       authDomain: "satyaneshi-news.firebaseapp.com",
@@ -280,7 +280,7 @@
         const authArea = document.getElementById('authStatusArea');
         if (user) {
           panel.classList.remove('hidden');
-          const authorName = user.email === 'balaram@gmail.com' ? 'Balaram Dey' : user.email.split('@')[0];
+          const authorName = (user.email === 'bdey3421@gmail.com' || user.email === 'balaram@gmail.com') ? 'Balaram Dey' : user.email.split('@')[0];
           document.getElementById('adminGreeting').innerText = authorName;
           authArea.innerHTML = `<span class="text-emerald-400 font-medium">Logged in: ${authorName}</span> <button onclick="logoutAdmin()" class="hover:text-white underline ml-2">Logout</button>`;
         } else {
@@ -323,7 +323,7 @@
       const layout = document.getElementById('postLayout').value;
       const imageUrl = document.getElementById('postImageUrl').value.trim();
       const broadcastTicker = document.getElementById('broadcastTicker').checked;
-      const author = currentUser.email === 'balaram@gmail.com' ? 'Balaram Dey' : currentUser.email.split('@')[0];
+      const author = (currentUser.email === 'bdey3421@gmail.com' || currentUser.email === 'balaram@gmail.com') ? 'Balaram Dey' : currentUser.email.split('@')[0];
 
       const btn = document.getElementById('submitArticleBtn');
       btn.innerText = "Publishing...";
