@@ -7,11 +7,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDKs for Firestore -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAFRH-zF2kTQ-AtvBhp2U7cO0smrR8GsqM",
@@ -19,23 +18,16 @@
       projectId: "satyaneshi-news",
       storageBucket: "satyaneshi-news.firebasestorage.app",
       messagingSenderId: "210663948710",
-      appId: "1:210663948710:web:0e5fbb96218e2927f0f67",
-      measurementId: "G-CNVFD144S9"
+      appId: "1:210663948710:web:0e5fbb96218e2927f0f67"
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
 
-    window.fbAuth = auth;
     window.fbDb = db;
-    window.fbSignIn = signInWithEmailAndPassword;
-    window.fbSignOut = signOut;
-    window.fbOnAuth = onAuthStateChanged;
     window.fbCollection = collection;
     window.fbAddDoc = addDoc;
     window.fbGetDocs = getDocs;
-    window.fbDeleteDoc = deleteDoc;
     window.fbDoc = doc;
     window.fbQuery = query;
     window.fbOrderBy = orderBy;
@@ -64,7 +56,7 @@
     <div class="flex items-center space-x-4">
       <div id="authStatusArea" class="flex items-center space-x-2">
         <button id="loginBtn" onclick="toggleModal('loginModal')" class="hover:text-white transition flex items-center gap-1.5">
-          <i class="fa-solid fa-lock text-[10px]"></i> Admin Portal
+          <i class="fa-solid fa-paper-plane text-[10px] text-sky-400"></i> Admin Portal
         </button>
       </div>
     </div>
@@ -128,8 +120,8 @@
     <div class="max-w-7xl mx-auto">
       <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-800">
         <div class="flex items-center space-x-2">
-          <span class="bg-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Authenticated</span>
-          <h2 class="text-lg font-bold">Editorial Studio • <span id="adminGreeting" class="text-rose-400">Editor</span></h2>
+          <span class="bg-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Verified by Telegram</span>
+          <h2 class="text-lg font-bold">Editorial Studio • <span class="text-rose-400">Balaram Dey</span></h2>
         </div>
         <button onclick="logoutAdmin()" class="bg-slate-800 hover:bg-red-900 text-xs font-semibold px-3 py-1.5 rounded transition">Logout</button>
       </div>
@@ -207,23 +199,40 @@
     </div>
   </main>
 
-  <!-- Login Modal -->
+  <!-- Telegram OTP Login Modal -->
   <div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 relative border-t-4 border-red-700">
+    <div class="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 relative border-t-4 border-sky-500">
       <button onclick="toggleModal('loginModal')" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-      <h3 class="text-lg font-bold text-slate-900 mb-1">Editor Authentication</h3>
-      <p class="text-xs text-slate-500 mb-4">Sign in using Firebase credentials.</p>
-      <form onsubmit="handleFirebaseLogin(event)" class="space-y-3">
+      
+      <div class="flex items-center space-x-2 mb-2">
+        <i class="fa-brands fa-telegram text-sky-500 text-xl"></i>
+        <h3 class="text-lg font-bold text-slate-900">Telegram Admin Login</h3>
+      </div>
+      <p class="text-xs text-slate-500 mb-4">A secure one-time verification code will be sent to your Telegram chat.</p>
+
+      <!-- Step 1: Send OTP -->
+      <div id="otpStep1">
+        <p class="text-xs text-slate-600 mb-3 bg-slate-50 p-2.5 rounded border border-slate-200">
+          Ready to dispatch a secure 6-digit verification code to your Telegram account.
+        </p>
+        <button onclick="sendTelegramOTP()" id="sendOtpBtn" class="w-full bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold py-2.5 rounded uppercase tracking-wider transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-paper-plane"></i> Send OTP Code
+        </button>
+      </div>
+
+      <!-- Step 2: Verify OTP -->
+      <div id="otpStep2" class="hidden space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
-          <input type="email" id="loginEmail" required class="w-full text-xs p-2.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-red-600">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Enter 6-Digit OTP</label>
+          <input type="text" id="otpInput" maxlength="6" placeholder="000000" class="w-full text-center text-lg tracking-widest font-mono p-2.5 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-sky-500">
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
-          <input type="password" id="loginPass" required class="w-full text-xs p-2.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-red-600">
-        </div>
-        <button type="submit" id="authSubmitBtn" class="w-full bg-red-700 hover:bg-red-800 text-white text-xs font-bold py-2.5 rounded uppercase tracking-wider transition">Sign In</button>
-      </form>
+        <button onclick="verifyTelegramOTP()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 rounded uppercase tracking-wider transition">
+          Verify & Log In
+        </button>
+        <button onclick="sendTelegramOTP()" class="w-full text-center text-xs text-sky-600 hover:underline pt-1">
+          Resend OTP Code
+        </button>
+      </div>
     </div>
   </div>
 
@@ -253,10 +262,15 @@
   </footer>
 
   <script>
+    // TELEGRAM BOT CREDENTIALS
+    const TG_BOT_TOKEN = "8268304682:AAFPoaNFCjIznAPBIq7IgGJpW3anvuaD1QQ";
+    const TG_CHAT_ID = "5975107136";
+
+    let currentOTP = null;
+    let isAdminAuthenticated = false;
     let articles = [];
     let breakingList = [];
     let selectedCategory = 'All';
-    let currentUser = null;
 
     function updateLiveClock() {
       const now = new Date();
@@ -272,60 +286,104 @@
       modal.classList.toggle('hidden');
     }
 
+    // CHECK SAVED SESSION
     window.initSatyaneshi = function() {
-      window.fbOnAuth(window.fbAuth, (user) => {
-        currentUser = user;
-        const panel = document.getElementById('adminPanel');
-        const authArea = document.getElementById('authStatusArea');
-        if (user) {
-          panel.classList.remove('hidden');
-          const authorName = (user.email === 'bdey3421@gmail.com' || user.email === 'balaram@gmail.com') ? 'Balaram Dey' : user.email.split('@')[0];
-          document.getElementById('adminGreeting').innerText = authorName;
-          authArea.innerHTML = `<span class="text-emerald-400 font-medium">Logged in: ${authorName}</span> <button onclick="logoutAdmin()" class="hover:text-white underline ml-2">Logout</button>`;
-        } else {
-          panel.classList.add('hidden');
-          authArea.innerHTML = `<button onclick="toggleModal('loginModal')" class="hover:text-white transition flex items-center gap-1.5"><i class="fa-solid fa-lock text-[10px]"></i> Admin Portal</button>`;
-        }
-        renderAllFeeds();
-      });
-
+      if (sessionStorage.getItem('satyaneshi_admin') === 'true') {
+        isAdminAuthenticated = true;
+        showAdminView();
+      }
       fetchArticles();
       fetchBreakingNews();
     };
 
-    async function handleFirebaseLogin(e) {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim();
-      const pass = document.getElementById('loginPass').value;
-      const btn = document.getElementById('authSubmitBtn');
-      btn.innerText = "Signing in...";
+    function showAdminView() {
+      document.getElementById('adminPanel').classList.remove('hidden');
+      document.getElementById('authStatusArea').innerHTML = `
+        <span class="text-emerald-400 font-medium"><i class="fa-solid fa-circle-check text-[10px]"></i> Balaram Dey</span>
+        <button onclick="logoutAdmin()" class="hover:text-white underline ml-2">Logout</button>
+      `;
+    }
+
+    // STEP 1: SEND OTP TO TELEGRAM
+    async function sendTelegramOTP() {
+      const btn = document.getElementById('sendOtpBtn');
+      btn.innerText = "Sending code...";
+      btn.disabled = true;
+
+      // Generate 6-digit random code
+      currentOTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+      const messageText = `🔐 *Satyaneshi Admin Verification*\n\nYour one-time login OTP is: *${currentOTP}*\n\nValid for 5 minutes. Do not share this code.`;
+      const url = `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage?chat_id=${TG_CHAT_ID}&text=${encodeURIComponent(messageText)}&parse_mode=Markdown`;
+
       try {
-        await window.fbSignIn(window.fbAuth, email, pass);
-        toggleModal('loginModal');
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.ok) {
+          document.getElementById('otpStep1').classList.add('hidden');
+          document.getElementById('otpStep2').classList.remove('hidden');
+          alert("Verification code has been dispatched to your Telegram!");
+        } else {
+          alert("Failed to send OTP: " + data.description);
+        }
       } catch (err) {
-        alert("Authentication failed: " + err.message);
+        alert("Network error: " + err.message);
       } finally {
-        btn.innerText = "Sign In";
+        btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Send OTP Code`;
+        btn.disabled = false;
       }
     }
 
-    async function logoutAdmin() {
-      await window.fbSignOut(window.fbAuth);
+    // STEP 2: VERIFY OTP
+    function verifyTelegramOTP() {
+      const userCode = document.getElementById('otpInput').value.trim();
+      if (!userCode) {
+        alert("Please enter the 6-digit OTP code.");
+        return;
+      }
+
+      if (userCode === currentOTP) {
+        isAdminAuthenticated = true;
+        sessionStorage.setItem('satyaneshi_admin', 'true');
+        showAdminView();
+        toggleModal('loginModal');
+        alert("Authenticated successfully! Welcome, Balaram.");
+      } else {
+        alert("Invalid OTP code. Please verify the code in Telegram.");
+      }
     }
 
+    function logoutAdmin() {
+      isAdminAuthenticated = false;
+      sessionStorage.removeItem('satyaneshi_admin');
+      document.getElementById('adminPanel').classList.add('hidden');
+      document.getElementById('authStatusArea').innerHTML = `
+        <button id="loginBtn" onclick="toggleModal('loginModal')" class="hover:text-white transition flex items-center gap-1.5">
+          <i class="fa-solid fa-paper-plane text-[10px] text-sky-400"></i> Admin Portal
+        </button>
+      `;
+      document.getElementById('otpStep1').classList.remove('hidden');
+      document.getElementById('otpStep2').classList.add('hidden');
+      document.getElementById('otpInput').value = '';
+    }
+
+    // PUBLISH ARTICLE
     async function handlePostArticle(e) {
       e.preventDefault();
-      if (!currentUser) return;
+      if (!isAdminAuthenticated) {
+        alert("Authentication required. Please sign in via Telegram.");
+        return;
+      }
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
       const category = document.getElementById('postCategory').value;
       const layout = document.getElementById('postLayout').value;
       const imageUrl = document.getElementById('postImageUrl').value.trim();
       const broadcastTicker = document.getElementById('broadcastTicker').checked;
-      const author = (currentUser.email === 'bdey3421@gmail.com' || currentUser.email === 'balaram@gmail.com') ? 'Balaram Dey' : currentUser.email.split('@')[0];
+      const author = "Balaram Dey";
 
       const btn = document.getElementById('submitArticleBtn');
-      btn.innerText = "Publishing...";
+      btn.innerText = "Publishing article...";
 
       try {
         await window.fbAddDoc(window.fbCollection(window.fbDb, "articles"), {
@@ -344,6 +402,7 @@
         document.getElementById('newsForm').reset();
         fetchArticles();
         if (broadcastTicker) fetchBreakingNews();
+        alert("Article published successfully!");
       } catch (err) {
         alert("Failed to publish: " + err.message);
       } finally {
@@ -351,6 +410,7 @@
       }
     }
 
+    // FETCH ARTICLES
     async function fetchArticles() {
       try {
         const q = window.fbQuery(window.fbCollection(window.fbDb, "articles"), window.fbOrderBy("createdAt", "desc"));
@@ -363,6 +423,7 @@
       }
     }
 
+    // FETCH BREAKING NEWS
     async function fetchBreakingNews() {
       try {
         const snap = await window.fbGetDocs(window.fbCollection(window.fbDb, "breaking_news"));
