@@ -42,7 +42,6 @@
     window.fbOrderBy = orderBy;
     window.fbTimestamp = serverTimestamp;
 
-    // Trigger App Initialization
     if (window.initSatyaneshi) window.initSatyaneshi();
   </script>
 
@@ -184,10 +183,8 @@
 
   <!-- Primary News Portal Feed Layout -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-8">
-    <!-- Hero / Lead Section -->
     <div id="heroContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6"></div>
 
-    <!-- Category Visual Section -->
     <div class="space-y-3">
       <div class="flex items-center justify-between border-b-2 border-red-700 pb-1">
         <h3 class="font-black text-sm uppercase tracking-wider text-slate-800">Visual Stories & Lens</h3>
@@ -195,7 +192,6 @@
       <div id="photoGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"></div>
     </div>
 
-    <!-- Express Headlines & Standard Cards Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div class="lg:col-span-2 space-y-3">
         <div class="flex items-center justify-between border-b-2 border-red-700 pb-1">
@@ -284,7 +280,7 @@
         const authArea = document.getElementById('authStatusArea');
         if (user) {
           panel.classList.remove('hidden');
-          const authorName = user.email.split('@')[0];
+          const authorName = user.email === 'balaram@gmail.com' ? 'Balaram Dey' : user.email.split('@')[0];
           document.getElementById('adminGreeting').innerText = authorName;
           authArea.innerHTML = `<span class="text-emerald-400 font-medium">Logged in: ${authorName}</span> <button onclick="logoutAdmin()" class="hover:text-white underline ml-2">Logout</button>`;
         } else {
@@ -327,7 +323,7 @@
       const layout = document.getElementById('postLayout').value;
       const imageUrl = document.getElementById('postImageUrl').value.trim();
       const broadcastTicker = document.getElementById('broadcastTicker').checked;
-      const author = currentUser.email.split('@')[0];
+      const author = currentUser.email === 'balaram@gmail.com' ? 'Balaram Dey' : currentUser.email.split('@')[0];
 
       const btn = document.getElementById('submitArticleBtn');
       btn.innerText = "Publishing...";
