@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ভারত ভ্রমণ - দর্শনীয় স্থানের ইন্টার‍্যাক্টিভ ম্যাপ</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet.js CSS (ম্যাপের স্টাইলের জন্য) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- Google Fonts: Hind Siliguri & Noto Sans Bengali (সুন্দর বাংলা ফন্টের জন্য) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+            overflow-x: hidden;
+        }
+        /* কাস্টম স্ক্রলবার */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* কাস্টম ম্যাপ পিন স্টাইল */
+        .custom-pin {
+            background-color: #e11d48;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+        .custom-pin:hover, .custom-pin.active {
+            transform: scale(1.3);
+            background-color: #0284c7;
+            z-index: 1000 !important;
+        }
+        /* লিফলেট পপআপ ফন্ট */
+        .leaflet-popup-content-wrapper {
+            font-family: 'Hind Siliguri', sans-serif;
+            border-radius: 12px;
+        }
+        /* লোডিং স্পিনার অ্যানিমেশন */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0284c7;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- হেডার বার -->
+    <header class="bg-gradient-to-r from-sky-700 via-blue-700 to-indigo-800 text-white shadow-md z-30 shrink-0">
+        <div class="max-w-full mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- লোগো ও টাইটেল -->
+            <div class="flex items-center gap-3">
+                <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+                    <i class="fa-solid fa-map-location-dot text-2xl text-amber-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wide leading-tight">ভারত ভ্রমণ গাইড</h1>
+                    <p class="text-xs text-sky-100 hidden sm:block">ম্যাপে ক্লিক করে জানুন ভারতের দর্শনীয় স্থানের বিস্তারিত তথ্য</p>
+                </div>
+            </div>
+
+            <!-- সার্চ এবং ফিল্টার কন্ট্রোল -->
+            <div class="flex flex-1 md:flex-initial items-center gap-2 w-full md:w-auto">
+                <!-- সার্চ ইনপুট -->
+                <div class="relative flex-1 md:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="জায়গা বা রাজ্যের নাম খুঁজুন..." 
+                        class="w-full pl-9 pr-3 py-2 rounded-xl bg-white/95 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-inner">
+                </div>
+
+                <!-- ক্যাটাগরি ফিল্টার -->
+                <select id="categoryFilter" class="py-2 px-3 rounded-xl bg-white/95 text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-inner cursor-pointer">
+                    <option value="all">সব ধরন</option>
+                    <option value="তীর্থস্থান">তীর্থস্থান ও মন্দির</option>
+                    <option value="পাহাড়">পাহাড় ও হিল স্টেশন</option>
+                    <option value="ঐতিহাসিক">ঐতিহাসিক স্থান</option>
+                    <option value="সমুদ্র">সমুদ্র সৈকত ও দ্বীপ</option>
+                    <option value="প্রকৃতি">প্রকৃতি ও অরণ্য</option>
+                </select>
+
+                <!-- রিসেট ম্যাপ বাটন -->
+                <button id="resetMapBtn" title="সম্পূর্ণ ভারত দেখুন" class="p-2.5 bg-white/15 hover:bg-white/25 rounded-xl text-white transition flex items-center gap-1.5 text-sm font-medium shrink-0">
+                    <i class="fa-solid fa-expand"></i>
+                    <span class="hidden lg:inline">পুরো ভারত</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- মূল কন্টেইনার (সাইডবার + ম্যাপ + ডিটেইলস প্যানেল) -->
+    <main class="flex-1 flex relative overflow-hidden">
+        
+        <!-- বাম পাশের সাইডবার: দর্শনীয় স্থানের তালিকা (ডেস্কটপে দৃশ্যমান, মোবাইলে টগলযোগ্য) -->
+        <aside id="placesListSidebar" class="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 flex flex-col z-20 absolute md:relative inset-0 md:inset-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+            <div class="p-3 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+                <span class="text-sm font-semibold text-slate-700">
+                    <i class="fa-solid fa-location-dot text-rose-600 mr-1"></i>
+                    দর্শনীয় স্থানসমূহ (<span id="spotCount">0</span>)
+                </span>
+                <button id="closeListBtn" class="md:hidden text-slate-500 hover:text-slate-800 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- স্থানের কার্ড লিস্ট -->
+            <div id="spotsContainer" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+                <!-- জাভাস্ক্রিপ্ট দিয়ে ডাইনামিকভাবে লোড হবে -->
+            </div>
+        </aside>
+
+        <!-- মাঝখানের ম্যাপ এরিয়া -->
+        <div class="flex-1 relative h-full w-full z-10">
+            <div id="map" class="h-full w-full"></div>
+
+            <!-- মোবাইলে তালিকা খোলার ফ্লোটিং বাটন -->
+            <button id="openListBtn" class="md:hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-[400] bg-slate-900/90 text-white px-5 py-2.5 rounded-full shadow-xl flex items-center gap-2 text-sm font-medium backdrop-blur-sm border border-white/10">
+                <i class="fa-solid fa-list-ul text-amber-400"></i>
+                তালিকায় সব স্থান দেখুন
+            </button>
+        </div>
+
+        <!-- ডান পাশের ডিটেইলস প্যানেল (কোনো পিনে ক্লিক করলে খুলবে) -->
+        <section id="detailsPanel" class="w-full sm:w-[420px] lg:w-[480px] bg-white border-l border-slate-200 shadow-2xl z-30 absolute right-0 top-0 bottom-0 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+            
+            <!-- প্যানেল হেডার -->
+            <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span id="detailBadge" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-sky-100 text-sky-800">ক্যাটাগরি</span>
+                    <span id="detailState" class="text-xs font-medium text-slate-500"><i class="fa-solid fa-map-pin mr-1"></i>রাজ্য</span>
+                </div>
+                <button id="closeDetailsBtn" class="w-8 h-8 rounded-full bg-slate-200/70 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition text-slate-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- লোডিং অবস্থা -->
+            <div id="loadingState" class="flex-1 flex flex-col items-center justify-center p-8 text-center hidden">
+                <div class="loader mb-4"></div>
+                <p class="text-slate-600 font-medium">বাংলা উইকিপিডিয়া থেকে তথ্য সংগ্রহ করা হচ্ছে...</p>
+                <p class="text-xs text-slate-400 mt-1">অনুগ্রহ করে একটু অপেক্ষা করুন</p>
+            </div>
+
+            <!-- কন্টেন্ট এরিয়া -->
+            <div id="detailContent" class="flex-1 overflow-y-auto p-5 space-y-5 hidden">
+                <!-- জায়গার ছবি -->
+                <div class="relative rounded-2xl overflow-hidden bg-slate-200 shadow-md aspect-video">
+                    <img id="detailImage" src="" alt="দর্শনীয় স্থানের ছবি" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-4">
+                        <h2 id="detailTitle" class="text-2xl font-bold text-white drop-shadow">জায়গার নাম</h2>
+                    </div>
+                </div>
+
+                <!-- সংক্ষিপ্ত পরিচিতি (Wikipedia API থেকে) -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-brands fa-wikipedia-w"></i> পরিচিতি ও ইতিহাস
+                        </h3>
+                        <span class="text-[11px] text-slate-400">সূত্র: বাংলা উইকিপিডিয়া</span>
+                    </div>
+                    <p id="detailDescription" class="text-slate-700 leading-relaxed text-[15px] text-justify">
+                        এখানে বিস্তারিত তথ্য লোড হবে...
+                    </p>
+                </div>
+
+                <!-- ভৌগোলিক অবস্থান -->
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-amber-50/70 p-3 rounded-xl border border-amber-100">
+                        <span class="text-amber-700 block font-medium">অক্ষাংশ (Latitude)</span>
+                        <span id="detailLat" class="text-slate-800 font-bold text-sm">--</span>
+                    </div>
+                    <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-100">
+                        <span class="text-emerald-700 block font-medium">দ্রাঘিমাংশ (Longitude)</span>
+                        <span id="detailLng" class="text-slate-800 font-bold text-sm">--</span>
+                    </div>
+                </div>
+
+                <!-- অ্যাকশন বাটনসমূহ -->
+                <div class="pt-2 space-y-2.5">
+                    <a id="wikiLinkBtn" href="#" target="_blank" rel="noopener noreferrer" 
+                       class="w-full py-3 px-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-book-open"></i>
+                        উইকিপিডিয়ায় সম্পূর্ণ নিবন্ধ পড়ুন
+                    </a>
+                    
+                    <a id="googleMapsBtn" href="#" target="_blank" rel="noopener noreferrer" 
+                       class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-diamond-turn-right"></i>
+                        Google Maps-এ পথ দেখুন
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Leaflet.js স্ক্রিপ্ট -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        /**
+         * ============================================================================
+         * ১. ভারতের দর্শনীয় স্থানের ডেটাবেস (Tourist Spots Dataset)
+         * আপনি চাইলে নিচের ফরম্যাট অনুসরণ করে আরও যত খুশি জায়গা এখানে যোগ করতে পারেন।
+         * - name: বাংলায় জায়গার নাম
+         * - state: রাজ্যের নাম
+         * - category: 'তীর্থস্থান' | 'পাহাড়' | 'ঐতিহাসিক' | 'সমুদ্র' | 'প্রকৃতি'
+         * - lat: অক্ষাংশ (Latitude)
+         * - lng: দ্রাঘিমাংশ (Longitude)
+         * - wikiTitle: বাংলা উইকিপিডিয়ার আর্টিকেলের সঠিক শিরোনাম
+         * - fallbackDesc: যদি ইন্টারনেট বা উইকিপিডিয়ায় তথ্য না পাওয়া যায় তবে এই লেখাটি দেখাবে
+         * ============================================================================
+         */
+        const touristSpots = [
+            {
+                id: 1,
+                name: "হরিদ্বার",
+                state: "উত্তরাখণ্ড",
+                category: "তীর্থস্থান",
+                lat: 29.9457,
+                lng: 78.1642,
+                wikiTitle: "হরিদ্বার",
+                fallbackDesc: "হরিদ্বার ভারতের উত্তরাখণ্ড রাজ্যের একটি প্রাচীন ও পবিত্র তীর্থনগরী। গঙ্গা নদী পাহাড় ছেড়ে এখানেই সমতলে প্রবেশ করেছে। হর কি পৌরি ঘাটের গঙ্গা আরতি বিশ্ববিখ্যাত।"
+            },
+            {
+                id: 2,
+                name: "দার্জিলিং",
+                state: "পশ্চিমবঙ্গ",
+                category: "পাহাড়",
+                lat: 27.0410,
+                lng: 88.2663,
+                wikiTitle: "দার্জিলিং",
+                fallbackDesc: "দার্জিলিং পশ্চিমবঙ্গের উত্তরাংশে অবস্থিত একটি মনোরম শৈলশহর। কাঞ্চনজঙ্ঘার অপূর্ব দৃশ্য, চা বাগান এবং ঐতিহাসিক টয় ট্রেনের জন্য এটি বিখ্যাত।"
+            },
+            {
+                id: 3,
+                name: "তাজমহল (আগ্রা)",
+                state: "উত্তরপ্রদেশ",
+                category: "ঐতিহাসিক",
+                lat: 27.1751,
+                lng: 78.0421,
+                wikiTitle: "তাজমহল",
+                fallbackDesc: "তাজমহল উত্তরপ্রদেশের আগ্রায় অবস্থিত একটি বিশ্ববিখ্যাত শ্বেতপাথরের সমাধিসৌধ। মুঘল সম্রাট শাহজাহান তার স্ত্রী মমতাজ মহলের স্মৃতিতে এটি নির্মাণ করেন।"
+            },
+            {
+                id: 4,
+                name: "পুরী",
+                state: "ওড়িশা",
+                category: "তীর্থস্থান",
+                lat: 19.8135,
+                lng: 85.8312,
+                wikiTitle: "পুরী",
+                fallbackDesc: "পুরী ওড়িশা রাজ্যের বঙ্গোপসাগরের তীরে অবস্থিত একটি প্রসিদ্ধ তীর্থক্ষেত্র ও পর্যটন কেন্দ্র। শ্রীজগন্নাথ দেবের মন্দির এবং বিশাল সমুদ্র সৈকতের জন্য এটি বিখ্যাত।"
+            },
+            {
+                id: 5,
+                name: "বারাণসী (কাশী)",
+                state: "উত্তরপ্রদেশ",
+                category: "তীর্থস্থান",
+                lat: 25.3176,
+                lng: 82.9739,
+                wikiTitle: "বারাণসী",
+                fallbackDesc: "বারাণসী বা কাশী বিশ্বের প্রাচীনতম জীবন্ত শহরগুলোর একটি। গঙ্গার তীরে অবস্থিত এই শহরটি হিন্দু ধর্মাবলম্বীদের অন্যতম প্রধান পবিত্র তীর্থস্থান।"
+            },
+            {
+                id: 6,
+                name: "জয়পুর",
+                state: "রাজস্থান",
+                category: "ঐতিহাসিক",
+                lat: 26.9124,
+                lng: 75.7873,
+                wikiTitle: "জয়পুর",
+                fallbackDesc: "জয়পুর রাজস্থানের রাজধানী এবং 'গোলাপি শহর' (Pink City) নামে পরিচিত। হাওয়া মহল, অম্বর দুর্গ ও সিটি প্যালেস এখানকার প্রধান আকর্ষণ।"
+            },
+            {
+                id: 7,
+                name: "মানালি",
+                state: "হিমাচল প্রদেশ",
+                category: "পাহাড়",
+                lat: 32.2432,
+                lng: 77.1892,
+                wikiTitle: "মানালি",
+                fallbackDesc: "মানালি হিমাচল প্রদেশের কুলু উপত্যকায় অবস্থিত একটি জনপ্রিয় শৈলশহর। বরফে ঢাকা পাহাড়, রোহতাং পাস ও অ্যাডভেঞ্চার স্পোর্টসের জন্য পর্যটকরা এখানে আসেন।"
+            },
+            {
+                id: 8,
+                name: "শিমলা",
+                state: "হিমাচল প্রদেশ",
+                category: "পাহাড়",
+                lat: 31.1048,
+                lng: 77.1734,
+                wikiTitle: "শিমলা",
+                fallbackDesc: "শিমলা হিমাচল প্রদেশের রাজধানী এবং ব্রিটিশ ভারতের গ্রীষ্মকালীন রাজধানী ছিল। ম্যাল রোড, রিজ এবং কালকা-শিমলা রেলপথের জন্য এটি বিখ্যাত।"
+            },
+            {
+                id: 9,
+                name: "ঋষিকেশ",
+                state: "উত্তরাখণ্ড",
+                category: "তীর্থস্থান",
+                lat: 30.0869,
+                lng: 78.2676,
+                wikiTitle: "ঋষিকেশ",
+                fallbackDesc: "ঋষিকেশ হিমালয়ের পাদদেশে গঙ্গা নদীর তীরে অবস্থিত। এটি 'বিশ্বের যোগ রাজধানী' এবং রিভার রাফটিংয়ের জন্য অত্যন্ত জনপ্রিয়।"
+            },
+            {
+                id: 10,
+                name: "গোয়া",
+                state: "গোয়া",
+                category: "সমুদ্র",
+                lat: 15.2993,
+                lng: 74.1240,
+                wikiTitle: "গোয়া",
+                fallbackDesc: "গোয়া ভারতের পশ্চিম উপকূলে অবস্থিত ক্ষুদ্রতম রাজ্য। এর মনোরম সমুদ্র সৈকত, পর্তুগিজ স্থাপত্য এবং প্রাণবন্ত সংস্কৃতি পর্যটকদের আকর্ষণ করে।"
+            },
+            {
+                id: 11,
+                name: "মুন্নার",
+                state: "কেরালা",
+                category: "পাহাড়",
+                lat: 10.0889,
+                lng: 77.0595,
+                wikiTitle: "মুন্নার",
+                fallbackDesc: "মুন্নার কেরালার পশ্চিমঘাট পর্বতমালায় অবস্থিত একটি অপূর্ব শৈলশহর। দিগন্তবিস্তৃত সবুজ চা বাগান এবং নীলকুরিঞ্জি ফুলের জন্য এটি বিখ্যাত।"
+            },
+            {
+                id: 12,
+                name: "উটি",
+                state: "তামিলনাড়ু",
+                category: "পাহাড়",
+                lat: 11.4102,
+                lng: 76.6950,
+                wikiTitle: "উদগমণ্ডলম",
+                fallbackDesc: "উটি বা উদগমণ্ডলম তামিলনাড়ুর নীলগিরি পর্বতমালায় অবস্থিত 'পাহাড়ের রানী' নামে পরিচিত একটি জনপ্রিয় শৈলশহর।"
+            },
+            {
+                id: 13,
+                name: "হাম্পি",
+                state: "কর্ণাটক",
+                category: "ঐতিহাসিক",
+                lat: 15.3350,
+                lng: 76.4600,
+                wikiTitle: "হাম্পি",
+                fallbackDesc: "হাম্পি কর্ণাটকে অবস্থিত ইউনেস্কো বিশ্ব ঐতিহ্যবাহী স্থান। এটি প্রাচীন বিজয়নগর সাম্রাজ্যের রাজধানী ছিল এবং এর পাথরের স্থাপত্য বিস্ময়কর।"
+            },
+            {
+                id: 14,
+                name: "লাদাখ (লেহ)",
+                state: "লাদাখ",
+                category: "পাহাড়",
+                lat: 34.1526,
+                lng: 77.5771,
+                wikiTitle: "লাদাখ",
+                fallbackDesc: "লাদাখ ভারতের উত্তরতম অঞ্চলে অবস্থিত একটি উচ্চ-উচ্চতার মরুভূমি। প্যাংগং হ্রদ, নুব্রা উপত্যকা এবং বৌদ্ধ মঠের জন্য এটি ভ্রমণপিপাসুদের স্বর্গরাজ্য।"
+            },
+            {
+                id: 15,
+                name: "সুন্দরবন",
+                state: "পশ্চিমবঙ্গ",
+                category: "প্রকৃতি",
+                lat: 21.9497,
+                lng: 89.1833,
+                wikiTitle: "সুন্দরবন",
+                fallbackDesc: "সুন্দরবন বিশ্বের বৃহত্তম ম্যানগ্রোভ অরণ্য এবং রয়েল বেঙ্গল টাইগারের আবাসস্থল। এটি ইউনেস্কো বিশ্ব ঐতিহ্যবাহী স্থান।"
+            },
+            {
+                id: 16,
+                name: "কলকাতা",
+                state: "পশ্চিমবঙ্গ",
+                category: "ঐতিহাসিক",
+                lat: 22.5726,
+                lng: 88.3639,
+                wikiTitle: "কলকাতা",
+                fallbackDesc: "কলকাতা পশ্চিমবঙ্গের রাজধানী এবং ভারতের সাংস্কৃতিক রাজধানী। ভিক্টোরিয়া মেমোরিয়াল, হাওড়া ব্রিজ ও দক্ষিণেশ্বর মন্দির এখানকার প্রধান আকর্ষণ।"
+            },
+            {
+                id: 17,
+                name: "আন্দামান ও নিকোবর দ্বীপপুঞ্জ",
+                state: "আন্দামান ও নিকোবর",
+                category: "সমুদ্র",
+                lat: 11.7401,
+                lng: 92.6586,
+                wikiTitle: "আন্দামান ও নিকোবর দ্বীপপুঞ্জ",
+                fallbackDesc: "বঙ্গোপসাগরে অবস্থিত এই দ্বীপপুঞ্জ নীল জলরাশি, প্রবাল প্রাচীর, রাধানগর সৈকত এবং ঐতিহাসিক সেলুলার জেলের জন্য বিখ্যাত।"
+            },
+            {
+                id: 18,
+                name: "কেদারনাথ",
+                state: "উত্তরাখণ্ড",
+                category: "তীর্থস্থান",
+                lat: 30.7346,
+                lng: 79.0669,
+                wikiTitle: "কেদারনাথ মন্দির",
+                fallbackDesc: "কেদারনাথ উত্তরাখণ্ডের গাড়োয়াল হিমালয়ে অবস্থিত দ্বাদশ জ্যোতির্লিঙ্গের অন্যতম এবং চারধামের একটি পবিত্র তীর্থস্থান।"
+            },
+            {
+                id: 19,
+                name: "মাদুরাই",
+                state: "তামিলনাড়ু",
+                category: "তীর্থস্থান",
+                lat: 9.9252,
+                lng: 78.1198,
+                wikiTitle: "মাদুরাই",
+                fallbackDesc: "মাদুরাই তামিলনাড়ুর একটি প্রাচীন শহর, যা সুবিশাল ও কারুকার্যময় মীনাক্ষী আম্মান মন্দিরের জন্য বিশ্বজুড়ে পরিচিত।"
+            },
+            {
+                id: 20,
+                name: "মহীশূর (মাইসোর)",
+                state: "কর্ণাটক",
+                category: "ঐতিহাসিক",
+                lat: 12.2958,
+                lng: 76.6394,
+                wikiTitle: "মহীশূর",
+                fallbackDesc: "মহীশূর কর্ণাটকের একটি ঐতিহ্যবাহী শহর। রাজকীয় মহীশূর প্রাসাদ এবং দশেরা উৎসবের জন্য এটি বিখ্যাত।"
+            },
+            {
+                id: 21,
+                name: "উদয়পুর",
+                state: "রাজস্থান",
+                category: "ঐতিহাসিক",
+                lat: 24.5854,
+                lng: 73.7125,
+                wikiTitle: "উদয়পুর",
+                fallbackDesc: "উদয়পুর রাজস্থানের 'হ্রদের শহর' (City of Lakes) নামে পরিচিত। পিচোলা হ্রদ এবং লেক প্যালেস এর সৌন্দর্যকে অনন্য করে তুলেছে।"
+            },
+            {
+                id: 22,
+                name: "খাজুরাহো",
+                state: "মধ্যপ্রদেশ",
+                category: "ঐতিহাসিক",
+                lat: 24.8318,
+                lng: 79.9199,
+                wikiTitle: "খাজুরাহো স্মারকসমূহ",
+                fallbackDesc: "মধ্যপ্রদেশের খাজুরাহো তার মধ্যযুগীয় হিন্দু ও জৈন মন্দিরের অপূর্ব স্থাপত্য ও ভাস্কর্যের জন্য ইউনেস্কো বিশ্ব ঐতিহ্যবাহী স্থান হিসেবে স্বীকৃত।"
+            },
+            {
+                id: 23,
+                name: "অজন্তা গুহাসমূহ",
+                state: "মহারাষ্ট্র",
+                category: "ঐতিহাসিক",
+                lat: 20.5519,
+                lng: 75.7033,
+                wikiTitle: "অজন্তা গুহাসমূহ",
+                fallbackDesc: "মহারাষ্ট্রের অজন্তা গুহাসমূহ খ্রিস্টপূর্ব ২য় শতাব্দী থেকে নির্মিত প্রাচীন বৌদ্ধ গুহাচিত্র ও ভাস্কর্যের এক অমূল্য নিদর্শন।"
+            },
+            {
+                id: 24,
+                name: "গ্যাংটক",
+                state: "সিকিম",
+                category: "পাহাড়",
+                lat: 27.3314,
+                lng: 88.6138,
+                wikiTitle: "গ্যাংটক",
+                fallbackDesc: "গ্যাংটক সিকিম রাজ্যের রাজধানী। পরিচ্ছন্ন পরিবেশ, বৌদ্ধ মঠ, নাথুলা পাস এবং ছাঙ্গু লেকের জন্য এটি পর্যটকদের কাছে অত্যন্ত প্রিয়।"
+            },
+            {
+                id: 25,
+                name: "শিলং",
+                state: "মেঘালয়",
+                category: "পাহাড়",
+                lat: 25.5788,
+                lng: 91.8933,
+                wikiTitle: "শিলং",
+                fallbackDesc: "শিলং মেঘালয়ের রাজধানী এবং 'প্রাচ্যের স্কটল্যান্ড' নামে পরিচিত। উমিয়াম হ্রদ, জলপ্রপাত এবং মনোরম আবহাওয়া এখানকার বিশেষত্ব।"
+            },
+            {
+                id: 26,
+                name: "কন্যাকুমারী",
+                state: "তামিলনাড়ু",
+                category: "সমুদ্র",
+                lat: 8.0883,
+                lng: 77.5385,
+                wikiTitle: "কন্যাকুমারী",
+                fallbackDesc: "কন্যাকুমারী ভারতের মূল ভূখণ্ডের দক্ষিণতম বিন্দু, যেখানে আরব সাগর, বঙ্গোপসাগর ও ভারত মহাসাগর মিলিত হয়েছে। বিবেকানন্দ রক মেমোরিয়াল এখানে অবস্থিত।"
+            },
+            {
+                id: 27,
+                name: "কাজিরাঙ্গা জাতীয় উদ্যান",
+                state: "আসাম",
+                category: "প্রকৃতি",
+                lat: 26.5775,
+                lng: 93.1711,
+                wikiTitle: "কাজিরাঙ্গা জাতীয় উদ্যান",
+                fallbackDesc: "আসামের কাজিরাঙ্গা জাতীয় উদ্যান বিশ্বের একশৃঙ্গ গণ্ডারের বৃহত্তম আবাসস্থল এবং একটি ইউনেস্কো বিশ্ব ঐতিহ্যবাহী স্থান।"
+            }
+        ];
+
+        // ============================================================================
+        // ২. গ্লোবাল ভেরিয়েবল এবং ম্যাপ ইনিশিয়ালাইজেশন
+        // ============================================================================
+        const INDIA_CENTER = [22.5937, 78.9629]; // ভারতের কেন্দ্রবিন্দু
+        const DEFAULT_ZOOM = 5;
+
+        let map;
+        let markersMap = {}; // প্রতিটি স্থানের ID অনুযায়ী মার্কার সংরক্ষণ করার জন্য
+        let activeSpotId = null;
+
+        // DOM এলিমেন্ট রেফারেন্স
+        const spotsContainer = document.getElementById('spotsContainer');
+        const spotCountEl = document.getElementById('spotCount');
+        const searchInput = document.getElementById('searchInput');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const resetMapBtn = document.getElementById('resetMapBtn');
+        
+        // ডিটেইলস প্যানেল এলিমেন্ট
+        const detailsPanel = document.getElementById('detailsPanel');
+        const closeDetailsBtn = document.getElementById('closeDetailsBtn');
+        const loadingState = document.getElementById('loadingState');
+        const detailContent = document.getElementById('detailContent');
+        
+        // মোবাইল সাইডবার টগল এলিমেন্ট
+        const placesListSidebar = document.getElementById('placesListSidebar');
+        const openListBtn = document.getElementById('openListBtn');
+        const closeListBtn = document.getElementById('closeListBtn');
+
+        // ============================================================================
+        // ৩. ম্যাপ সেটআপ ফাংশন (Leaflet + OpenStreetMap)
+        // ============================================================================
+        function initMap() {
+            // ম্যাপ তৈরি করা
+            map = L.map('map', {
+                center: INDIA_CENTER,
+                zoom: DEFAULT_ZOOM,
+                zoomControl: false // জুম কন্ট্রোল ডানদিকে নিচে সরানোর জন্য
+            });
+
+            // জুম কন্ট্রোল নিচে ডানদিকে যোগ করা
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            // OpenStreetMap টাইল লেয়ার যুক্ত করা (সম্পূর্ণ ফ্রি)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // সব মার্কার এবং সাইডবার লিস্ট রেন্ডার করা
+            renderSpots(touristSpots);
+        }
+
+        // কাস্টম পিন আইকন তৈরি
+        function createCustomIcon(isActive = false) {
+            return L.divIcon({
+                className: `custom-pin ${isActive ? 'active' : ''}`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10],
+                popupAnchor: [0, -12]
+            });
+        }
+
+        // ============================================================================
+        // ৪. ম্যাপে মার্কার এবং সাইডবারে তালিকা রেন্ডার করা
+        // ============================================================================
+        function renderSpots(spotsList) {
+            // আগের মার্কারগুলো ম্যাপ থেকে মুছে ফেলা
+            Object.values(markersMap).forEach(marker => map.removeLayer(marker));
+            markersMap = {};
+            spotsContainer.innerHTML = '';
+
+            // কাউন্টার আপডেট
+            spotCountEl.textContent = spotsList.length;
+
+            if (spotsList.length === 0) {
+                spotsContainer.innerHTML = `
+                    <div class="text-center py-10 px-4 text-slate-400">
+                        <i class="fa-regular fa-face-frown text-3xl mb-2"></i>
+                        <p class="text-sm">দুঃখিত, আপনার খোঁজা অনুযায়ী কোনো স্থান পাওয়া যায়নি।</p>
+                    </div>
+                `;
+                return;
+            }
+
+            spotsList.forEach(spot => {
+                // ক) ম্যাপে মার্কার যোগ করা
+                const marker = L.marker([spot.lat, spot.lng], {
+                    icon: createCustomIcon(spot.id === activeSpotId),
+                    title: spot.name
+                }).addTo(map);
+
+                // হোভার করলে ছোট টুলটিপ/পপআপ দেখানো
+                marker.bindTooltip(`<b>${spot.name}</b><br><span style="font-size:11px;color:#64748b">${spot.state}</span>`, {
+                    direction: 'top',
+                    offset: [0, -8]
+                });
+
+                // মার্কারে ক্লিক ইভেন্ট
+                marker.on('click', () => {
+                    selectTouristSpot(spot);
+                });
+
+                markersMap[spot.id] = marker;
+
+                // খ) বাম পাশের সাইডবারে কার্ড তৈরি করা
+                const card = document.createElement('div');
+                card.id = `spot-card-${spot.id}`;
+                card.className = `p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
+                    spot.id === activeSpotId 
+                    ? 'bg-sky-50 border-sky-400 shadow-sm' 
+                    : 'bg-white border-slate-200/80 hover:border-sky-300 hover:bg-slate-50'
+                }`;
+
+                card.innerHTML = `
+                    <div>
+                        <h3 class="font-bold text-slate-800 group-hover:text-sky-700 transition text-base">${spot.name}</h3>
+                        <div class="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                            <span><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i>${spot.state}</span>
+                            <span>•</span>
+                            <span class="bg-slate-100 px-2 py-0.5 rounded-md text-slate-600 font-medium">${spot.category}</span>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-sky-600 group-hover:text-white text-slate-400 flex items-center justify-center transition shrink-0">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => {
+                    selectTouristSpot(spot);
+                    // মোবাইলে থাকলে লিস্ট সাইডবার বন্ধ করে ম্যাপ ও ডিটেইলস দেখানো
+                    placesListSidebar.classList.add('-translate-x-full');
+                });
+
+                spotsContainer.appendChild(card);
+            });
+        }
+
+        // ============================================================================
+        // ৫. কোনো স্থানে ক্লিক করলে জুম করা ও বাংলা উইকিপিডিয়া থেকে তথ্য আনা
+        // ============================================================================
+        async function selectTouristSpot(spot) {
+            activeSpotId = spot.id;
+
+            // সব মার্কারের আইকন আপডেট করা (সিলেক্টেড পিন হাইলাইট করা)
+            Object.keys(markersMap).forEach(id => {
+                const isSelected = parseInt(id) === spot.id;
+                markersMap[id].setIcon(createCustomIcon(isSelected));
+            });
+
+            // সাইডবারের কার্ড হাইলাইট আপডেট
+            document.querySelectorAll('#spotsContainer > div').forEach(el => {
+                el.classList.remove('bg-sky-50', 'border-sky-400', 'shadow-sm');
+                el.classList.add('bg-white', 'border-slate-200/80');
+            });
+            const activeCard = document.getElementById(`spot-card-${spot.id}`);
+            if (activeCard) {
+                activeCard.classList.remove('bg-white', 'border-slate-200/80');
+                activeCard.classList.add('bg-sky-50', 'border-sky-400', 'shadow-sm');
+            }
+
+            // ম্যাপ স্মুথলি ওই স্থানে ফ্লাই/জুম করবে
+            map.flyTo([spot.lat, spot.lng], 11, {
+                animate: true,
+                duration: 1.2
+            });
+
+            // ডিটেইলস প্যানেল ওপেন করা এবং লোডিং স্টেট দেখানো
+            detailsPanel.classList.remove('translate-x-full');
+            loadingState.classList.remove('hidden');
+            detailContent.classList.add('hidden');
+
+            // হেডার ব্যাজ ও সাধারণ তথ্য সেট করা
+            document.getElementById('detailBadge').textContent = spot.category;
+            document.getElementById('detailState').innerHTML = `<i class="fa-solid fa-map-pin mr-1 text-rose-500"></i>${spot.state}`;
+            document.getElementById('detailLat').textContent = `${spot.lat.toFixed(4)}° N`;
+            document.getElementById('detailLng').textContent = `${spot.lng.toFixed(4)}° E`;
+
+            // Google Maps ডিরেকশন লিংক সেট করা
+            const gMapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+            document.getElementById('googleMapsBtn').href = gMapsUrl;
+
+            // বাংলা উইকিপিডিয়া REST API থেকে লাইভ তথ্য আনা
+            try {
+                const encodedTitle = encodeURIComponent(spot.wikiTitle);
+                const apiUrl = `https://bn.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`;
+                
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error('উইকিপিডিয়া আর্টিকেল পাওয়া যায়নি');
+                }
+                
+                const data = await response.json();
+
+                // টাইটেল ও বিস্তারিত বিবরণ বসানো
+                document.getElementById('detailTitle').textContent = data.title || spot.name;
+                document.getElementById('detailDescription').textContent = data.extract || spot.fallbackDesc;
+
+                // ছবি সেট করা (যদি উইকিপিডিয়ায় থাম্বনেইল থাকে তবে সেটি, নতুবা প্লেসহোল্ডার)
+                const imgEl = document.getElementById('detailImage');
+                if (data.thumbnail && data.thumbnail.source) {
+                    // উচ্চ রেজোলিউশনের ছবি পাওয়ার চেষ্টা
+                    imgEl.src = data.originalimage ? data.originalimage.source : data.thumbnail.source;
+                } else {
+                    imgEl.src = `https://placehold.co/800x450/0369a1/ffffff?text=${encodeURIComponent(spot.name)}`;
+                }
+                
+                // ছবি লোড হতে সমস্যা হলে ফলব্যাক ইমেজ
+                imgEl.onerror = () => {
+                    imgEl.src = `https://placehold.co/800x450/0284c7/ffffff?text=${encodeURIComponent(spot.name)}`;
+                };
+
+                // মূল বাংলা উইকিপিডিয়া পেজের লিংক
+                const wikiPageUrl = data.content_urls?.desktop?.page || `https://bn.wikipedia.org/wiki/${encodedTitle}`;
+                document.getElementById('wikiLinkBtn').href = wikiPageUrl;
+
+            } catch (error) {
+                console.warn("Wikipedia API Fallback triggered:", error);
+                // যদি কোনো কারণে API কাজ না করে, তবে লোকাল ফলব্যাক ডেটা দেখাবে
+                document.getElementById('detailTitle').textContent = spot.name;
+                document.getElementById('detailDescription').textContent = spot.fallbackDesc;
+                document.getElementById('detailImage').src = `https://placehold.co/800x450/1e293b/ffffff?text=${encodeURIComponent(spot.name)}`;
+                document.getElementById('wikiLinkBtn').href = `https://bn.wikipedia.org/wiki/${encodeURIComponent(spot.wikiTitle)}`;
+            } finally {
+                // লোডিং বন্ধ করে কন্টেন্ট দেখানো
+                loadingState.classList.add('hidden');
+                detailContent.classList.remove('hidden');
+            }
+        }
+
+        // ============================================================================
+        // ৬. সার্চ এবং ক্যাটাগরি ফিল্টার লজিক
+        // ============================================================================
+        function filterSpots() {
+            const query = searchInput.value.trim().toLowerCase();
+            const selectedCategory = categoryFilter.value;
+
+            const filtered = touristSpots.filter(spot => {
+                const matchesSearch = spot.name.toLowerCase().includes(query) || 
+                                      spot.state.toLowerCase().includes(query);
+                const matchesCategory = selectedCategory === 'all' || spot.category === selectedCategory;
+                return matchesSearch && matchesCategory;
+            });
+
+            renderSpots(filtered);
+        }
+
+        // ইভেন্ট লিসেনারসমূহ
+        searchInput.addEventListener('input', filterSpots);
+        categoryFilter.addEventListener('change', filterSpots);
+
+        // পুরো ভারতের ভিউতে ফিরে যাওয়া
+        resetMapBtn.addEventListener('click', () => {
+            activeSpotId = null;
+            detailsPanel.classList.add('translate-x-full');
+            map.flyTo(INDIA_CENTER, DEFAULT_ZOOM, { duration: 1 });
+            filterSpots();
+        });
+
+        // ডিটেইলস প্যানেল বন্ধ করা
+        closeDetailsBtn.addEventListener('click', () => {
+            detailsPanel.classList.add('translate-x-full');
+        });
+
+        // মোবাইল ভিউতে সাইডবার খোলা ও বন্ধ করা
+        openListBtn.addEventListener('click', () => {
+            placesListSidebar.classList.remove('-translate-x-full');
+        });
+
+        closeListBtn.addEventListener('click', () => {
+            placesListSidebar.classList.add('-translate-x-full');
+        });
+
+        // পেজ লোড হলে ম্যাপ শুরু করা
+        window.addEventListener('DOMContentLoaded', initMap);
+    </script>
+</body>
+</html>
