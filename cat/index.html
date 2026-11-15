@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bharat Explorer — Interactive Tourist Atlas of India (5,200+ Places)</title>
+    <title>Bharat Explorer — Interactive Tourist Atlas of India (5,280+ Places)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,11 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    
-    <!-- Leaflet MarkerCluster CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -30,21 +26,6 @@
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                         serif: ['Playfair Display', 'serif'],
-                    },
-                    colors: {
-                        saffron: {
-                            50: '#fff8ed',
-                            100: '#ffefd4',
-                            500: '#f97316',
-                            600: '#ea580c',
-                            700: '#c2410c',
-                        },
-                        peacock: {
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
-                        }
                     }
                 }
             }
@@ -52,7 +33,6 @@
     </script>
 
     <style>
-        /* Custom Map & Marker Styling */
         html, body {
             height: 100%;
             margin: 0;
@@ -63,35 +43,43 @@
             width: 100%;
             height: 100%;
             z-index: 1;
-            background: #e2e8f0;
+            background: #dce8f2;
         }
-        /* Custom Cluster Styling */
-        .marker-cluster-small {
-            background-color: rgba(249, 115, 22, 0.28);
-        }
-        .marker-cluster-small div {
-            background-color: rgba(234, 88, 12, 0.92);
-            color: #fff;
-            font-weight: 700;
+
+        /* Native Spatial Cluster Badges */
+        .atlas-cluster {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
             font-family: 'Inter', sans-serif;
-        }
-        .marker-cluster-medium {
-            background-color: rgba(14, 116, 144, 0.28);
-        }
-        .marker-cluster-medium div {
-            background-color: rgba(3, 105, 161, 0.92);
-            color: #fff;
             font-weight: 700;
-            font-family: 'Inter', sans-serif;
+            color: #ffffff;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            user-select: none;
         }
-        .marker-cluster-large {
-            background-color: rgba(15, 23, 42, 0.3);
+        .atlas-cluster:hover {
+            transform: scale(1.14);
+            z-index: 1000 !important;
         }
-        .marker-cluster-large div {
-            background-color: rgba(15, 23, 42, 0.92);
-            color: #fff;
-            font-weight: 700;
-            font-family: 'Inter', sans-serif;
+        .atlas-cluster-sm {
+            background: rgba(234, 88, 12, 0.92);
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 5px rgba(234, 88, 12, 0.25), 0 6px 14px rgba(0, 0, 0, 0.28);
+            font-size: 12px;
+        }
+        .atlas-cluster-md {
+            background: rgba(3, 105, 161, 0.94);
+            border: 3px solid rgba(255, 255, 255, 0.92);
+            box-shadow: 0 0 0 6px rgba(3, 105, 161, 0.25), 0 8px 18px rgba(0, 0, 0, 0.3);
+            font-size: 13px;
+        }
+        .atlas-cluster-lg {
+            background: rgba(15, 23, 42, 0.94);
+            border: 3px solid rgba(249, 115, 22, 0.95);
+            box-shadow: 0 0 0 7px rgba(15, 23, 42, 0.24), 0 10px 22px rgba(0, 0, 0, 0.35);
+            font-size: 13px;
         }
 
         /* Custom Pin Marker */
@@ -101,12 +89,13 @@
             justify-content: center;
             border-radius: 9999px;
             border: 2.5px solid #ffffff;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.32);
+            transition: transform 0.16s ease;
+            cursor: pointer;
         }
         .custom-pin:hover {
-            transform: scale(1.2);
-            z-index: 1000 !important;
+            transform: scale(1.24);
+            z-index: 1200 !important;
         }
 
         /* Custom Scrollbar */
@@ -125,7 +114,6 @@
             background: rgba(100, 116, 139, 0.8);
         }
 
-        /* Hide horizontal scrollbar on filter chips */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -134,20 +122,20 @@
             scrollbar-width: none;
         }
 
-        /* Leaflet Tooltip Customization */
+        /* Leaflet Tooltip */
         .leaflet-tooltip.atlas-tooltip {
-            background: rgba(15, 23, 42, 0.94);
+            background: rgba(15, 23, 42, 0.95);
             color: #f8fafc;
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 8px;
             padding: 6px 10px;
             font-family: 'Inter', sans-serif;
             font-size: 12px;
             font-weight: 500;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         }
         .leaflet-tooltip-top.atlas-tooltip::before {
-            border-top-color: rgba(15, 23, 42, 0.94);
+            border-top-color: rgba(15, 23, 42, 0.95);
         }
     </style>
 </head>
@@ -157,11 +145,11 @@
     <div class="relative w-full h-screen flex flex-col overflow-hidden">
         
         <!-- Top Floating Header & Search Command Bar -->
-        <header class="absolute top-3 left-3 right-3 z-30 pointer-events-none flex flex-col gap-2.5">
-            <div class="flex flex-wrap items-center justify-between gap-2.5">
+        <header class="absolute top-3 left-3 right-3 z-30 pointer-events-none flex flex-col gap-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
                 
                 <!-- Brand & Search Box Card -->
-                <div class="pointer-events-auto flex items-center bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/80 rounded-2xl px-3.5 py-2 w-full md:w-[460px] lg:w-[520px] transition-all">
+                <div class="pointer-events-auto flex items-center bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/90 rounded-2xl px-3.5 py-2 w-full md:w-[440px] lg:w-[490px] transition-all">
                     <!-- Brand Emblem -->
                     <div class="flex items-center gap-2.5 pr-3 border-r border-slate-200 shrink-0 cursor-pointer" onclick="resetMapView()">
                         <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 via-amber-500 to-teal-700 flex items-center justify-center text-white shadow-sm">
@@ -188,7 +176,7 @@
                         </button>
                     </div>
 
-                    <!-- Mobile/Desktop Directory Drawer Toggle -->
+                    <!-- Directory Drawer Toggle -->
                     <button 
                         id="toggleDirectoryBtn"
                         class="ml-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition shrink-0"
@@ -199,19 +187,30 @@
                     </button>
                 </div>
 
-                <!-- Right Controls: State Filter, Map Style & Live Counter -->
-                <div class="pointer-events-auto flex items-center gap-2 flex-wrap">
+                <!-- Right Controls: State Filter, Render Mode Toggle, Map Style & Counter -->
+                <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     <!-- State Selector -->
-                    <div class="bg-white/95 backdrop-blur-md shadow-lg border border-slate-200/80 rounded-xl px-3 py-2 flex items-center gap-2">
+                    <div class="bg-white/95 backdrop-blur-md shadow-lg border border-slate-200/90 rounded-xl px-2.5 py-2 flex items-center gap-1.5">
                         <i class="fa-solid fa-location-dot text-orange-600 text-xs"></i>
-                        <select id="stateFilter" class="bg-transparent text-xs sm:text-sm font-medium text-slate-700 focus:outline-none cursor-pointer max-w-[145px] sm:max-w-[180px]">
+                        <select id="stateFilter" class="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer max-w-[140px] sm:max-w-[175px]">
                             <option value="ALL">All States & UTs (36)</option>
                         </select>
                     </div>
 
-                    <!-- Map Tile Switcher -->
-                    <div class="bg-white/95 backdrop-blur-md shadow-lg border border-slate-200/80 rounded-xl p-1 flex items-center gap-1">
-                        <button onclick="setMapLayer('voyager')" id="btn-layer-voyager" class="layer-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition">
+                    <!-- Render Mode Toggle: Clustered vs All 5,280+ Canvas Pins -->
+                    <button 
+                        id="toggleRenderModeBtn"
+                        onclick="toggleRenderMode()"
+                        class="bg-white/95 hover:bg-orange-50 backdrop-blur-md shadow-lg border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 flex items-center gap-1.5 transition"
+                        title="Switch between Smart Clusters and showing all 5,280+ pins simultaneously"
+                    >
+                        <i id="renderModeIcon" class="fa-solid fa-layer-group text-orange-600"></i>
+                        <span id="renderModeLabel">Clustered View</span>
+                    </button>
+
+                    <!-- Map Tile Switcher (100% Free No-API-Key Layers) -->
+                    <div class="bg-white/95 backdrop-blur-md shadow-lg border border-slate-200/90 rounded-xl p-1 flex items-center gap-1">
+                        <button onclick="setMapLayer('osm')" id="btn-layer-osm" class="layer-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition">
                             <i class="fa-solid fa-map mr-1"></i>Atlas
                         </button>
                         <button onclick="setMapLayer('terrain')" id="btn-layer-terrain" class="layer-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
@@ -223,16 +222,16 @@
                     </div>
 
                     <!-- Live Marker Count Pill -->
-                    <div class="hidden lg:flex items-center gap-2 bg-slate-900/90 backdrop-blur-md text-white shadow-lg rounded-xl px-3.5 py-2 text-xs font-medium border border-slate-700/70">
+                    <div class="hidden xl:flex items-center gap-2 bg-slate-900/95 backdrop-blur-md text-white shadow-lg rounded-xl px-3.5 py-2 text-xs font-medium border border-slate-700/80">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span id="markerCountBadge">5,240 Tourist Spots Mapped</span>
+                        <span id="markerCountBadge">5,285 Tourist Spots Mapped</span>
                     </div>
                 </div>
             </div>
 
             <!-- Category Filter Pills Row -->
             <div class="pointer-events-auto flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 max-w-full">
-                <button data-category="ALL" class="cat-pill active-pill px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-md bg-slate-900 text-white border border-slate-800 transition shrink-0 flex items-center gap-1.5">
+                <button data-category="ALL" class="cat-pill px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-md bg-slate-900 text-white border border-slate-800 transition shrink-0 flex items-center gap-1.5">
                     <i class="fa-solid fa-globe"></i> All Destinations
                 </button>
                 <button data-category="Spiritual" class="cat-pill px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-md bg-white/95 text-slate-700 hover:bg-orange-50 border border-slate-200/80 transition shrink-0 flex items-center gap-1.5">
@@ -256,7 +255,7 @@
             </div>
 
             <!-- Live Search Autocomplete Dropdown -->
-            <div id="searchResultsDropdown" class="hidden pointer-events-auto w-full md:w-[460px] lg:w-[520px] bg-white/98 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden max-h-[380px] flex flex-col">
+            <div id="searchResultsDropdown" class="hidden pointer-events-auto w-full md:w-[440px] lg:w-[490px] bg-white/98 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden max-h-[380px] flex flex-col">
                 <div class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     <span id="searchResultHeader">Matching Destinations</span>
                     <span>Click to inspect</span>
@@ -268,10 +267,10 @@
         <!-- Interactive Map Canvas -->
         <main id="map" class="flex-1 w-full h-full"></main>
 
-        <!-- Bottom Floating Quick-Jump Iconic Bar & Legend -->
+        <!-- Bottom Floating Quick-Jump Iconic Bar & Reset Controls -->
         <div class="absolute bottom-4 left-3 right-3 z-20 pointer-events-none flex flex-col sm:flex-row items-start sm:items-end justify-between gap-2">
             <!-- Featured Quick-Jump Chips -->
-            <div class="pointer-events-auto bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/80 rounded-2xl p-2 flex items-center gap-1.5 max-w-full overflow-x-auto no-scrollbar">
+            <div class="pointer-events-auto bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/90 rounded-2xl p-2 flex items-center gap-1.5 max-w-full overflow-x-auto no-scrollbar">
                 <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2 shrink-0">Iconic:</span>
                 <button onclick="openSpotByName('Haridwar')" class="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-800 text-xs font-semibold transition shrink-0 border border-orange-200/70">
                     <i class="fa-solid fa-om mr-1 text-orange-600"></i>Haridwar
@@ -299,16 +298,16 @@
                 </button>
             </div>
 
-            <!-- Reset India View Button -->
+            <!-- Reset India View & All Pins Quick Action -->
             <div class="pointer-events-auto flex items-center gap-2 self-end">
-                <button onclick="resetMapView()" class="bg-white/95 hover:bg-slate-50 backdrop-blur-md text-slate-800 shadow-xl border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold flex items-center gap-2 transition" title="Reset view to all of India">
+                <button onclick="resetMapView()" class="bg-white/95 hover:bg-slate-50 backdrop-blur-md text-slate-800 shadow-xl border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs font-semibold flex items-center gap-2 transition" title="Reset view to all of India">
                     <i class="fa-solid fa-expand text-orange-600"></i>
                     <span>All India View</span>
                 </button>
             </div>
         </div>
 
-        <!-- Left Slide-Over Directory Drawer (Browse Filtered Spots) -->
+        <!-- Left Slide-Over Directory Drawer -->
         <aside id="directoryDrawer" class="fixed top-0 left-0 bottom-0 w-full sm:w-[390px] bg-white shadow-2xl z-40 transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-r border-slate-200">
             <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
                 <div>
@@ -320,9 +319,8 @@
                 </button>
             </div>
             
-            <!-- Quick Filter Tabs inside Directory -->
             <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
-                <span class="font-semibold text-slate-600" id="directoryCountLabel">5,240 places available</span>
+                <span class="font-semibold text-slate-600" id="directoryCountLabel">5,285 places available</span>
                 <button onclick="jumpToRandomSpot()" class="text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1">
                     <i class="fa-solid fa-shuffle"></i> Surprise Me
                 </button>
@@ -455,7 +453,7 @@
                         <!-- Nearby Destinations in Same State -->
                         <div class="pt-4 border-t border-slate-200">
                             <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                                <i class="fa-solid fa-compass text-peacock-700"></i> More Destinations in <span id="nearbyStateName">this Region</span>
+                                <i class="fa-solid fa-compass text-sky-700"></i> More Destinations in <span id="nearbyStateName">this Region</span>
                             </h4>
                             <div id="nearbySpotsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
                         </div>
@@ -481,15 +479,13 @@
     </div>
 
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    
-    <!-- Leaflet MarkerCluster JS -->
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <script>
         /**
          * BHARAT EXPLORER: INTERACTIVE TOURIST ATLAS OF INDIA
-         * Complete dataset + procedural 5,200+ geographic generator + live Wikipedia REST/Action API integration
+         * Zero-API-Key OpenStreetMap + Native Spatial Grid Clustering + 60fps Leaflet Canvas All-Pins Mode
+         * + Live English Wikipedia Encyclopedic Reader for 5,280+ Destinations
          */
 
         // =========================================================================
@@ -505,7 +501,7 @@
         };
 
         // =========================================================================
-        // 2. CURATED ICONIC DESTINATIONS (68 REAL-WORLD LANDMARKS WITH WIKI TITLES)
+        // 2. CURATED ICONIC DESTINATIONS (85+ REAL-WORLD LANDMARKS WITH WIKI TITLES)
         // =========================================================================
         const ICONIC_DESTINATIONS = [
             {
@@ -540,6 +536,39 @@
                 tagline: "Yoga Capital of the World & Himalayan White-Water Rafting Hub",
                 highlights: ["Laxman Jhula & Ram Jhula Suspension Bridges", "Parmarth Niketan Ganga Aarti", "White-Water Rafting & Bungee Jumping", "Beatles Ashram (Chaurasi Kutia)"],
                 summary: "Nestled in the foothills of the Himalayas along the converging Ganges and Chandrabhaga rivers, Rishikesh is internationally renowned as the 'Yoga Capital of the World'. It blends serene meditation ashrams with thrilling river rafting, cliff jumping, and Himalayan trekking."
+            },
+            {
+                name: "Kedarnath Temple",
+                wikiTitle: "Kedarnath Temple",
+                state: "Uttarakhand",
+                category: "Spiritual",
+                lat: 30.7352,
+                lng: 79.0669,
+                tagline: "Highest of the Twelve Jyotirlingas Amidst Snow-Clad Garhwal Peaks",
+                highlights: ["Ancient Stone Temple at 3,583 Meters", "Chota Char Dham Himalayan Pilgrimage", "Mandakini River Valley Trek", "Chorabari Glacier & Bhairavnath Temple"],
+                summary: "Situated near the Mandakini river in the Garhwal Himalayas at 3,583 meters, Kedarnath Temple is one of the holiest Hindu shrines dedicated to Lord Shiva and a key pillar of the Chota Char Dham pilgrimage."
+            },
+            {
+                name: "Badrinath",
+                wikiTitle: "Badrinath",
+                state: "Uttarakhand",
+                category: "Spiritual",
+                lat: 30.7433,
+                lng: 79.4938,
+                tagline: "Sacred Char Dham Shrine of Lord Vishnu Along the Alaknanda River",
+                highlights: ["Badrinath Temple & Tapt Kund Hot Springs", "Mana — India's Last Himalayan Village", "Vasudhara Falls & Neelkanth Peak", "Char Dham & Chota Char Dham Circuit"],
+                summary: "Nestled between the Nar and Narayana mountain ranges along the Alaknanda River, Badrinath is one of Hinduism's four major Char Dham pilgrimage sites."
+            },
+            {
+                name: "Ayodhya",
+                wikiTitle: "Ayodhya",
+                state: "Uttar Pradesh",
+                category: "Spiritual",
+                lat: 26.7922,
+                lng: 82.1998,
+                tagline: "Ancient Capital of Kosala & Birthplace of Lord Rama on the Sarayu",
+                highlights: ["Shri Ram Janmabhoomi Mandir", "Hanuman Garhi & Kanak Bhawan", "Ram Ki Paidi Deepotsav Ghat", "Saryu River Evening Aarti"],
+                summary: "Set on the banks of the sacred Sarayu River, Ayodhya is revered as one of the seven most sacred cities (Sapta Puri) in Hinduism and the legendary capital of the ancient Kosala Kingdom."
             },
             {
                 name: "Taj Mahal",
@@ -597,6 +626,17 @@
                 summary: "Spread across seven scenic Himalayan ridges, Shimla retains timeless colonial architecture, neo-Gothic churches, and panoramic mountain vistas, connected to the plains via the engineering marvel of the Kalka–Shimla mountain railway."
             },
             {
+                name: "Dharamshala & McLeod Ganj",
+                wikiTitle: "Dharamshala",
+                state: "Himachal Pradesh",
+                category: "Spiritual",
+                lat: 32.2190,
+                lng: 76.3234,
+                tagline: "Little Lhasa — Home of the Dalai Lama & Dhauladhar Peaks",
+                highlights: ["Tsuglagkhang Complex & Namgyal Monastery", "Triund Ridge Himalayan Trek", "Bhagsunag Waterfall & St. John in the Wilderness", "HPCA High-Altitude Cricket Stadium"],
+                summary: "Set against the snow-clad Dhauladhar range in Kangra Valley, Dharamshala and upper McLeod Ganj form the spiritual center of the Tibetan exile community in India."
+            },
+            {
                 name: "Darjeeling",
                 wikiTitle: "Darjeeling",
                 state: "West Bengal",
@@ -605,7 +645,7 @@
                 lng: 88.2663,
                 tagline: "Queen of the Himalayas, World-Famous Tea Gardens & Kanchenjunga Views",
                 highlights: ["Tiger Hill Sunrise over Mount Kanchenjunga", "Darjeeling Himalayan Railway (UNESCO Toy Train)", "Happy Valley & Makaibari Tea Estates", "Batasia Loop & Padmaja Naidu Himalayan Zoo"],
-                summary: "Situated in the Lesser Himalayas of West Bengal at 2,042 meters, Darjeeling is internationally celebrated for its aromatic orthodox Darjeeling tea, emerald terraced slopes, colonial heritage, and sweeping views of Mount Kanchenjunga, the world's third-highest peak."
+                summary: "Situated in the Lesser Himalayas of West Bengal at 2,042 meters, Darjeeling is internationally celebrated for its aromatic orthodox Darjeeling tea, emerald terraced slopes, colonial heritage, and sweeping views of Mount Kanchenjunga."
             },
             {
                 name: "Kolkata",
@@ -1260,49 +1300,46 @@
 
         // =========================================================================
         // 3. ALL 36 INDIAN STATES & UNION TERRITORIES BOUNDING CLUSTERS
-        //    Used to procedurally generate 5,200+ authentic regional heritage,
-        //    temple, fort, waterfall, sanctuary, and hill destinations across India!
         // =========================================================================
         const INDIA_REGIONS = [
-            { state: "Andhra Pradesh", lat: 15.9129, lng: 79.7400, rLat: 2.2, rLng: 1.8, count: 185, hubs: ["Visakhapatnam", "Araku Valley", "Vijayawada", "Lepakshi", "Gandikota", "Srisailam", "Amaravati", "Nellore", "Kurnool", "Ahobilam", "Horsley Hills", "Lambasingi", "Belum Caves", "Rajahmundry", "Konaseema"] },
-            { state: "Arunachal Pradesh", lat: 28.2180, lng: 94.7278, rLat: 1.1, rLng: 2.3, count: 120, hubs: ["Bomdila", "Dirang", "Mechuka", "Pasighat", "Along", "Roing", "Anini", "Namdapha", "Itanagar", "Daporijo", "Dong Valley", "Walong"] },
-            { state: "Assam", lat: 26.2006, lng: 92.9376, rLat: 0.9, rLng: 2.2, count: 165, hubs: ["Guwahati", "Kamakhya", "Manas", "Sivasagar", "Tezpur", "Haflong", "Dibrugarh", "Jorhat", "Pobitora", "Nameri", "Hajo", "Goalpara", "Silchar"] },
-            { state: "Bihar", lat: 25.6000, lng: 85.6000, rLat: 0.9, rLng: 1.6, count: 160, hubs: ["Rajgir", "Vaishali", "Patna", "Gaya", "Pawapuri", "Vikramshila", "Kesaria", "Valmiki Nagar", "Sasaram", "Munger", "Bhagalpur", "Madhubani", "Sitamarhi"] },
-            { state: "Chhattisgarh", lat: 21.2787, lng: 81.8661, rLat: 1.8, rLng: 1.2, count: 135, hubs: ["Jagdalpur", "Sirpur", "Mainpat", "Achanakmar", "Barnawapara", "Bhoramdeo", "Dantewada", "Dongargarh", "Raipur", "Kanger Valley", "Amritdhara", "Rajim"] },
-            { state: "Goa", lat: 15.3500, lng: 74.0200, rLat: 0.35, rLng: 0.22, count: 85, hubs: ["Anjuna", "Arambol", "Agonda", "Benaulim", "Colva", "Morjim", "Ashwem", "Candolim", "Chapora", "Divar Island", "Chorao", "Netravali", "Cotigao", "Tambdi Surla"] },
-            { state: "Gujarat", lat: 22.4500, lng: 71.5000, rLat: 1.5, rLng: 2.1, count: 210, hubs: ["Dwarka", "Somnath", "Champaner", "Patan", "Modhera", "Junagadh", "Girnar", "Saputara", "Bhuj", "Mandvi", "Dholavira", "Lothal", "Vadodara", "Ahmedabad", "Porbandar", "Velavadar", "Polo Forest"] },
-            { state: "Haryana", lat: 29.0588, lng: 76.0856, rLat: 1.0, rLng: 0.9, count: 110, hubs: ["Kurukshetra", "Pinjore", "Morni Hills", "Sultanpur", "Panipat", "Surajkund", "Hisar", "Narnaul", "Thanesar", "Kalesar", "Damdama", "Panchkula"] },
-            { state: "Himachal Pradesh", lat: 31.8500, lng: 77.2500, rLat: 1.0, rLng: 1.1, count: 220, hubs: ["Dharamshala", "McLeod Ganj", "Dalhousie", "Khajjiar", "Kasol", "Tosh", "Kheerganga", "Bir Billing", "Kinnaur", "Kalpa", "Chitkul", "Narkanda", "Tirthan Valley", "Jibhi", "Chamba", "Palampur", "Kasauli", "Barot"] },
-            { state: "Jharkhand", lat: 23.6102, lng: 85.2799, rLat: 1.0, rLng: 1.3, count: 125, hubs: ["Netarhat", "Deoghar", "Betla", "Hundru Falls", "Dassam Falls", "Jonha Falls", "Parasnath", "Ranchi", "Hazaribagh", "McCluskieganj", "Patratu", "Rajrappa"] },
-            { state: "Karnataka", lat: 14.5000, lng: 75.8000, rLat: 2.2, rLng: 1.4, count: 260, hubs: ["Badami", "Pattadakal", "Aihole", "Belur", "Halebidu", "Shravanabelagola", "Chikmagalur", "Mullayanagiri", "Kabini", "Bandipur", "Nagarhole", "Jog Falls", "Murudeshwar", "Udupi", "Dandeli", "Bijapur", "Bidar", "Sakleshpur", "Kudremukh", "Nandi Hills"] },
-            { state: "Kerala", lat: 10.3500, lng: 76.4500, rLat: 1.5, rLng: 0.65, count: 225, hubs: ["Wayanad", "Thekkady", "Periyar", "Varkala", "Kovalam", "Athirappilly", "Vagamon", "Kumarakom", "Bekal", "Thrissur", "Silent Valley", "Ponmudi", "Poovar", "Kannur", "Munroe Island", "Idukki", "Guruvayur"] },
-            { state: "Madhya Pradesh", lat: 23.4733, lng: 78.2000, rLat: 1.6, rLng: 2.5, count: 245, hubs: ["Ujjain", "Omkareshwar", "Maheshwar", "Mandu", "Bhimbetka", "Pachmarhi", "Kanha", "Pench", "Satpura", "Gwalior", "Chanderi", "Amarkantak", "Bhedaghat", "Jabalpur", "Bhopal", "Datia", "Burhanpur", "Panna"] },
-            { state: "Maharashtra", lat: 19.4000, lng: 75.5000, rLat: 1.8, rLng: 2.4, count: 280, hubs: ["Lonavala", "Khandala", "Matheran", "Alibaug", "Tarkarli", "Ratnagiri", "Ganpatipule", "Nashik", "Shirdi", "Trimbakeshwar", "Tadoba", "Kolhapur", "Raigad", "Sinhagad", "Bhandardara", "Kaas Plateau", "Panchgani", "Igatpuri", "Aurangabad", "Daulatabad", "Lavasa"] },
-            { state: "Manipur", lat: 24.7500, lng: 93.9000, rLat: 0.6, rLng: 0.5, count: 75, hubs: ["Imphal", "Ukhrul", "Kangla", "Moirang", "Andro", "Tamenglong", "Senapati", "Moreh", "Shirui Peak"] },
-            { state: "Meghalaya", lat: 25.4670, lng: 91.3662, rLat: 0.4, rLng: 1.0, count: 105, hubs: ["Dawki", "Mawlynnong", "Nongriat", "Jowai", "Krang Suri", "Nartiang", "Mawsynram", "Tura", "Nokrek", "Balpakram", "Laitlum", "Wei Sawdong"] },
-            { state: "Mizoram", lat: 23.1645, lng: 92.9376, rLat: 0.8, rLng: 0.4, count: 65, hubs: ["Aizawl", "Reiek", "Vantawng Falls", "Champhai", "Phawngpui", "Tam Dil", "Lunglei", "Hmuifang"] },
-            { state: "Nagaland", lat: 26.1584, lng: 94.5624, rLat: 0.7, rLng: 0.6, count: 75, hubs: ["Kohima", "Khonoma", "Mokokchung", "Mon", "Longwa", "Wokha", "Tuophema", "Benreu", "Japfu Peak"] },
-            { state: "Odisha", lat: 20.5000, lng: 84.8000, rLat: 1.4, rLng: 1.6, count: 185, hubs: ["Bhubaneswar", "Chilika", "Simlipal", "Bhitarkanika", "Daringbadi", "Gopalpur", "Raghurajpur", "Udayagiri", "Dhauli", "Hirakud", "Satkosia", "Koraput", "Deomali", "Chandipur", "Ratnagiri"] },
-            { state: "Punjab", lat: 30.9000, lng: 75.4000, rLat: 0.9, rLng: 1.1, count: 120, hubs: ["Anandpur Sahib", "Patiala", "Kapurthala", "Harike Wetland", "Ropar", "Bathinda", "Nangal", "Sultanpur Lodhi", "Chamkaur Sahib", "Fatehgarh Sahib", "Muktsar"] },
-            { state: "Rajasthan", lat: 26.8000, lng: 73.8000, rLat: 2.2, rLng: 2.5, count: 290, hubs: ["Jodhpur", "Pushkar", "Ajmer", "Bikaner", "Chittorgarh", "Kumbhalgarh", "Bundi", "Mandawa", "Shekhawati", "Alwar", "Sariska", "Bharatpur", "Keoladeo", "Osian", "Ranakpur", "Nathdwara", "Kota", "Jhalawar", "Neemrana"] },
-            { state: "Sikkim", lat: 27.4500, lng: 88.5000, rLat: 0.35, rLng: 0.35, count: 95, hubs: ["Lachung", "Yumthang Valley", "Lachen", "Gurudongmar Lake", "Zuluk", "Ravangla", "Namchi", "Dzongu", "Aritar", "Borong"] },
-            { state: "Tamil Nadu", lat: 10.9000, lng: 78.4000, rLat: 2.0, rLng: 1.3, count: 275, hubs: ["Kodaikanal", "Yercaud", "Yelagiri", "Valparai", "Coonoor", "Kotagiri", "Kanchipuram", "Chidambaram", "Kumbakonam", "Trichy", "Srirangam", "Chettinad", "Velankanni", "Pondy Coast", "Courtallam", "Hogenakkal", "Mudumalai", "Anamalai", "Pollachi", "Vellore"] },
-            { state: "Telangana", lat: 17.8500, lng: 79.1000, rLat: 1.3, rLng: 1.4, count: 145, hubs: ["Warangal", "Ramappa Temple", "Nagarjunasagar", "Bhadrachalam", "Yadadri", "Medak", "Ananthagiri Hills", "Kuntala Waterfall", "Pochera", "Basara", "Alampur", "Kawal", "Bidar Border"] },
-            { state: "Tripura", lat: 23.8000, lng: 91.6500, rLat: 0.45, rLng: 0.4, count: 65, hubs: ["Agartala", "Unakoti", "Neermahal", "Ujjayanta", "Sepahijala", "Jampui Hills", "Chabimura", "Tripura Sundari", "Dumboor Lake"] },
-            { state: "Uttar Pradesh", lat: 26.8500, lng: 80.9000, rLat: 1.6, rLng: 2.6, count: 265, hubs: ["Mathura", "Vrindavan", "Ayodhya", "Prayagraj", "Lucknow", "Sarnath", "Kushinagar", "Shravasti", "Jhansi", "Chitrakoot", "Dudhwa", "Fatehpur Sikri", "Naimisharanya", "Vindhyachal", "Hastinapur", "Barsana", "Govardhan", "Bateshwar"] },
-            { state: "Uttarakhand", lat: 30.2500, lng: 79.1000, rLat: 0.9, rLng: 1.3, count: 235, hubs: ["Nainital", "Mussoorie", "Kedarnath", "Badrinath", "Gangotri", "Yamunotri", "Almora", "Ranikhet", "Kausani", "Chopta", "Tungnath", "Munsiyari", "Binsar", "Bhimtal", "Mukteshwar", "Lansdowne", "Chakrata", "Dhanaulti", "Tehri", "Harsil"] },
-            { state: "West Bengal", lat: 23.6000, lng: 87.8500, rLat: 2.1, rLng: 1.0, count: 215, hubs: ["Kalimpong", "Mirik", "Kurseong", "Dooars", "Jaldapara", "Gorumara", "Buxa", "Shantiniketan", "Bishnupur", "Murshidabad", "Digha", "Mandarmani", "Tajpur", "Mayapur", "Nabadwip", "Tarapith", "Purulia", "Ajodhya Hills", "Cooch Behar", "Malda", "Gaur"] },
-            { state: "Andaman and Nicobar Islands", lat: 11.7401, lng: 92.6586, rLat: 1.5, rLng: 0.35, count: 60, hubs: ["Port Blair", "Neil Island", "Ross Island", "Baratang", "Diglipur", "Ross & Smith", "Long Island", "Cinque Island", "Wandoor", "Jolly Buoy", "Little Andaman"] },
-            { state: "Chandigarh", lat: 30.7333, lng: 76.7794, rLat: 0.06, rLng: 0.06, count: 25, hubs: ["Rock Garden", "Sukhna Lake", "Rose Garden", "Capitol Complex", "Elante Heritage", "Open Hand Monument"] },
-            { state: "Dadra and Nagar Haveli and Daman and Diu", lat: 20.3974, lng: 72.8328, rLat: 0.3, rLng: 0.35, count: 35, hubs: ["Diu Fort", "Nagoa Beach", "Ghoghla Beach", "Daman Ganga", "Jampore Beach", "Silvassa", "Vanganga Lake", "Dudhni"] },
-            { state: "Delhi", lat: 28.6139, lng: 77.2090, rLat: 0.14, rLng: 0.14, count: 55, hubs: ["Qutub Minar", "Humayun's Tomb", "Lotus Temple", "Akshardham", "Lodhi Garden", "Hauz Khas", "Purana Qila", "Safdarjung Tomb", "Mehrauli", "Connaught Place", "Agrasen ki Baoli"] },
-            { state: "Jammu and Kashmir", lat: 33.7500, lng: 75.1500, rLat: 0.8, rLng: 0.9, count: 145, hubs: ["Pahalgam", "Sonamarg", "Vaishno Devi", "Katra", "Patnitop", "Yusmarg", "Doodhpathri", "Gurez Valley", "Verinag", "Kokernag", "Bhaderwah", "Sanasar", "Aru Valley", "Betaab Valley"] },
-            { state: "Ladakh", lat: 34.1000, lng: 77.6000, rLat: 0.9, rLng: 1.3, count: 95, hubs: ["Pangong Tso", "Nubra Valley", "Diskit", "Hunder", "Turtuk", "Zanskar", "Padum", "Lamayuru", "Alchi", "Hanle", "Tso Moriri", "Kargil", "Drass"] },
-            { state: "Lakshadweep", lat: 10.5667, lng: 72.6417, rLat: 0.8, rLng: 0.6, count: 30, hubs: ["Kavaratti", "Minicoy", "Kadmat", "Kalpeni", "Thinnakara", "Amini", "Andrott"] },
-            { state: "Puducherry", lat: 11.9300, lng: 79.8200, rLat: 0.12, rLng: 0.12, count: 35, hubs: ["Auroville", "Serenity Beach", "Paradise Beach", "Chunnambar", "Arikamedu", "Karaikal", "Mahe", "Yanam"] }
+            { state: "Andhra Pradesh", lat: 15.9129, lng: 79.7400, rLat: 2.1, rLng: 1.7, count: 185, hubs: ["Visakhapatnam", "Araku Valley", "Vijayawada", "Lepakshi", "Gandikota", "Srisailam", "Amaravati", "Nellore", "Kurnool", "Ahobilam", "Horsley Hills", "Lambasingi", "Belum Caves", "Rajahmundry", "Konaseema"] },
+            { state: "Arunachal Pradesh", lat: 28.2180, lng: 94.7278, rLat: 1.0, rLng: 2.2, count: 120, hubs: ["Bomdila", "Dirang", "Mechuka", "Pasighat", "Along", "Roing", "Anini", "Namdapha", "Itanagar", "Daporijo", "Dong Valley", "Walong"] },
+            { state: "Assam", lat: 26.2006, lng: 92.9376, rLat: 0.85, rLng: 2.1, count: 165, hubs: ["Guwahati", "Kamakhya", "Manas", "Sivasagar", "Tezpur", "Haflong", "Dibrugarh", "Jorhat", "Pobitora", "Nameri", "Hajo", "Goalpara", "Silchar"] },
+            { state: "Bihar", lat: 25.6000, lng: 85.6000, rLat: 0.85, rLng: 1.5, count: 160, hubs: ["Rajgir", "Vaishali", "Patna", "Gaya", "Pawapuri", "Vikramshila", "Kesaria", "Valmiki Nagar", "Sasaram", "Munger", "Bhagalpur", "Madhubani", "Sitamarhi"] },
+            { state: "Chhattisgarh", lat: 21.2787, lng: 81.8661, rLat: 1.7, rLng: 1.15, count: 135, hubs: ["Jagdalpur", "Sirpur", "Mainpat", "Achanakmar", "Barnawapara", "Bhoramdeo", "Dantewada", "Dongargarh", "Raipur", "Kanger Valley", "Amritdhara", "Rajim"] },
+            { state: "Goa", lat: 15.3500, lng: 74.0200, rLat: 0.32, rLng: 0.20, count: 85, hubs: ["Anjuna", "Arambol", "Agonda", "Benaulim", "Colva", "Morjim", "Ashwem", "Candolim", "Chapora", "Divar Island", "Chorao", "Netravali", "Cotigao", "Tambdi Surla"] },
+            { state: "Gujarat", lat: 22.4500, lng: 71.5000, rLat: 1.4, rLng: 2.0, count: 210, hubs: ["Dwarka", "Somnath", "Champaner", "Patan", "Modhera", "Junagadh", "Girnar", "Saputara", "Bhuj", "Mandvi", "Dholavira", "Lothal", "Vadodara", "Ahmedabad", "Porbandar", "Velavadar", "Polo Forest"] },
+            { state: "Haryana", lat: 29.0588, lng: 76.0856, rLat: 0.95, rLng: 0.85, count: 110, hubs: ["Kurukshetra", "Pinjore", "Morni Hills", "Sultanpur", "Panipat", "Surajkund", "Hisar", "Narnaul", "Thanesar", "Kalesar", "Damdama", "Panchkula"] },
+            { state: "Himachal Pradesh", lat: 31.8500, lng: 77.2500, rLat: 0.95, rLng: 1.05, count: 220, hubs: ["Dharamshala", "McLeod Ganj", "Dalhousie", "Khajjiar", "Kasol", "Tosh", "Kheerganga", "Bir Billing", "Kinnaur", "Kalpa", "Chitkul", "Narkanda", "Tirthan Valley", "Jibhi", "Chamba", "Palampur", "Kasauli", "Barot"] },
+            { state: "Jharkhand", lat: 23.6102, lng: 85.2799, rLat: 0.95, rLng: 1.25, count: 125, hubs: ["Netarhat", "Deoghar", "Betla", "Hundru Falls", "Dassam Falls", "Jonha Falls", "Parasnath", "Ranchi", "Hazaribagh", "McCluskieganj", "Patratu", "Rajrappa"] },
+            { state: "Karnataka", lat: 14.5000, lng: 75.8000, rLat: 2.1, rLng: 1.35, count: 260, hubs: ["Badami", "Pattadakal", "Aihole", "Belur", "Halebidu", "Shravanabelagola", "Chikmagalur", "Mullayanagiri", "Kabini", "Bandipur", "Nagarhole", "Jog Falls", "Murudeshwar", "Udupi", "Dandeli", "Bijapur", "Bidar", "Sakleshpur", "Kudremukh", "Nandi Hills"] },
+            { state: "Kerala", lat: 10.3500, lng: 76.4500, rLat: 1.45, rLng: 0.60, count: 225, hubs: ["Wayanad", "Thekkady", "Periyar", "Varkala", "Kovalam", "Athirappilly", "Vagamon", "Kumarakom", "Bekal", "Thrissur", "Silent Valley", "Ponmudi", "Poovar", "Kannur", "Munroe Island", "Idukki", "Guruvayur"] },
+            { state: "Madhya Pradesh", lat: 23.4733, lng: 78.2000, rLat: 1.55, rLng: 2.4, count: 245, hubs: ["Ujjain", "Omkareshwar", "Maheshwar", "Mandu", "Bhimbetka", "Pachmarhi", "Kanha", "Pench", "Satpura", "Gwalior", "Chanderi", "Amarkantak", "Bhedaghat", "Jabalpur", "Bhopal", "Datia", "Burhanpur", "Panna"] },
+            { state: "Maharashtra", lat: 19.4000, lng: 75.5000, rLat: 1.75, rLng: 2.3, count: 280, hubs: ["Lonavala", "Khandala", "Matheran", "Alibaug", "Tarkarli", "Ratnagiri", "Ganpatipule", "Nashik", "Shirdi", "Trimbakeshwar", "Tadoba", "Kolhapur", "Raigad", "Sinhagad", "Bhandardara", "Kaas Plateau", "Panchgani", "Igatpuri", "Aurangabad", "Daulatabad", "Lavasa"] },
+            { state: "Manipur", lat: 24.7500, lng: 93.9000, rLat: 0.55, rLng: 0.48, count: 75, hubs: ["Imphal", "Ukhrul", "Kangla", "Moirang", "Andro", "Tamenglong", "Senapati", "Moreh", "Shirui Peak"] },
+            { state: "Meghalaya", lat: 25.4670, lng: 91.3662, rLat: 0.38, rLng: 0.95, count: 105, hubs: ["Dawki", "Mawlynnong", "Nongriat", "Jowai", "Krang Suri", "Nartiang", "Mawsynram", "Tura", "Nokrek", "Balpakram", "Laitlum", "Wei Sawdong"] },
+            { state: "Mizoram", lat: 23.1645, lng: 92.9376, rLat: 0.75, rLng: 0.38, count: 65, hubs: ["Aizawl", "Reiek", "Vantawng Falls", "Champhai", "Phawngpui", "Tam Dil", "Lunglei", "Hmuifang"] },
+            { state: "Nagaland", lat: 26.1584, lng: 94.5624, rLat: 0.65, rLng: 0.55, count: 75, hubs: ["Kohima", "Khonoma", "Mokokchung", "Mon", "Longwa", "Wokha", "Tuophema", "Benreu", "Japfu Peak"] },
+            { state: "Odisha", lat: 20.5000, lng: 84.8000, rLat: 1.35, rLng: 1.55, count: 185, hubs: ["Bhubaneswar", "Chilika", "Simlipal", "Bhitarkanika", "Daringbadi", "Gopalpur", "Raghurajpur", "Udayagiri", "Dhauli", "Hirakud", "Satkosia", "Koraput", "Deomali", "Chandipur", "Ratnagiri"] },
+            { state: "Punjab", lat: 30.9000, lng: 75.4000, rLat: 0.85, rLng: 1.05, count: 120, hubs: ["Anandpur Sahib", "Patiala", "Kapurthala", "Harike Wetland", "Ropar", "Bathinda", "Nangal", "Sultanpur Lodhi", "Chamkaur Sahib", "Fatehgarh Sahib", "Muktsar"] },
+            { state: "Rajasthan", lat: 26.8000, lng: 73.8000, rLat: 2.1, rLng: 2.4, count: 290, hubs: ["Jodhpur", "Pushkar", "Ajmer", "Bikaner", "Chittorgarh", "Kumbhalgarh", "Bundi", "Mandawa", "Shekhawati", "Alwar", "Sariska", "Bharatpur", "Keoladeo", "Osian", "Ranakpur", "Nathdwara", "Kota", "Jhalawar", "Neemrana"] },
+            { state: "Sikkim", lat: 27.4500, lng: 88.5000, rLat: 0.32, rLng: 0.32, count: 95, hubs: ["Lachung", "Yumthang Valley", "Lachen", "Gurudongmar Lake", "Zuluk", "Ravangla", "Namchi", "Dzongu", "Aritar", "Borong"] },
+            { state: "Tamil Nadu", lat: 10.9000, lng: 78.4000, rLat: 1.95, rLng: 1.25, count: 275, hubs: ["Kodaikanal", "Yercaud", "Yelagiri", "Valparai", "Coonoor", "Kotagiri", "Kanchipuram", "Chidambaram", "Kumbakonam", "Trichy", "Srirangam", "Chettinad", "Velankanni", "Pondy Coast", "Courtallam", "Hogenakkal", "Mudumalai", "Anamalai", "Pollachi", "Vellore"] },
+            { state: "Telangana", lat: 17.8500, lng: 79.1000, rLat: 1.25, rLng: 1.35, count: 145, hubs: ["Warangal", "Ramappa Temple", "Nagarjunasagar", "Bhadrachalam", "Yadadri", "Medak", "Ananthagiri Hills", "Kuntala Waterfall", "Pochera", "Basara", "Alampur", "Kawal", "Bidar Border"] },
+            { state: "Tripura", lat: 23.8000, lng: 91.6500, rLat: 0.42, rLng: 0.38, count: 65, hubs: ["Agartala", "Unakoti", "Neermahal", "Ujjayanta", "Sepahijala", "Jampui Hills", "Chabimura", "Tripura Sundari", "Dumboor Lake"] },
+            { state: "Uttar Pradesh", lat: 26.8500, lng: 80.9000, rLat: 1.55, rLng: 2.5, count: 265, hubs: ["Mathura", "Vrindavan", "Prayagraj", "Lucknow", "Sarnath", "Kushinagar", "Shravasti", "Jhansi", "Chitrakoot", "Dudhwa", "Fatehpur Sikri", "Naimisharanya", "Vindhyachal", "Hastinapur", "Barsana", "Govardhan", "Bateshwar"] },
+            { state: "Uttarakhand", lat: 30.2500, lng: 79.1000, rLat: 0.85, rLng: 1.25, count: 235, hubs: ["Nainital", "Mussoorie", "Gangotri", "Yamunotri", "Almora", "Ranikhet", "Kausani", "Chopta", "Tungnath", "Munsiyari", "Binsar", "Bhimtal", "Mukteshwar", "Lansdowne", "Chakrata", "Dhanaulti", "Tehri", "Harsil"] },
+            { state: "West Bengal", lat: 23.6000, lng: 87.8500, rLat: 2.0, rLng: 0.95, count: 215, hubs: ["Kalimpong", "Mirik", "Kurseong", "Dooars", "Jaldapara", "Gorumara", "Buxa", "Shantiniketan", "Bishnupur", "Murshidabad", "Digha", "Mandarmani", "Tajpur", "Mayapur", "Nabadwip", "Tarapith", "Purulia", "Ajodhya Hills", "Cooch Behar", "Malda", "Gaur"] },
+            { state: "Andaman and Nicobar Islands", lat: 11.7401, lng: 92.6586, rLat: 1.4, rLng: 0.32, count: 60, hubs: ["Port Blair", "Neil Island", "Ross Island", "Baratang", "Diglipur", "Ross & Smith", "Long Island", "Cinque Island", "Wandoor", "Jolly Buoy", "Little Andaman"] },
+            { state: "Chandigarh", lat: 30.7333, lng: 76.7794, rLat: 0.05, rLng: 0.05, count: 25, hubs: ["Rock Garden", "Sukhna Lake", "Rose Garden", "Capitol Complex", "Elante Heritage", "Open Hand Monument"] },
+            { state: "Dadra and Nagar Haveli and Daman and Diu", lat: 20.3974, lng: 72.8328, rLat: 0.28, rLng: 0.32, count: 35, hubs: ["Diu Fort", "Nagoa Beach", "Ghoghla Beach", "Daman Ganga", "Jampore Beach", "Silvassa", "Vanganga Lake", "Dudhni"] },
+            { state: "Delhi", lat: 28.6139, lng: 77.2090, rLat: 0.13, rLng: 0.13, count: 55, hubs: ["Qutub Minar", "Humayun's Tomb", "Lotus Temple", "Akshardham", "Lodhi Garden", "Hauz Khas", "Purana Qila", "Safdarjung Tomb", "Mehrauli", "Connaught Place", "Agrasen ki Baoli"] },
+            { state: "Jammu and Kashmir", lat: 33.7500, lng: 75.1500, rLat: 0.75, rLng: 0.85, count: 145, hubs: ["Pahalgam", "Sonamarg", "Vaishno Devi", "Katra", "Patnitop", "Yusmarg", "Doodhpathri", "Gurez Valley", "Verinag", "Kokernag", "Bhaderwah", "Sanasar", "Aru Valley", "Betaab Valley"] },
+            { state: "Ladakh", lat: 34.1000, lng: 77.6000, rLat: 0.85, rLng: 1.25, count: 95, hubs: ["Pangong Tso", "Nubra Valley", "Diskit", "Hunder", "Turtuk", "Zanskar", "Padum", "Lamayuru", "Alchi", "Hanle", "Tso Moriri", "Kargil", "Drass"] },
+            { state: "Lakshadweep", lat: 10.5667, lng: 72.6417, rLat: 0.75, rLng: 0.55, count: 30, hubs: ["Kavaratti", "Minicoy", "Kadmat", "Kalpeni", "Thinnakara", "Amini", "Andrott"] },
+            { state: "Puducherry", lat: 11.9300, lng: 79.8200, rLat: 0.11, rLng: 0.11, count: 35, hubs: ["Auroville", "Serenity Beach", "Paradise Beach", "Chunnambar", "Arikamedu", "Karaikal", "Mahe", "Yanam"] }
         ];
 
-        // Authentic Indian landmark suffixes for regional procedural generation
         const SPOT_TEMPLATES = {
             'Spiritual': ["Ancient Temple", "Sacred Ghat", "Heritage Shrine", "Monastery & Stupa", "Pilgrim Dham", "Hilltop Temple", "Ashram & Meditation Retreat", "Sacred Kund"],
             'Heritage': ["Historic Fort", "Royal Palace", "Stepwell (Baori)", "Archaeological Ruins", "Heritage Haveli", "Rock-Cut Caves", "Victory Memorial", "Colonial Clock Tower"],
@@ -1313,10 +1350,10 @@
         };
 
         // =========================================================================
-        // 4. DETERMINISTIC GENERATOR FOR 5,240+ INDIAN TOURIST DESTINATIONS
+        // 4. DETERMINISTIC GENERATOR FOR 5,285+ INDIAN TOURIST DESTINATIONS
         // =========================================================================
         function seededRandom(seed) {
-            let x = Math.sin(seed++) * 10000;
+            const x = Math.sin(seed) * 10000;
             return x - Math.floor(x);
         }
 
@@ -1324,7 +1361,6 @@
             const spots = [];
             let idCounter = 1;
 
-            // Add the 68 Iconic Hand-Curated Destinations first
             ICONIC_DESTINATIONS.forEach(item => {
                 spots.push({
                     id: idCounter++,
@@ -1341,7 +1377,6 @@
                 });
             });
 
-            // Generate 5,180+ Regional Destinations distributed across all 36 States & UTs
             const categories = Object.keys(CATEGORY_CONFIG);
             let seed = 42019;
 
@@ -1350,7 +1385,6 @@
                     seed++;
                     const hub = region.hubs[i % region.hubs.length];
                     
-                    // Pick category logically based on coastal/mountain/forest geography
                     let catPool = categories;
                     if (["Goa", "Andaman and Nicobar Islands", "Lakshadweep", "Puducherry", "Dadra and Nagar Haveli and Daman and Diu"].includes(region.state)) {
                         catPool = ["Beaches", "Beaches", "Heritage", "Nature & Hills", "Adventure"];
@@ -1367,7 +1401,6 @@
                     const subIndex = Math.floor(i / region.hubs.length) + 1;
                     const spotName = subIndex === 1 ? `${hub} ${suffix}` : `${hub} ${suffix} #${subIndex}`;
 
-                    // Gaussian-like spread around state center so points stay cleanly within Indian landmass
                     const u1 = seededRandom(seed + 13) - 0.5;
                     const u2 = seededRandom(seed + 29) - 0.5;
                     const lat = Number((region.lat + u1 * region.rLat * 1.65).toFixed(4));
@@ -1376,7 +1409,7 @@
                     spots.push({
                         id: idCounter++,
                         name: spotName,
-                        wikiTitle: hub, // Links directly to the real town/region Wikipedia article!
+                        wikiTitle: hub,
                         hubName: hub,
                         state: region.state,
                         category: category,
@@ -1402,7 +1435,7 @@
         const SPOT_BY_ID = new Map(ALL_DESTINATIONS.map(s => [s.id, s]));
 
         // =========================================================================
-        // 5. INITIALIZE LEAFLET MAP, TILE LAYERS & MARKER CLUSTERING
+        // 5. INITIALIZE LEAFLET MAP WITH 100% FREE NO-API-KEY TILE LAYERS
         // =========================================================================
         const INDIA_CENTER = [22.3511, 79.0889];
         const INDIA_ZOOM = 5;
@@ -1412,21 +1445,20 @@
             zoom: INDIA_ZOOM,
             minZoom: 4,
             maxZoom: 18,
-            zoomControl: false
+            zoomControl: false,
+            preferCanvas: true
         });
 
-        // Add Zoom Control to bottom-right above action bar
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        // Free No-API-Key Tile Layers
+        // Zero-API-Key Tile Providers (Works on any custom domain without watermarks)
         const tileLayers = {
-            voyager: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-                subdomains: 'abcd',
+            osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 maxZoom: 19
             }),
             terrain: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-                attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap',
+                attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Style: &copy; OpenTopoMap',
                 maxZoom: 17
             }),
             satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -1435,7 +1467,7 @@
             })
         };
 
-        let currentTileLayer = tileLayers.voyager.addTo(map);
+        let currentTileLayer = tileLayers.osm.addTo(map);
 
         function setMapLayer(layerKey) {
             if (currentTileLayer) map.removeLayer(currentTileLayer);
@@ -1452,7 +1484,17 @@
             }
         }
 
-        // Pre-build custom DivIcons per category for ultra-fast rendering
+        // =========================================================================
+        // 6. NATIVE SPATIAL GRID CLUSTERING + 60FPS CANVAS ALL-PINS ENGINE
+        //    Guarantees all 5,285+ tourist spots locate and render reliably!
+        // =========================================================================
+        const clusterLayerGroup = L.layerGroup().addTo(map);
+        const canvasRenderer = L.canvas({ padding: 0.5 });
+        const allCanvasLayerGroup = L.layerGroup();
+
+        let renderMode = 'clustered'; // 'clustered' | 'all_pins'
+
+        // Pre-build category DivIcons for individual pins
         const categoryIcons = {};
         const iconicCategoryIcons = {};
 
@@ -1465,30 +1507,155 @@
             });
             iconicCategoryIcons[cat] = L.divIcon({
                 className: '',
-                html: `<div class="custom-pin" style="width:32px;height:32px;background:${cfg.color};color:#fff;font-size:13px;box-shadow:0 0 0 3px rgba(255,255,255,0.85), 0 6px 14px rgba(0,0,0,0.35);"><i class="fa-solid ${cfg.icon}"></i></div>`,
+                html: `<div class="custom-pin" style="width:32px;height:32px;background:${cfg.color};color:#fff;font-size:13px;box-shadow:0 0 0 3px rgba(255,255,255,0.9), 0 6px 14px rgba(0,0,0,0.35);"><i class="fa-solid ${cfg.icon}"></i></div>`,
                 iconSize: [32, 32],
                 iconAnchor: [16, 16]
             });
         });
 
-        // High-Performance MarkerClusterGroup (chunkedLoading handles 5,200+ markers smoothly)
-        const markerClusterGroup = L.markerClusterGroup({
-            chunkedLoading: true,
-            chunkInterval: 100,
-            chunkDelay: 20,
-            maxClusterRadius: 55,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
-            zoomToBoundsOnClick: true
-        });
+        function toggleRenderMode() {
+            const btn = document.getElementById('toggleRenderModeBtn');
+            const label = document.getElementById('renderModeLabel');
+            const icon = document.getElementById('renderModeIcon');
 
-        map.addLayer(markerClusterGroup);
+            if (renderMode === 'clustered') {
+                renderMode = 'all_pins';
+                label.textContent = 'All 5,285 Pins';
+                icon.className = 'fa-solid fa-map-pin text-emerald-600';
+                btn.classList.add('ring-2', 'ring-orange-500/40', 'bg-orange-50/80');
+            } else {
+                renderMode = 'clustered';
+                label.textContent = 'Clustered View';
+                icon.className = 'fa-solid fa-layer-group text-orange-600';
+                btn.classList.remove('ring-2', 'ring-orange-500/40', 'bg-orange-50/80');
+            }
+            renderMapSpots();
+        }
 
-        // Pre-instantiate Leaflet Markers for all 5,200+ destinations
-        const allMarkers = ALL_DESTINATIONS.map(spot => {
+        function renderMapSpots() {
+            clusterLayerGroup.clearLayers();
+            allCanvasLayerGroup.clearLayers();
+
+            if (renderMode === 'all_pins') {
+                if (map.hasLayer(clusterLayerGroup)) map.removeLayer(clusterLayerGroup);
+                if (!map.hasLayer(allCanvasLayerGroup)) map.addLayer(allCanvasLayerGroup);
+
+                // Render ALL filtered spots simultaneously on high-speed HTML5 Canvas
+                filteredSpots.forEach(spot => {
+                    const cfg = CATEGORY_CONFIG[spot.category];
+                    const cm = L.circleMarker([spot.lat, spot.lng], {
+                        renderer: canvasRenderer,
+                        radius: spot.isIconic ? 7 : 4.5,
+                        fillColor: cfg.color,
+                        color: '#ffffff',
+                        weight: spot.isIconic ? 2 : 1.2,
+                        opacity: 1,
+                        fillOpacity: 0.92
+                    });
+
+                    cm.bindTooltip(
+                        `<div class="flex items-center gap-1.5">
+                            <span class="font-bold text-white">${spot.name}</span>
+                            <span class="text-slate-300 text-[11px]">• ${spot.state}</span>
+                        </div>`,
+                        { direction: 'top', offset: [0, -6], className: 'atlas-tooltip' }
+                    );
+
+                    cm.on('click', () => openDestinationDetail(spot));
+                    allCanvasLayerGroup.addLayer(cm);
+                });
+                return;
+            }
+
+            // Clustered View Mode
+            if (map.hasLayer(allCanvasLayerGroup)) map.removeLayer(allCanvasLayerGroup);
+            if (!map.hasLayer(clusterLayerGroup)) map.addLayer(clusterLayerGroup);
+
+            const zoom = map.getZoom();
+            const bounds = map.getBounds().pad(0.25);
+
+            // Filter to spots inside current viewport
+            const visibleSpots = filteredSpots.filter(s =>
+                s.lat >= bounds.getSouth() &&
+                s.lat <= bounds.getNorth() &&
+                s.lng >= bounds.getWest() &&
+                s.lng <= bounds.getEast()
+            );
+
+            // If zoomed in (zoom >= 9) or small filtered set (<= 220 spots), render every individual pin
+            if (zoom >= 9 || visibleSpots.length <= 220) {
+                visibleSpots.forEach(spot => {
+                    addIndividualPinMarker(spot);
+                });
+                return;
+            }
+
+            // Spatial Grid Clustering for Zoom 4..8
+            // Cell size in degrees shrinks exponentially as user zooms in
+            const cellSize = 42 / Math.pow(2, zoom);
+            const grid = new Map();
+
+            visibleSpots.forEach(spot => {
+                const gx = Math.floor(spot.lng / cellSize);
+                const gy = Math.floor(spot.lat / cellSize);
+                const key = `${gx}_${gy}`;
+
+                let cell = grid.get(key);
+                if (!cell) {
+                    cell = { spots: [], sumLat: 0, sumLng: 0 };
+                    grid.set(key, cell);
+                }
+                cell.spots.push(spot);
+                cell.sumLat += spot.lat;
+                cell.sumLng += spot.lng;
+            });
+
+            grid.forEach(cell => {
+                if (cell.spots.length === 1) {
+                    addIndividualPinMarker(cell.spots[0]);
+                } else {
+                    const count = cell.spots.length;
+                    const avgLat = cell.sumLat / count;
+                    const avgLng = cell.sumLng / count;
+
+                    const sizeClass = count < 25 ? 'atlas-cluster-sm' : (count < 120 ? 'atlas-cluster-md' : 'atlas-cluster-lg');
+                    const dim = count < 25 ? 36 : (count < 120 ? 44 : 52);
+
+                    const clusterIcon = L.divIcon({
+                        className: '',
+                        html: `<div class="atlas-cluster ${sizeClass}" style="width:${dim}px;height:${dim}px;">${count}</div>`,
+                        iconSize: [dim, dim],
+                        iconAnchor: [dim / 2, dim / 2]
+                    });
+
+                    const clusterMarker = L.marker([avgLat, avgLng], { icon: clusterIcon });
+                    clusterMarker.bindTooltip(
+                        `<div class="text-center">
+                            <span class="font-bold text-white">${count} Tourist Spots</span><br/>
+                            <span class="text-slate-300 text-[11px]">Click to zoom in</span>
+                        </div>`,
+                        { direction: 'top', offset: [0, -dim / 2], className: 'atlas-tooltip' }
+                    );
+
+                    clusterMarker.on('click', () => {
+                        const lats = cell.spots.map(s => s.lat);
+                        const lngs = cell.spots.map(s => s.lng);
+                        const cellBounds = L.latLngBounds(
+                            [Math.min(...lats), Math.min(...lngs)],
+                            [Math.max(...lats), Math.max(...lngs)]
+                        );
+                        map.fitBounds(cellBounds.pad(0.25), { maxZoom: Math.min(zoom + 3, 12) });
+                    });
+
+                    clusterLayerGroup.addLayer(clusterMarker);
+                }
+            });
+        }
+
+        function addIndividualPinMarker(spot) {
             const icon = spot.isIconic ? iconicCategoryIcons[spot.category] : categoryIcons[spot.category];
-            const marker = L.marker([spot.lat, spot.lng], { icon: icon, spotData: spot });
-            
+            const marker = L.marker([spot.lat, spot.lng], { icon: icon });
+
             marker.bindTooltip(
                 `<div class="flex items-center gap-1.5">
                     <span class="font-bold text-white">${spot.name}</span>
@@ -1497,15 +1664,18 @@
                 { direction: 'top', offset: [0, -10], className: 'atlas-tooltip' }
             );
 
-            marker.on('click', () => {
-                openDestinationDetail(spot);
-            });
+            marker.on('click', () => openDestinationDetail(spot));
+            clusterLayerGroup.addLayer(marker);
+        }
 
-            return marker;
+        map.on('moveend zoomend', () => {
+            if (renderMode === 'clustered') {
+                renderMapSpots();
+            }
         });
 
         // =========================================================================
-        // 6. FILTERING, SEARCH & DIRECTORY RENDERING
+        // 7. FILTERING, SEARCH & DIRECTORY RENDERING
         // =========================================================================
         let activeCategory = 'ALL';
         let activeState = 'ALL';
@@ -1538,27 +1708,20 @@
                 return matchCat && matchState && matchQuery;
             });
 
-            // Rebuild MarkerCluster efficiently
-            markerClusterGroup.clearLayers();
-            const matchingMarkers = [];
-            const filteredIds = new Set(filteredSpots.map(s => s.id));
-            for (let i = 0; i < allMarkers.length; i++) {
-                if (filteredIds.has(allMarkers[i].options.spotData.id)) {
-                    matchingMarkers.push(allMarkers[i]);
-                }
-            }
-            markerClusterGroup.addLayers(matchingMarkers);
-
-            // Update Live Counter Badge
             const badge = document.getElementById('markerCountBadge');
             badge.textContent = `${filteredSpots.length.toLocaleString()} Tourist Spots Mapped`;
 
-            // Auto-fit bounds when selecting a specific state
-            if (autoZoom && activeState !== 'ALL' && matchingMarkers.length > 0) {
-                const group = L.featureGroup(matchingMarkers);
-                map.fitBounds(group.getBounds().pad(0.15), { maxZoom: 9 });
+            if (autoZoom && activeState !== 'ALL' && filteredSpots.length > 0) {
+                const lats = filteredSpots.map(s => s.lat);
+                const lngs = filteredSpots.map(s => s.lng);
+                const stateBounds = L.latLngBounds(
+                    [Math.min(...lats), Math.min(...lngs)],
+                    [Math.max(...lats), Math.max(...lngs)]
+                );
+                map.fitBounds(stateBounds.pad(0.15), { maxZoom: 9 });
             }
 
+            renderMapSpots();
             renderDirectoryList();
         }
 
@@ -1606,7 +1769,6 @@
             }
 
             const q = searchQuery.trim().toLowerCase();
-            // Prioritize Iconic matches first, then prefix matches
             const matches = ALL_DESTINATIONS
                 .filter(s => s.name.toLowerCase().includes(q) || s.state.toLowerCase().includes(q) || s.category.toLowerCase().includes(q))
                 .sort((a, b) => {
@@ -1656,7 +1818,6 @@
             applyFilters(false);
         });
 
-        // Close search dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
                 searchDropdown.classList.add('hidden');
@@ -1667,7 +1828,7 @@
             const spot = SPOT_BY_ID.get(spotId);
             if (!spot) return;
             searchDropdown.classList.add('hidden');
-            map.flyTo([spot.lat, spot.lng], 12, { duration: 1.2 });
+            map.flyTo([spot.lat, spot.lng], 12, { duration: 1.1 });
             openDestinationDetail(spot);
         }
 
@@ -1675,25 +1836,25 @@
             const spot = ALL_DESTINATIONS.find(s => s.name.toLowerCase() === name.toLowerCase()) ||
                          ALL_DESTINATIONS.find(s => s.name.toLowerCase().includes(name.toLowerCase()));
             if (spot) {
-                map.flyTo([spot.lat, spot.lng], 11, { duration: 1.2 });
+                map.flyTo([spot.lat, spot.lng], 11, { duration: 1.1 });
                 openDestinationDetail(spot);
             }
         }
 
         function resetMapView() {
-            map.flyTo(INDIA_CENTER, INDIA_ZOOM, { duration: 1.1 });
+            map.flyTo(INDIA_CENTER, INDIA_ZOOM, { duration: 1.0 });
         }
 
         function jumpToRandomSpot() {
             const pool = filteredSpots.length ? filteredSpots : ALL_DESTINATIONS;
             const randomSpot = pool[Math.floor(Math.random() * pool.length)];
             closeDirectoryDrawer();
-            map.flyTo([randomSpot.lat, randomSpot.lng], 11, { duration: 1.2 });
+            map.flyTo([randomSpot.lat, randomSpot.lng], 11, { duration: 1.1 });
             openDestinationDetail(randomSpot);
         }
 
         // =========================================================================
-        // 7. LEFT DIRECTORY DRAWER CONTROLS
+        // 8. LEFT DIRECTORY DRAWER CONTROLS
         // =========================================================================
         const directoryDrawer = document.getElementById('directoryDrawer');
         const directoryList = document.getElementById('directoryList');
@@ -1711,7 +1872,6 @@
 
         function renderDirectoryList() {
             directoryCountLabel.textContent = `${filteredSpots.length.toLocaleString()} places matched`;
-            // Show Iconic spots first, capped at 120 items in DOM for instant snappy scroll
             const sorted = [...filteredSpots].sort((a, b) => (b.isIconic ? 1 : 0) - (a.isIconic ? 1 : 0)).slice(0, 120);
 
             directoryList.innerHTML = sorted.map(spot => {
@@ -1738,12 +1898,12 @@
             const spot = SPOT_BY_ID.get(spotId);
             if (!spot) return;
             closeDirectoryDrawer();
-            map.flyTo([spot.lat, spot.lng], 11, { duration: 1.2 });
+            map.flyTo([spot.lat, spot.lng], 11, { duration: 1.1 });
             openDestinationDetail(spot);
         }
 
         // =========================================================================
-        // 8. FULL ENCYCLOPEDIC DESTINATION READER + LIVE ENGLISH WIKIPEDIA API
+        // 9. FULL ENCYCLOPEDIC DESTINATION READER + LIVE ENGLISH WIKIPEDIA API
         // =========================================================================
         const detailDrawer = document.getElementById('detailDrawer');
         const drawerBackdrop = document.getElementById('drawerBackdrop');
@@ -1759,13 +1919,12 @@
 
         function flyToCurrentDetailSpot() {
             if (!currentDetailSpot) return;
-            map.flyTo([currentDetailSpot.lat, currentDetailSpot.lng], 13, { duration: 1.1 });
+            map.flyTo([currentDetailSpot.lat, currentDetailSpot.lng], 13, { duration: 1.0 });
             if (window.innerWidth < 768) {
                 closeDestinationDetail();
             }
         }
 
-        // Fallback curated travel banner generator when Wikipedia has no thumbnail
         function getFallbackHeroImage(category, name) {
             const paletteMap = {
                 'Spiritual': 'ea580c/ffffff',
@@ -1783,12 +1942,10 @@
             currentDetailSpot = spot;
             const cfg = CATEGORY_CONFIG[spot.category];
 
-            // Open Drawer & Scroll to Top
             detailDrawer.classList.remove('translate-x-full');
             if (window.innerWidth < 768) drawerBackdrop.classList.remove('hidden');
             document.getElementById('detailScrollContainer').scrollTop = 0;
 
-            // Populate Immediate Header & Metadata
             document.getElementById('detailHeaderTitle').textContent = spot.name;
             document.getElementById('detailMainTitle').textContent = spot.name;
             document.getElementById('detailSubtitle').textContent = `${spot.tagline} • ${spot.state}, India`;
@@ -1801,12 +1958,10 @@
             catBadge.textContent = spot.category;
             catBadge.className = `px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide ${cfg.bg} ${cfg.text}`;
 
-            // Fact Grid
             document.getElementById('factState').textContent = spot.state;
             document.getElementById('factCategory').textContent = spot.category;
             document.getElementById('factSeason').textContent = cfg.season;
 
-            // Highlights List
             document.getElementById('detailHighlightsList').innerHTML = spot.highlights.map(h => `
                 <li class="flex items-start gap-2">
                     <i class="fa-solid fa-circle-check text-orange-500 mt-1 text-xs shrink-0"></i>
@@ -1814,7 +1969,6 @@
                 </li>
             `).join('');
 
-            // Nearby Destinations in the Same State
             document.getElementById('nearbyStateName').textContent = spot.state;
             const nearby = ALL_DESTINATIONS
                 .filter(s => s.state === spot.state && s.id !== spot.id)
@@ -1831,13 +1985,11 @@
                 </button>
             `).join('');
 
-            // Set Wikipedia Links
             const wikiQueryTitle = spot.wikiTitle || spot.name;
             const fallbackWikiUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiQueryTitle.replace(/ /g, '_'))}`;
             document.getElementById('detailWikiTopLink').href = fallbackWikiUrl;
             document.getElementById('detailWikiBottomLink').href = fallbackWikiUrl;
 
-            // Set initial fallback hero image
             const heroImg = document.getElementById('detailHeroImage');
             heroImg.onerror = () => {
                 heroImg.onerror = null;
@@ -1845,7 +1997,6 @@
             };
             heroImg.src = getFallbackHeroImage(spot.category, spot.name);
 
-            // Show Loading State & Fetch Live English Wikipedia Data
             const wikiLoading = document.getElementById('wikiLoadingState');
             const wikiContent = document.getElementById('wikiContentSection');
             wikiLoading.classList.remove('hidden');
@@ -1853,8 +2004,6 @@
 
             try {
                 const wikiData = await fetchWikipediaDetails(wikiQueryTitle);
-
-                // Ensure user hasn't clicked another spot while fetching
                 if (currentDetailSpot.id !== spot.id) return;
 
                 if (wikiData && wikiData.extract) {
@@ -1866,16 +2015,14 @@
                         document.getElementById('detailWikiBottomLink').href = wikiData.pageUrl;
                     }
 
-                    // Combine curated local context + full encyclopedic Wikipedia summary
                     const leadText = spot.isIconic
                         ? wikiData.extract
-                        : `${spot.summary} Located in the historic region of ${wikiData.title}: ${wikiData.extract}`;
+                        : `${spot.summary}\n\nRegional Context (${wikiData.title}): ${wikiData.extract}`;
 
                     document.getElementById('detailLeadExtract').textContent = leadText;
                     document.getElementById('wikiStatusTag').textContent = `Wikipedia: ${wikiData.title}`;
                     document.getElementById('factSource').innerHTML = `<i class="fa-solid fa-circle-check text-xs"></i> Live Wiki`;
 
-                    // Render Full Detailed Sections from Wikipedia API
                     const sectionsContainer = document.getElementById('detailFullSections');
                     if (wikiData.sections && wikiData.sections.length > 0) {
                         sectionsContainer.innerHTML = wikiData.sections.map(sec => `
@@ -1892,7 +2039,6 @@
                 }
             } catch (err) {
                 if (currentDetailSpot.id !== spot.id) return;
-                // Graceful Offline/Fallback Rich Description
                 document.getElementById('detailLeadExtract').textContent = spot.summary;
                 document.getElementById('wikiStatusTag').textContent = 'Curated Atlas Entry';
                 document.getElementById('factSource').innerHTML = `<i class="fa-solid fa-book text-xs"></i> Atlas Guide`;
@@ -1912,10 +2058,6 @@
             }
         }
 
-        /**
-         * Fetches both REST Summary (for high-res thumbnail & canonical URL)
-         * and Action API full plain-text extract (for multi-section encyclopedic reading)
-         */
         async function fetchWikipediaDetails(title) {
             if (wikiCache.has(title)) {
                 return wikiCache.get(title);
@@ -1950,25 +2092,21 @@
                 }
             }
 
-            // Parse Wikipedia sections (== Heading ==) for clean structured reading
             const sections = [];
             let leadParagraph = summaryData?.extract || '';
 
             if (fullText) {
                 const parts = fullText.split(/\n==+\s*([^=]+?)\s*==+\n/);
                 if (parts[0] && parts[0].trim().length > leadParagraph.length) {
-                    // Take up to first 2 lead paragraphs
                     const introParas = parts[0].trim().split('\n\n').slice(0, 2).join('\n\n');
                     leadParagraph = introParas;
                 }
 
-                // Extract up to 5 rich encyclopedic sections (skipping References/External links)
                 const skipHeadings = new Set(['see also', 'references', 'external links', 'further reading', 'notes', 'bibliography']);
                 for (let i = 1; i < parts.length; i += 2) {
                     const heading = parts[i].trim();
                     const body = (parts[i + 1] || '').trim();
                     if (body.length > 80 && !skipHeadings.has(heading.toLowerCase()) && sections.length < 5) {
-                        // Trim overly massive sections while keeping thorough multi-paragraph depth
                         const cleanBody = body.length > 1400 ? body.slice(0, 1400).replace(/\s+\S*$/, '') + '...' : body;
                         sections.push({ heading, body: cleanBody });
                     }
@@ -1988,9 +2126,10 @@
         }
 
         // =========================================================================
-        // 9. BOOTSTRAP APPLICATION ON WINDOW LOAD
+        // 10. BOOTSTRAP APPLICATION IMMEDIATELY
         // =========================================================================
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('load', () => {
+            map.invalidateSize();
             applyFilters(false);
         });
     </script>
