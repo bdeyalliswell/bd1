@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#07090f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>StreamVault IPTV — Web & Mobile Cinema Player</title>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- HLS.js for adaptive streaming (.m3u8) -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
+
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: '#07090f',
+            surface: '#0f131f',
+            elevated: '#161c2c',
+            accentCyan: '#06b6d4',
+            accentIndigo: '#6366f1',
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'shimmer': 'shimmer 1.6s linear infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-6px)' },
+            },
+            shimmer: {
+              '0%': { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Base Obsidian Styling & Safe-Area Support for Mobile Notches */
+    :root {
+      --bg-obsidian: #07090f;
+      --glass-bg: rgba(15, 19, 31, 0.78);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-obsidian);
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      padding-top: var(--safe-top);
+      padding-bottom: calc(var(--safe-bottom) + 12px);
+      padding-left: var(--safe-left);
+      padding-right: var(--safe-right);
+      background-image: 
+        radial-gradient(circle at 12% 15%, rgba(99, 102, 241, 0.13) 0%, transparent 42%),
+        radial-gradient(circle at 88% 85%, rgba(6, 182, 212, 0.11) 0%, transparent 45%);
+    }
+
+    /* Glassmorphic Surfaces */
+    .glass-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--glass-border);
+    }
+
+    .glass-pill {
+      background: rgba(255, 255, 255, 0.045);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+      min-height: 38px;
+    }
+
+    @media (hover: hover) {
+      .glass-pill:hover {
+        background: rgba(255, 255, 255, 0.09);
+        border-color: rgba(6, 182, 212, 0.4);
+        transform: translateY(-1px);
+      }
+    }
+
+    .glass-pill:active {
+      transform: scale(0.96);
+    }
+
+    .glass-pill.active {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.24), rgba(99, 102, 241, 0.28));
+      border-color: rgba(6, 182, 212, 0.7);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+
+    /* Skeleton Shimmer Loader */
+    .skeleton-shimmer {
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite linear;
+    }
+
+    /* Sleek Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(7, 9, 15, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(6, 182, 212, 0.5);
+    }
+
+    /* Smooth Touch Momentum Scrolling for Horizontal Strips */
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Staggered Entrance Animation for Channel Cards */
+    @keyframes cardEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .channel-card {
+      animation: cardEntrance 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+      transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      min-height: 58px; /* Generous touch target height */
+    }
+
+    @media (hover: hover) {
+      .channel-card:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(6, 182, 212, 0.35);
+        transform: translateX(3px);
+      }
+    }
+
+    .channel-card:active {
+      transform: scale(0.985);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .channel-card.active {
+      background: linear-gradient(90deg, rgba(6, 182, 212, 0.18) 0%, rgba(99, 102, 241, 0.12) 100%);
+      border-color: rgba(6, 182, 212, 0.65);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), inset 3px 0 0 #06b6d4;
+    }
+
+    /* Animated Equalizer Bars for Currently Playing Channel */
+    .eq-bars {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+      width: 14px;
+    }
+    .eq-bar {
+      width: 3px;
+      background: #06b6d4;
+      border-radius: 2px;
+      animation: eqBounce 0.8s ease-in-out infinite alternate;
+    }
+    .eq-bar:nth-child(1) { height: 6px; animation-delay: 0.0s; }
+    .eq-bar:nth-child(2) { height: 14px; animation-delay: 0.25s; }
+    .eq-bar:nth-child(3) { height: 9px; animation-delay: 0.45s; }
+
+    @keyframes eqBounce {
+      0% { height: 4px; }
+      100% { height: 14px; }
+    }
+
+    /* Sticky Mobile Video Stage (<= 1023px) */
+    @media (max-width: 1023px) {
+      .mobile-sticky-player-wrap {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        margin-left: -0.75rem;
+        margin-right: -0.75rem;
+        background: #07090f;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
+      }
+      .mobile-sticky-player-wrap #playerContainer {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+      }
+    }
+
+    /* Player Overlay Auto-Hide Transition */
+    .player-controls-overlay {
+      background: linear-gradient(
+        to top,
+        rgba(7, 9, 15, 0.95) 0%,
+        rgba(7, 9, 15, 0.58) 50%,
+        transparent 100%
+      );
+      transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1), transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .player-top-overlay {
+      background: linear-gradient(
+        to bottom,
+        rgba(7, 9, 15, 0.90) 0%,
+        rgba(7, 9, 15, 0.42) 60%,
+        transparent 100%
+      );
+      transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1), transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .controls-hidden .player-controls-overlay {
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+    }
+
+    .controls-hidden .player-top-overlay {
+      opacity: 0;
+      transform: translateY(-8px);
+      pointer-events: none;
+    }
+
+    /* Theater Mode Layout Transition */
+    .theater-grid {
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Custom Range Input for Volume */
+    input[type="range"].volume-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 255, 255, 0.2);
+      height: 4px;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"].volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #06b6d4;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.85);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"].volume-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- ===================================================================== -->
+  <!-- TOP NAVIGATION & MULTI-M3U PLAYLIST SWITCHER HEADER                   -->
+  <!-- ===================================================================== -->
+  <header class="lg:sticky lg:top-0 z-30 glass-panel border-b border-white/10 px-3 sm:px-6 py-2.5 sm:py-3">
+    <div class="max-w-[1800px] mx-auto flex flex-col gap-2.5">
+      
+      <!-- Row 1: Brand, Search, Actions -->
+      <div class="flex flex-wrap items-center justify-between gap-2.5">
+        
+        <!-- Brand Logo -->
+        <div class="flex items-center gap-2.5 shrink-0">
+          <div class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25">
+            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#07090f] animate-pulse"></span>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="text-base sm:text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-cyan-100 to-indigo-200 bg-clip-text text-transparent">
+                StreamVault
+              </h1>
+              <span class="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                IPTV
+              </span>
+            </div>
+            <p id="repoStatusText" class="text-[11px] text-slate-400 hidden sm:block">
+              Multi-M3U Root Explorer
+            </p>
+          </div>
+        </div>
+
+        <!-- Right Header Controls: Recent, Favorites Filter, Add M3U Modal -->
+        <div class="flex items-center gap-1.5 sm:gap-2 order-2 md:order-3">
+          <!-- Recent History Button -->
+          <button
+            id="recentFilterBtn"
+            title="Show Recently Watched Channels"
+            class="glass-pill px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-300"
+          >
+            <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="hidden sm:inline">Recent</span>
+          </button>
+
+          <!-- Favorites Toggle Button -->
+          <button
+            id="favoritesFilterBtn"
+            title="Show Favorite Channels"
+            class="glass-pill px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-300"
+          >
+            <svg id="favFilterIcon" class="w-4 h-4 text-rose-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span class="hidden sm:inline">Favorites</span>
+            <span id="favCountBadge" class="text-[11px] font-mono px-1.5 py-0.2 rounded-full bg-white/10 text-slate-200">0</span>
+          </button>
+
+          <!-- Load Custom / Local M3U Button -->
+          <button
+            id="openCustomModalBtn"
+            title="Load local .m3u file, external URL, or configure GitHub Repo"
+            class="glass-pill px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-cyan-300 border-cyan-500/30 hover:border-cyan-400"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span class="hidden xs:inline sm:inline">Add / Sync</span>
+          </button>
+        </div>
+
+        <!-- Real-Time Search Bar (Full width on mobile row 2, centered on desktop) -->
+        <div class="relative flex-1 min-w-[200px] max-w-md order-3 md:order-2 w-full md:w-auto">
+          <div class="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            id="searchInput"
+            type="search"
+            inputmode="search"
+            placeholder="Search channels, groups, or #..."
+            class="w-full h-10 pl-10 pr-9 rounded-xl bg-white/[0.045] border border-white/10 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400/60 focus:bg-white/[0.08] transition-all"
+          />
+          <button
+            id="clearSearchBtn"
+            title="Clear search"
+            class="hidden absolute inset-y-0 right-2.5 flex items-center text-slate-400 hover:text-white p-1"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Row 2: Prominent Multi-M3U Root File Selector Strip -->
+      <div class="flex items-center gap-2 pt-1.5 border-t border-white/[0.06]">
+        <div class="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-slate-400 shrink-0 pr-1">
+          <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          <span class="hidden sm:inline">Playlists:</span>
+        </div>
+
+        <!-- Scrollable Playlist Pills Container -->
+        <div id="playlistTabsContainer" class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 flex-1">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <!-- Refresh Root Scan Button -->
+        <button
+          id="rescanPlaylistsBtn"
+          title="Re-scan root folder & GitHub repository for .m3u files"
+          class="shrink-0 p-2 rounded-xl text-slate-400 hover:text-cyan-300 hover:bg-white/5 transition-colors min-w-[38px] min-h-[38px] flex items-center justify-center"
+        >
+          <svg id="rescanIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- DEMO / GITHUB SETUP BANNER (Shown when running fallback demo list)    -->
+  <!-- ===================================================================== -->
+  <div id="demoBanner" class="hidden bg-gradient-to-r from-indigo-950/90 via-cyan-950/80 to-indigo-950/90 border-b border-cyan-500/25 px-3 sm:px-4 py-2 text-xs sm:text-sm">
+    <div class="max-w-[1800px] mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 text-cyan-100 min-w-0">
+        <span class="px-2 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono text-[10px] sm:text-[11px] font-semibold shrink-0">
+          DEMO
+        </span>
+        <span class="truncate sm:whitespace-normal">
+          Drop your <code class="px-1 py-0.5 rounded bg-black/40 text-cyan-300 font-mono">.m3u</code> files in your GitHub root folder to auto-load them here!
+        </span>
+      </div>
+      <button id="dismissBannerBtn" class="text-slate-300 hover:text-white text-xs underline shrink-0 px-2 py-1">
+        Dismiss
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MAIN CONTENT AREA: STICKY MOBILE VIDEO + CHANNEL BROWSER              -->
+  <!-- ===================================================================== -->
+  <main id="mainLayout" class="flex-1 max-w-[1800px] w-full mx-auto px-3 sm:px-5 pt-0 lg:pt-5 pb-4 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-5 theater-grid">
+    
+    <!-- LEFT / TOP: CINEMA VIDEO PLAYER STAGE (Sticky on Mobile & Tablet!) -->
+    <section id="playerSection" class="lg:col-span-8 flex flex-col gap-2.5 sm:gap-3">
+      
+      <!-- Sticky Wrapper on Mobile so Video Remains Visible While Browsing Channels -->
+      <div class="mobile-sticky-player-wrap">
+        <div
+          id="playerContainer"
+          class="relative w-full aspect-video bg-black lg:rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/80 group select-none"
+        >
+          <!-- HTML5 Video Element -->
+          <video
+            id="videoPlayer"
+            class="w-full h-full object-contain bg-black transition-all duration-300"
+            playsinline
+            webkit-playsinline
+            autoplay
+          ></video>
+
+          <!-- Swipe / Gesture Feedback Pill (Mobile & Touch) -->
+          <div id="gestureToast" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 px-4 py-2 rounded-2xl bg-black/80 backdrop-blur-md border border-cyan-400/40 text-xs font-semibold text-cyan-200 pointer-events-none shadow-2xl">
+            Next Channel
+          </div>
+
+          <!-- Idle / Welcome Placeholder State -->
+          <div id="idleOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#0c101a] to-[#07090f] p-4 sm:p-6 text-center z-10">
+            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-2.5 sm:mb-4 animate-float">
+              <svg class="w-6 h-6 sm:w-8 sm:h-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 class="text-base sm:text-xl font-bold text-white mb-1">Select a Channel to Watch</h2>
+            <p class="text-[11px] sm:text-sm text-slate-400 max-w-md">
+              Tap any channel below, switch <span class="text-cyan-400 font-mono">.m3u</span> playlists at the top, or swipe left/right on the player to zap channels.
+            </p>
+          </div>
+
+          <!-- Buffering Spinner Overlay -->
+          <div id="loadingOverlay" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-20 pointer-events-none">
+            <div class="relative w-12 h-12 sm:w-14 sm:h-14">
+              <div class="absolute inset-0 rounded-full border-2 border-cyan-500/20"></div>
+              <div class="absolute inset-0 rounded-full border-2 border-t-cyan-400 border-r-indigo-500 animate-spin"></div>
+            </div>
+            <p id="loadingText" class="mt-2.5 text-[11px] sm:text-xs font-mono uppercase tracking-widest text-cyan-300">
+              Connecting Stream...
+            </p>
+          </div>
+
+          <!-- Stream Error & Auto-Retry Overlay -->
+          <div id="errorOverlay" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-[#07090f]/94 backdrop-blur-md p-4 sm:p-6 text-center z-30">
+            <div class="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center mb-2 text-rose-400">
+              <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 class="text-sm sm:text-lg font-bold text-white mb-1">Stream Unavailable</h3>
+            <p id="errorReasonText" class="text-xs sm:text-sm text-slate-300 max-w-lg mb-2 line-clamp-2">
+              Unable to load this stream.
+            </p>
+            <p id="mixedContentHint" class="hidden text-[10px] sm:text-[11px] text-amber-300/95 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-1.5 max-w-lg mb-3">
+              <strong>HTTPS Notice:</strong> Browsers block insecure <code class="font-mono">http://</code> streams on <code class="font-mono">https://</code> GitHub Pages. Try an <code class="font-mono">https://</code> stream or switch channels.
+            </p>
+            <div class="flex items-center gap-2.5 mt-1">
+              <button
+                id="manualRetryBtn"
+                class="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-cyan-500/25 min-h-[40px]"
+              >
+                Retry (<span id="retryCountdown">5</span>s)
+              </button>
+              <button
+                id="errorNextChannelBtn"
+                class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium text-xs sm:text-sm transition-all min-h-[40px]"
+              >
+                Next Channel →
+              </button>
+            </div>
+          </div>
+
+          <!-- Top Video Overlay: Channel Badge, Live Dot, Resolution/Bitrate -->
+          <div class="player-top-overlay absolute top-0 inset-x-0 p-2.5 sm:p-4 flex items-start justify-between gap-2 z-20">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div id="overlayChannelLogo" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center overflow-hidden shrink-0">
+                <span class="text-xs font-bold text-cyan-300">TV</span>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span id="liveBadge" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                    LIVE
+                  </span>
+                  <span id="overlayChannelGroup" class="text-[10px] sm:text-[11px] font-medium text-cyan-300 truncate">
+                    General
+                  </span>
+                </div>
+                <h2 id="overlayChannelTitle" class="text-xs sm:text-base font-bold text-white truncate mt-0.5">
+                  No Channel Selected
+                </h2>
+              </div>
+            </div>
+
+            <!-- Technical Stream Badges (Resolution & Bitrate) -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span id="resolutionBadge" class="hidden px-2 py-0.5 sm:py-1 rounded-lg bg-black/65 backdrop-blur-md border border-white/15 text-[10px] sm:text-[11px] font-mono font-semibold text-cyan-300">
+                1080p
+              </span>
+              <span id="bitrateBadge" class="hidden sm:inline-block px-2 py-1 rounded-lg bg-black/65 backdrop-blur-md border border-white/15 text-[11px] font-mono text-slate-300">
+                -- Mbps
+              </span>
+            </div>
+          </div>
+
+          <!-- Bottom Video Controls Overlay -->
+          <div class="player-controls-overlay absolute bottom-0 inset-x-0 p-2 sm:p-4 flex flex-col gap-2 z-20">
+            <div class="flex items-center justify-between gap-1.5">
+              
+              <!-- Left Controls: Prev, Play/Pause, Next, Volume -->
+              <div class="flex items-center gap-1 sm:gap-2">
+                <!-- Prev Channel -->
+                <button id="prevChannelBtn" title="Previous Channel" class="p-2 rounded-xl hover:bg-white/15 active:bg-white/25 text-white transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                <!-- Play / Pause -->
+                <button id="playPauseBtn" title="Play / Pause" class="p-2 sm:p-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 text-slate-950 transition-all shadow-lg shadow-cyan-500/30 min-w-[40px] min-h-[40px] flex items-center justify-center">
+                  <svg id="playIcon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  <svg id="pauseIcon" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                  </svg>
+                </button>
+
+                <!-- Next Channel -->
+                <button id="nextChannelBtn" title="Next Channel" class="p-2 rounded-xl hover:bg-white/15 active:bg-white/25 text-white transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+
+                <!-- Mute & Volume Slider -->
+                <div class="flex items-center gap-1.5 pl-0.5">
+                  <button id="muteBtn" title="Mute / Unmute" class="p-2 rounded-xl hover:bg-white/15 active:bg-white/25 text-slate-200 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center">
+                    <svg id="volHighIcon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    <svg id="volMuteIcon" class="w-5 h-5 hidden text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                  </button>
+                  <input
+                    id="volumeSlider"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value="1"
+                    class="volume-slider w-16 sm:w-24 hidden sm:block"
+                  />
+                </div>
+              </div>
+
+              <!-- Right Controls: Quality Selector, Aspect Ratio, PiP, Theater, Fullscreen -->
+              <div class="flex items-center gap-1 sm:gap-1.5">
+                
+                <!-- HLS Quality Selector -->
+                <select
+                  id="qualitySelect"
+                  title="Stream Quality"
+                  class="appearance-none bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl px-2 sm:px-2.5 py-1.5 text-[11px] sm:text-xs font-mono text-white focus:outline-none focus:border-cyan-400 cursor-pointer min-h-[38px]"
+                >
+                  <option value="-1" class="bg-[#0f131f]">Auto</option>
+                </select>
+
+                <!-- Aspect Ratio Toggle -->
+                <button
+                  id="aspectRatioBtn"
+                  title="Cycle Aspect Ratio (Fit / Zoom / Fill)"
+                  class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-[11px] font-mono text-slate-200 transition-colors inline-flex items-center justify-center min-h-[38px]"
+                >
+                  <span id="aspectLabel">FIT</span>
+                </button>
+
+                <!-- Picture-in-Picture -->
+                <button
+                  id="pipBtn"
+                  title="Picture-in-Picture"
+                  class="p-2 rounded-xl hover:bg-white/15 text-slate-200 transition-colors hidden sm:inline-flex items-center justify-center min-w-[38px] min-h-[38px]"
+                >
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2zm6 9h4v3h-4v-3z" />
+                  </svg>
+                </button>
+
+                <!-- Theater Mode Toggle (Desktop) -->
+                <button
+                  id="theaterBtn"
+                  title="Theater Mode (T)"
+                  class="p-2 rounded-xl hover:bg-white/15 text-slate-200 transition-colors hidden lg:inline-flex items-center justify-center min-w-[38px] min-h-[38px]"
+                >
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 18h16M4 6v12M20 6v12" />
+                  </svg>
+                </button>
+
+                <!-- Fullscreen Toggle -->
+                <button
+                  id="fullscreenBtn"
+                  title="Fullscreen (F)"
+                  class="p-2 rounded-xl hover:bg-white/15 active:bg-white/25 text-white transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+                >
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Now Playing Info & Quick Action Strip Below Video -->
+      <div class="glass-panel rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2.5">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          <div id="infoBarLogo" class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+            <span class="text-xs sm:text-sm font-bold text-cyan-400">IPTV</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 id="infoBarTitle" class="text-sm sm:text-lg font-bold text-white truncate">
+                Ready to Stream
+              </h3>
+              <span id="infoBarPlaylistTag" class="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                playlist
+              </span>
+            </div>
+            <p id="infoBarMeta" class="text-[11px] sm:text-xs text-slate-400 truncate mt-0.5">
+              Choose any channel from the list or switch playlists above
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Favorite Current Channel Button -->
+          <button
+            id="infoBarFavBtn"
+            disabled
+            class="glass-pill px-3 py-2 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-300 disabled:opacity-40 disabled:pointer-events-none"
+          >
+            <svg id="infoBarFavIcon" class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span>Favorite</span>
+          </button>
+
+          <!-- Copy Stream URL Button -->
+          <button
+            id="copyStreamUrlBtn"
+            disabled
+            title="Copy direct stream URL"
+            class="glass-pill px-3 py-2 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-300 disabled:opacity-40 disabled:pointer-events-none"
+          >
+            <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <span id="copyUrlText">Copy URL</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT / BOTTOM: CHANNEL BROWSER & CATEGORY SIDEBAR -->
+    <aside id="sidebarSection" class="lg:col-span-4 glass-panel rounded-2xl flex flex-col lg:h-[calc(100vh-145px)] lg:min-h-[480px] overflow-hidden">
+      
+      <!-- Sidebar Top: Channel Stats & Category Group Filter Pills -->
+      <div class="p-3 sm:p-3.5 border-b border-white/10 flex flex-col gap-2.5 shrink-0 bg-white/[0.02]">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h2 id="sidebarHeaderTitle" class="text-sm font-bold text-white tracking-wide">Channels</h2>
+            <span id="channelCountBadge" class="text-xs font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+              0
+            </span>
+          </div>
+          <span id="activeGroupLabel" class="text-[11px] font-mono text-slate-400 truncate max-w-[160px]">
+            All Categories
+          </span>
+        </div>
+
+        <!-- Horizontal Category / Group Filter Strip -->
+        <div id="categoryPillsContainer" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          <!-- Populated dynamically from M3U group-title attributes -->
+        </div>
+      </div>
+
+      <!-- Scrollable Channel List Container -->
+      <div id="channelListContainer" class="flex-1 overflow-y-auto p-2 sm:p-2.5 space-y-1.5">
+        <!-- Populated dynamically with skeleton loaders & channel cards -->
+      </div>
+    </aside>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: ADD CUSTOM M3U / LOCAL FILE / GITHUB REPO CONFIGURATION        -->
+  <!-- ===================================================================== -->
+  <div id="customM3uModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md">
+    <div class="glass-panel border border-white/15 rounded-t-3xl sm:rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+          Manage & Add M3U Playlists
+        </h3>
+        <button id="closeModalBtn" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 min-w-[40px] min-h-[40px] flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="space-y-5 mt-4 pb-2">
+        <!-- Option 1: Upload Local .m3u/.m3u8 File -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-cyan-300 mb-2">
+            1. Open Local .M3U / .M3U8 File
+          </label>
+          <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/15 hover:border-cyan-400/60 rounded-xl cursor-pointer bg-white/[0.02] hover:bg-white/[0.05] transition-all">
+            <div class="flex flex-col items-center justify-center pt-2 pb-2 text-center px-3">
+              <svg class="w-6 h-6 text-cyan-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <p class="text-xs text-slate-300"><span class="font-semibold text-cyan-300">Tap to choose</span> one or multiple .m3u files</p>
+            </div>
+            <input id="localM3uFileInput" type="file" accept=".m3u,.m3u8,text/plain" multiple class="hidden" />
+          </label>
+        </div>
+
+        <!-- Option 2: Load Remote M3U URL -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-indigo-300 mb-2">
+            2. Load Remote M3U URL
+          </label>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input
+              id="customUrlNameInput"
+              type="text"
+              placeholder="Name (e.g. Sports)"
+              class="sm:w-1/3 h-11 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+            />
+            <input
+              id="customUrlInput"
+              type="url"
+              placeholder="https://example.com/playlist.m3u"
+              class="flex-1 h-11 px-3 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+            />
+            <button
+              id="loadCustomUrlBtn"
+              class="h-11 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-semibold text-sm shrink-0 shadow-lg shadow-cyan-500/20"
+            >
+              Load
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 3: GitHub Repository Auto-Discovery Override -->
+        <div class="pt-3 border-t border-white/10">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-emerald-300 mb-1">
+            3. GitHub Root Auto-Discovery (owner/repo)
+          </label>
+          <p class="text-[11px] text-slate-400 mb-2">
+            Auto-detected on <code class="text-slate-300">*.github.io</code>, or enter manually to fetch all <code class="text-slate-300">.m3u</code> files in a repo's root:
+          </p>
+          <div class="flex gap-2">
+            <input
+              id="githubRepoInput"
+              type="text"
+              placeholder="username/my-iptv-repo"
+              class="flex-1 h-11 px-3 rounded-xl bg-white/5 border border-white/10 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+            />
+            <button
+              id="syncGithubRepoBtn"
+              class="h-11 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-semibold text-sm shrink-0"
+            >
+              Scan Repo
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TOAST NOTIFICATION CONTAINER                                          -->
+  <!-- ===================================================================== -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex flex-col items-center sm:items-end gap-2 pointer-events-none"></div>
+
+  <!-- ===================================================================== -->
+  <!-- APPLICATION LOGIC (M3U PARSER, GITHUB AUTO-DISCOVERY, HLS ENGINE)     -->
+  <!-- ===================================================================== -->
+  <script>
+    /**
+     * =========================================================================
+     * USER CONFIGURATION: OPTIONAL MANUAL ROOT .M3U LIST & GITHUB REPO OVERRIDE
+     * =========================================================================
+     * 1. When deployed to GitHub Pages (*.github.io), StreamVault automatically
+     *    discovers ALL .m3u and .m3u8 files in your repository root folder!
+     * 2. If you use a custom domain on GitHub Pages, optionally set GITHUB_REPO
+     *    below (e.g., 'your-username/your-repo-name').
+     * 3. You can also list specific root files in MANUAL_PLAYLISTS for instant
+     *    zero-API loading.
+     */
+    const GITHUB_REPO = ''; // Optional: e.g. 'username/iptv-player'
+
+    const MANUAL_PLAYLISTS = [
+      { name: 'Playlist 1', file: 'playlist1.m3u' },
+      { name: 'Main IPTV', file: 'playlist.m3u' },
+      { name: 'Channels', file: 'channels.m3u' },
+      { name: 'Bangla TV', file: 'bangla.m3u' },
+      { name: 'Sports', file: 'sports.m3u' },
+      { name: 'Movies', file: 'movies.m3u' },
+      { name: 'News', file: 'news.m3u' },
+      { name: 'Kids', file: 'kids.m3u' },
+      { name: 'Live TV', file: 'tv.m3u8' },
+    ];
+
+    /**
+     * Built-in Royalty-Free / Public HLS Demo Playlist
+     * Used only when no root .m3u files are found yet.
+     */
+    const FALLBACK_DEMO_M3U = `#EXTM3U
+#EXTINF:-1 tvg-id="tears" tvg-name="Tears of Steel 4K" tvg-logo="" group-title="Movies & Sci-Fi",Tears of Steel (HLS Demo)
+https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8
+#EXTINF:-1 tvg-id="bipbop" tvg-name="Apple BipBop Master" tvg-logo="" group-title="Test Streams",Apple BipBop Advanced Stream
+https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8
+#EXTINF:-1 tvg-id="sintel" tvg-name="Sintel Animation" tvg-logo="" group-title="Animation & Kids",Sintel Open Movie (HLS)
+https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8
+#EXTINF:-1 tvg-id="bbb" tvg-name="Big Buck Bunny" tvg-logo="" group-title="Animation & Kids",Big Buck Bunny 1080p
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+#EXTINF:-1 tvg-id="arte" tvg-name="ARTE Live Event" tvg-logo="" group-title="Documentary",ARTE Concert Stream
+https://artesimulcast.akamaized.net/hls/live/2031003/artelive_de/index.m3u8
+#EXTINF:-1 tvg-id="nasa" tvg-name="NASA Public TV" tvg-logo="" group-title="Science & News",NASA TV Public HD
+https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8
+`;
+
+    // =========================================================================
+    // APPLICATION STATE & STORAGE KEYS
+    // =========================================================================
+    const STORAGE_KEYS = {
+      FAVORITES: 'streamvault_favorites_v1',
+      RECENT: 'streamvault_recent_v1',
+      LAST_PLAYLIST: 'streamvault_last_playlist_v1',
+      LAST_CHANNEL: 'streamvault_last_channel_v1',
+      CUSTOM_PLAYLISTS: 'streamvault_custom_playlists_v1',
+      GITHUB_REPO: 'streamvault_github_repo_v1',
+      VOLUME: 'streamvault_volume_v1',
+    };
+
+    const state = {
+      playlists: [],          // Array of { id, name, url, sourceType, rawContent?, count? }
+      activePlaylistId: null,
+      channels: [],           // Parsed channels of active playlist
+      filteredChannels: [],   // Filtered by search, group, favorites, or recent
+      categories: ['All'],
+      activeCategory: 'All',
+      searchQuery: '',
+      filterMode: 'all',      // 'all' | 'favorites' | 'recent'
+      favorites: new Set(),   // Stores channel URLs
+      recentChannels: [],     // Array of channel objects (max 25)
+      currentChannel: null,
+      hlsInstance: null,
+      retryTimer: null,
+      retrySeconds: 5,
+      aspectModeIndex: 0,     // 0: contain (FIT), 1: cover (ZOOM), 2: fill (STRETCH)
+      isTheaterMode: false,
+      controlsHideTimer: null,
+      touchStartX: 0,
+      touchStartY: 0,
+    };
+
+    // =========================================================================
+    // DOM ELEMENT REFERENCES
+    // =========================================================================
+    const dom = {
+      playlistTabsContainer: document.getElementById('playlistTabsContainer'),
+      rescanPlaylistsBtn: document.getElementById('rescanPlaylistsBtn'),
+      rescanIcon: document.getElementById('rescanIcon'),
+      repoStatusText: document.getElementById('repoStatusText'),
+      demoBanner: document.getElementById('demoBanner'),
+      dismissBannerBtn: document.getElementById('dismissBannerBtn'),
+      searchInput: document.getElementById('searchInput'),
+      clearSearchBtn: document.getElementById('clearSearchBtn'),
+      recentFilterBtn: document.getElementById('recentFilterBtn'),
+      favoritesFilterBtn: document.getElementById('favoritesFilterBtn'),
+      favFilterIcon: document.getElementById('favFilterIcon'),
+      favCountBadge: document.getElementById('favCountBadge'),
+      categoryPillsContainer: document.getElementById('categoryPillsContainer'),
+      sidebarHeaderTitle: document.getElementById('sidebarHeaderTitle'),
+      activeGroupLabel: document.getElementById('activeGroupLabel'),
+      channelCountBadge: document.getElementById('channelCountBadge'),
+      channelListContainer: document.getElementById('channelListContainer'),
+      mainLayout: document.getElementById('mainLayout'),
+      playerSection: document.getElementById('playerSection'),
+      sidebarSection: document.getElementById('sidebarSection'),
+      // Video & Player Controls
+      playerContainer: document.getElementById('playerContainer'),
+      videoPlayer: document.getElementById('videoPlayer'),
+      gestureToast: document.getElementById('gestureToast'),
+      idleOverlay: document.getElementById('idleOverlay'),
+      loadingOverlay: document.getElementById('loadingOverlay'),
+      loadingText: document.getElementById('loadingText'),
+      errorOverlay: document.getElementById('errorOverlay'),
+      errorReasonText: document.getElementById('errorReasonText'),
+      mixedContentHint: document.getElementById('mixedContentHint'),
+      manualRetryBtn: document.getElementById('manualRetryBtn'),
+      retryCountdown: document.getElementById('retryCountdown'),
+      errorNextChannelBtn: document.getElementById('errorNextChannelBtn'),
+      overlayChannelLogo: document.getElementById('overlayChannelLogo'),
+      overlayChannelGroup: document.getElementById('overlayChannelGroup'),
+      overlayChannelTitle: document.getElementById('overlayChannelTitle'),
+      resolutionBadge: document.getElementById('resolutionBadge'),
+      bitrateBadge: document.getElementById('bitrateBadge'),
+      prevChannelBtn: document.getElementById('prevChannelBtn'),
+      playPauseBtn: document.getElementById('playPauseBtn'),
+      playIcon: document.getElementById('playIcon'),
+      pauseIcon: document.getElementById('pauseIcon'),
+      nextChannelBtn: document.getElementById('nextChannelBtn'),
+      muteBtn: document.getElementById('muteBtn'),
+      volHighIcon: document.getElementById('volHighIcon'),
+      volMuteIcon: document.getElementById('volMuteIcon'),
+      volumeSlider: document.getElementById('volumeSlider'),
+      qualitySelect: document.getElementById('qualitySelect'),
+      aspectRatioBtn: document.getElementById('aspectRatioBtn'),
+      aspectLabel: document.getElementById('aspectLabel'),
+      pipBtn: document.getElementById('pipBtn'),
+      theaterBtn: document.getElementById('theaterBtn'),
+      fullscreenBtn: document.getElementById('fullscreenBtn'),
+      // Info Bar Below Player
+      infoBarLogo: document.getElementById('infoBarLogo'),
+      infoBarTitle: document.getElementById('infoBarTitle'),
+      infoBarPlaylistTag: document.getElementById('infoBarPlaylistTag'),
+      infoBarMeta: document.getElementById('infoBarMeta'),
+      infoBarFavBtn: document.getElementById('infoBarFavBtn'),
+      infoBarFavIcon: document.getElementById('infoBarFavIcon'),
+      copyStreamUrlBtn: document.getElementById('copyStreamUrlBtn'),
+      copyUrlText: document.getElementById('copyUrlText'),
+      // Modal
+      openCustomModalBtn: document.getElementById('openCustomModalBtn'),
+      customM3uModal: document.getElementById('customM3uModal'),
+      closeModalBtn: document.getElementById('closeModalBtn'),
+      localM3uFileInput: document.getElementById('localM3uFileInput'),
+      customUrlNameInput: document.getElementById('customUrlNameInput'),
+      customUrlInput: document.getElementById('customUrlInput'),
+      loadCustomUrlBtn: document.getElementById('loadCustomUrlBtn'),
+      githubRepoInput: document.getElementById('githubRepoInput'),
+      syncGithubRepoBtn: document.getElementById('syncGithubRepoBtn'),
+      toastContainer: document.getElementById('toastContainer'),
+    };
+
+    // =========================================================================
+    // UTILITY HELPERS (TOASTS, SKELETONS, MONOGRAMS, FORMATTERS)
+    // =========================================================================
+    function showToast(message, type = 'info') {
+      const colors = {
+        info: 'border-cyan-500/40 bg-[#0f131f]/95 text-cyan-200',
+        success: 'border-emerald-500/40 bg-[#0f131f]/95 text-emerald-200',
+        warning: 'border-amber-500/40 bg-[#0f131f]/95 text-amber-200',
+        error: 'border-rose-500/40 bg-[#0f131f]/95 text-rose-200',
+      };
+      const toast = document.createElement('div');
+      toast.className = `px-4 py-2.5 rounded-xl border backdrop-blur-md shadow-xl text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 max-w-sm text-center sm:text-left ${colors[type] || colors.info}`;
+      toast.textContent = message;
+      dom.toastContainer.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function showGestureFeedback(text) {
+      dom.gestureToast.textContent = text;
+      dom.gestureToast.classList.remove('hidden');
+      clearTimeout(dom.gestureToast._timer);
+      dom.gestureToast._timer = setTimeout(() => {
+        dom.gestureToast.classList.add('hidden');
+      }, 950);
+    }
+
+    function renderSkeletonLoaders(count = 7) {
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        html += `
+          <div class="flex items-center gap-3 p-2.5 rounded-xl border border-white/[0.04] bg-white/[0.015]">
+            <div class="w-6 h-3 rounded skeleton-shimmer"></div>
+            <div class="w-10 h-10 rounded-xl skeleton-shimmer shrink-0"></div>
+            <div class="flex-1 space-y-2">
+              <div class="w-3/5 h-3.5 rounded skeleton-shimmer"></div>
+              <div class="w-2/5 h-2.5 rounded skeleton-shimmer"></div>
+            </div>
+          </div>
+        `;
+      }
+      dom.channelListContainer.innerHTML = html;
+    }
+
+    function formatFilenameToTitle(filename) {
+      return filename
+        .replace(/\.(m3u8?|txt)$/i, '')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+        .trim();
+    }
+
+    function getMonogram(name) {
+      if (!name) return 'TV';
+      const words = name.replace(/[^a-zA-Z0-9\s]/g, '').trim().split(/\s+/);
+      if (words.length >= 2) {
+        return (words[0][0] + words[1][0]).toUpperCase();
+      }
+      return name.slice(0, 2).toUpperCase();
+    }
+
+    function getGradientForName(name) {
+      const gradients = [
+        'from-cyan-600/30 to-blue-700/30 text-cyan-300',
+        'from-indigo-600/30 to-purple-700/30 text-indigo-300',
+        'from-emerald-600/30 to-teal-700/30 text-emerald-300',
+        'from-amber-600/30 to-orange-700/30 text-amber-300',
+        'from-rose-600/30 to-pink-700/30 text-rose-300',
+      ];
+      let hash = 0;
+      for (let i = 0; i < (name || '').length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return gradients[Math.abs(hash) % gradients.length];
+    }
+
+    // =========================================================================
+    // ROBUST M3U / M3U8 PLAYLIST PARSER
+    // =========================================================================
+    function parseM3U(content, sourcePlaylistName = '') {
+      const lines = content.split(/\r?\n/);
+      const channels = [];
+      let currentMeta = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        if (line.startsWith('#EXTINF:')) {
+          const tvgLogoMatch = line.match(/tvg-logo="([^"]*)"/i);
+          const groupTitleMatch = line.match(/group-title="([^"]*)"/i);
+          const tvgNameMatch = line.match(/tvg-name="([^"]*)"/i);
+
+          const commaIndex = line.lastIndexOf(',');
+          let title = commaIndex !== -1 ? line.slice(commaIndex + 1).trim() : '';
+          if (!title && tvgNameMatch && tvgNameMatch[1]) {
+            title = tvgNameMatch[1].trim();
+          }
+          if (!title) {
+            title = `Channel ${channels.length + 1}`;
+          }
+
+          currentMeta = {
+            title,
+            logo: tvgLogoMatch ? tvgLogoMatch[1].trim() : '',
+            group: groupTitleMatch && groupTitleMatch[1].trim() ? groupTitleMatch[1].trim() : 'General',
+          };
+        } else if (line.startsWith('#EXTGRP:')) {
+          if (currentMeta) {
+            const grp = line.replace('#EXTGRP:', '').trim();
+            if (grp) currentMeta.group = grp;
+          }
+        } else if (!line.startsWith('#')) {
+          const url = line;
+          const index = channels.length + 1;
+          channels.push({
+            id: `ch_${index}_${btoa(unescape(encodeURIComponent(url))).slice(0, 12)}`,
+            number: index,
+            title: currentMeta ? currentMeta.title : `Stream ${index}`,
+            logo: currentMeta ? currentMeta.logo : '',
+            group: currentMeta ? currentMeta.group : 'General',
+            playlistName: sourcePlaylistName,
+            url,
+          });
+          currentMeta = null;
+        }
+      }
+
+      return channels;
+    }
+
+    // =========================================================================
+    // MULTI-M3U ROOT DISCOVERY & GITHUB PAGES AUTO-LOADER
+    // =========================================================================
+    function detectGithubRepoFromLocation() {
+      if (GITHUB_REPO && GITHUB_REPO.includes('/')) {
+        return GITHUB_REPO.trim();
+      }
+
+      const savedRepo = localStorage.getItem(STORAGE_KEYS.GITHUB_REPO);
+      if (savedRepo && savedRepo.includes('/')) {
+        return savedRepo.trim();
+      }
+
+      const host = window.location.hostname;
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+
+      if (host.endsWith('.github.io')) {
+        const owner = host.replace('.github.io', '');
+        const repo = pathParts.length > 0 ? pathParts[0] : `${owner}.github.io`;
+        return `${owner}/${repo}`;
+      }
+
+      return null;
+    }
+
+    async function probeRelativeM3U(filePath) {
+      try {
+        if (window.location.protocol === 'file:') return null;
+        const response = await fetch(filePath, { cache: 'no-store' });
+        if (!response.ok) return null;
+        const text = await response.text();
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+          return null;
+        }
+        if (text.includes('#EXTINF') || text.includes('http://') || text.includes('https://')) {
+          return text;
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function discoverGitHubRootM3Us(repoFullName) {
+      if (!repoFullName) return [];
+      try {
+        const apiUrl = `https://api.github.com/repos/${repoFullName}/contents/`;
+        const res = await fetch(apiUrl, {
+          headers: { Accept: 'application/vnd.github.v3+json' },
+        });
+        if (!res.ok) return [];
+        const items = await res.json();
+        if (!Array.isArray(items)) return [];
+
+        return items
+          .filter((item) => item.type === 'file' && /\.(m3u8?|txt)$/i.test(item.name))
+          .map((item) => ({
+            id: `gh_${item.name}`,
+            name: formatFilenameToTitle(item.name),
+            filename: item.name,
+            url: window.location.hostname.endsWith('.github.io') ? `./${item.name}` : item.download_url,
+            fallbackUrl: item.download_url,
+            sourceType: 'github',
+          }));
+      } catch (err) {
+        console.warn('GitHub API root discovery skipped or rate-limited:', err);
+        return [];
+      }
+    }
+
+    async function discoverAllPlaylists() {
+      dom.rescanIcon.classList.add('animate-spin');
+      renderSkeletonLoaders(6);
+      const discoveredMap = new Map();
+
+      // 1. Auto-discover from GitHub Repository API
+      const ghRepo = detectGithubRepoFromLocation();
+      if (ghRepo) {
+        dom.githubRepoInput.value = ghRepo;
+        dom.repoStatusText.textContent = `GitHub Root: ${ghRepo}`;
+        const ghFiles = await discoverGitHubRootM3Us(ghRepo);
+        ghFiles.forEach((pl) => {
+          discoveredMap.set(pl.filename.toLowerCase(), pl);
+        });
+      }
+
+      // 2. Probe configured MANUAL_PLAYLISTS in root directory
+      const probePromises = MANUAL_PLAYLISTS.map(async (item) => {
+        const key = item.file.toLowerCase();
+        if (discoveredMap.has(key)) {
+          const existing = discoveredMap.get(key);
+          existing.name = item.name || existing.name;
+          return;
+        }
+        const content = await probeRelativeM3U(`./${item.file}`);
+        if (content) {
+          const parsed = parseM3U(content, item.name || formatFilenameToTitle(item.file));
+          if (parsed.length > 0) {
+            discoveredMap.set(key, {
+              id: `root_${item.file}`,
+              name: item.name || formatFilenameToTitle(item.file),
+              filename: item.file,
+              url: `./${item.file}`,
+              rawContent: content,
+              count: parsed.length,
+              sourceType: 'root',
+            });
+          }
+        }
+      });
+
+      await Promise.all(probePromises);
+
+      // 3. Load saved Custom URL playlists from localStorage
+      try {
+        const savedCustom = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOM_PLAYLISTS) || '[]');
+        savedCustom.forEach((pl) => {
+          discoveredMap.set(pl.id, pl);
+        });
+      } catch (e) {
+        console.warn('Could not load saved custom playlists', e);
+      }
+
+      let finalPlaylists = Array.from(discoveredMap.values());
+
+      // 4. Fallback Demo Playlist if no root files exist yet
+      if (finalPlaylists.length === 0) {
+        const demoChannels = parseM3U(FALLBACK_DEMO_M3U, 'Demo Streams');
+        finalPlaylists = [
+          {
+            id: 'demo_builtin',
+            name: 'Demo Streams',
+            filename: 'demo.m3u',
+            rawContent: FALLBACK_DEMO_M3U,
+            count: demoChannels.length,
+            sourceType: 'demo',
+          },
+        ];
+        dom.demoBanner.classList.remove('hidden');
+      } else {
+        dom.demoBanner.classList.add('hidden');
+      }
+
+      // Add virtual "All Playlists" tab if user has 2 or more M3U files
+      if (finalPlaylists.length >= 2) {
+        finalPlaylists.unshift({
+          id: 'all_combined',
+          name: 'All Playlists',
+          sourceType: 'combined',
+        });
+      }
+
+      state.playlists = finalPlaylists;
+      renderPlaylistTabs();
+
+      const lastPlaylistId = localStorage.getItem(STORAGE_KEYS.LAST_PLAYLIST);
+      const targetPlaylist =
+        state.playlists.find((p) => p.id === lastPlaylistId) ||
+        state.playlists.find((p) => p.id !== 'all_combined') ||
+        state.playlists[0];
+
+      if (targetPlaylist) {
+        await selectPlaylist(targetPlaylist.id, true);
+      }
+
+      setTimeout(() => dom.rescanIcon.classList.remove('animate-spin'), 450);
+    }
+
+    // =========================================================================
+    // PLAYLIST SELECTION & CHANNEL RENDERING
+    // =========================================================================
+    function renderPlaylistTabs() {
+      dom.playlistTabsContainer.innerHTML = '';
+
+      state.playlists.forEach((pl) => {
+        const isActive = pl.id === state.activePlaylistId;
+        const btn = document.createElement('button');
+        btn.className = `glass-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-2 ${
+          isActive ? 'active' : 'text-slate-300'
+        }`;
+
+        const badgeText = pl.count !== undefined ? pl.count : pl.id === 'all_combined' ? 'ALL' : 'M3U';
+        const sourceDot =
+          pl.sourceType === 'github'
+            ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400" title="GitHub Root File"></span>'
+            : pl.sourceType === 'root'
+            ? '<span class="w-1.5 h-1.5 rounded-full bg-cyan-400" title="Root Folder File"></span>'
+            : pl.sourceType === 'local'
+            ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400" title="Local File"></span>'
+            : pl.sourceType === 'combined'
+            ? '<span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>'
+            : '';
+
+        btn.innerHTML = `
+          ${sourceDot}
+          <span>${escapeHtml(pl.name)}</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+            isActive ? 'bg-cyan-400/25 text-cyan-200' : 'bg-white/10 text-slate-400'
+          }">${badgeText}</span>
+        `;
+
+        btn.addEventListener('click', () => {
+          // Reset special filter modes when switching playlist tabs
+          if (state.filterMode !== 'all') {
+            setFilterMode('all');
+          }
+          selectPlaylist(pl.id, false);
+        });
+        dom.playlistTabsContainer.appendChild(btn);
+      });
+    }
+
+    async function fetchSinglePlaylistContent(playlist) {
+      if (playlist.rawContent) return playlist.rawContent;
+      if (!playlist.url) return '';
+
+      let res = await fetch(playlist.url, { cache: 'no-store' });
+      if (!res.ok && playlist.fallbackUrl) {
+        res = await fetch(playlist.fallbackUrl, { cache: 'no-store' });
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      playlist.rawContent = text;
+      return text;
+    }
+
+    async function selectPlaylist(playlistId, isInitialBoot = false) {
+      const playlist = state.playlists.find((p) => p.id === playlistId);
+      if (!playlist) return;
+
+      state.activePlaylistId = playlistId;
+      localStorage.setItem(STORAGE_KEYS.LAST_PLAYLIST, playlistId);
+      renderPlaylistTabs();
+      renderSkeletonLoaders(7);
+
+      try {
+        let parsedChannels = [];
+
+        if (playlist.id === 'all_combined') {
+          const individualPlaylists = state.playlists.filter((p) => p.id !== 'all_combined');
+          let runningIndex = 1;
+          for (const pl of individualPlaylists) {
+            try {
+              const raw = await fetchSinglePlaylistContent(pl);
+              const list = parseM3U(raw, pl.name);
+              pl.count = list.length;
+              list.forEach((ch) => {
+                ch.number = runningIndex++;
+                parsedChannels.push(ch);
+              });
+            } catch (e) {
+              console.warn(`Skipped ${pl.name} in combined view`, e);
+            }
+          }
+          playlist.count = parsedChannels.length;
+        } else {
+          const rawText = await fetchSinglePlaylistContent(playlist);
+          parsedChannels = parseM3U(rawText || '', playlist.name);
+          playlist.count = parsedChannels.length;
+        }
+
+        state.channels = parsedChannels;
+
+        // Extract unique group-title categories
+        const groupSet = new Set(['All']);
+        parsedChannels.forEach((ch) => {
+          if (ch.group) groupSet.add(ch.group);
+        });
+        state.categories = Array.from(groupSet);
+        state.activeCategory = 'All';
+        dom.activeGroupLabel.textContent = 'All Categories';
+
+        renderPlaylistTabs();
+        renderCategoryPills();
+        applyChannelFilters();
+
+        if (isInitialBoot) {
+          const savedChannelUrl = localStorage.getItem(STORAGE_KEYS.LAST_CHANNEL);
+          const matched = state.channels.find((c) => c.url === savedChannelUrl);
+          if (matched) {
+            playChannel(matched, false);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load playlist:', err);
+        dom.channelListContainer.innerHTML = `
+          <div class="p-6 text-center">
+            <p class="text-sm font-semibold text-rose-400 mb-1">Could not load ${escapeHtml(playlist.name)}</p>
+            <p class="text-xs text-slate-400">Ensure the file exists in your repository root and is valid M3U format.</p>
+          </div>
+        `;
+        showToast(`Failed to load ${playlist.name}`, 'error');
+      }
+    }
+
+    function renderCategoryPills() {
+      dom.categoryPillsContainer.innerHTML = '';
+
+      state.categories.forEach((cat) => {
+        const isActive = cat === state.activeCategory;
+        const btn = document.createElement('button');
+        btn.className = `shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all min-h-[34px] ${
+          isActive
+            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm'
+            : 'bg-white/[0.045] text-slate-400 border border-transparent hover:text-white hover:bg-white/[0.09]'
+        }`;
+        btn.textContent = cat;
+        btn.addEventListener('click', () => {
+          state.activeCategory = cat;
+          dom.activeGroupLabel.textContent = cat === 'All' ? 'All Categories' : cat;
+          renderCategoryPills();
+          applyChannelFilters();
+        });
+        dom.categoryPillsContainer.appendChild(btn);
+      });
+    }
+
+    function setFilterMode(mode) {
+      state.filterMode = mode;
+
+      // Reset button visual states
+      dom.favoritesFilterBtn.classList.toggle('active', mode === 'favorites');
+      dom.favFilterIcon.setAttribute('fill', mode === 'favorites' ? 'currentColor' : 'none');
+      dom.recentFilterBtn.classList.toggle('active', mode === 'recent');
+
+      if (mode === 'favorites') {
+        dom.sidebarHeaderTitle.textContent = 'Favorite Channels';
+      } else if (mode === 'recent') {
+        dom.sidebarHeaderTitle.textContent = 'Recently Watched';
+      } else {
+        dom.sidebarHeaderTitle.textContent = 'Channels';
+      }
+
+      applyChannelFilters();
+    }
+
+    function applyChannelFilters() {
+      const query = state.searchQuery.toLowerCase().trim();
+      let baseList = state.channels;
+
+      if (state.filterMode === 'favorites') {
+        // Combine current playlist channels + any favorited channels from recent
+        const map = new Map();
+        state.channels.forEach((ch) => {
+          if (state.favorites.has(ch.url)) map.set(ch.url, ch);
+        });
+        state.recentChannels.forEach((ch) => {
+          if (state.favorites.has(ch.url) && !map.has(ch.url)) map.set(ch.url, ch);
+        });
+        baseList = Array.from(map.values());
+      } else if (state.filterMode === 'recent') {
+        baseList = state.recentChannels;
+      }
+
+      state.filteredChannels = baseList.filter((ch) => {
+        if (state.filterMode === 'all' && state.activeCategory !== 'All' && ch.group !== state.activeCategory) {
+          return false;
+        }
+        if (query) {
+          const matchTitle = ch.title.toLowerCase().includes(query);
+          const matchGroup = (ch.group || '').toLowerCase().includes(query);
+          const matchNum = String(ch.number || '').includes(query);
+          return matchTitle || matchGroup || matchNum;
+        }
+        return true;
+      });
+
+      dom.channelCountBadge.textContent = state.filteredChannels.length;
+      renderChannelList();
+    }
+
+    function renderChannelList() {
+      dom.channelListContainer.innerHTML = '';
+
+      if (state.filteredChannels.length === 0) {
+        dom.channelListContainer.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-12 text-center px-4">
+            <svg class="w-10 h-10 text-slate-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm font-medium text-slate-300">No channels found</p>
+            <p class="text-xs text-slate-500 mt-1">Try clearing your search or switching categories.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+
+      state.filteredChannels.forEach((channel, idx) => {
+        const isPlaying = state.currentChannel && state.currentChannel.url === channel.url;
+        const isFav = state.favorites.has(channel.url);
+
+        const card = document.createElement('div');
+        card.dataset.url = channel.url;
+        card.style.animationDelay = `${Math.min(idx, 16) * 16}ms`;
+        card.className = `channel-card group flex items-center justify-between gap-2.5 p-2.5 rounded-xl border cursor-pointer ${
+          isPlaying ? 'active' : 'border-white/[0.05] bg-white/[0.015]'
+        }`;
+
+        const gradientClass = getGradientForName(channel.title);
+        const monogram = getMonogram(channel.title);
+        const displayNum = channel.number || idx + 1;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <span class="w-6 text-right font-mono text-[11px] ${
+              isPlaying ? 'text-cyan-400 font-bold' : 'text-slate-500'
+            } shrink-0">
+              ${displayNum}
+            </span>
+
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${gradientClass} border border-white/10 flex items-center justify-center shrink-0 overflow-hidden relative">
+              ${
+                channel.logo
+                  ? `<img src="${escapeHtml(channel.logo)}" alt="" loading="lazy" class="w-full h-full object-contain p-1" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                     <span style="display:none" class="w-full h-full items-center justify-center text-xs font-bold">${monogram}</span>`
+                  : `<span class="text-xs font-bold">${monogram}</span>`
+              }
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <p class="text-xs sm:text-sm font-semibold truncate ${
+                isPlaying ? 'text-white' : 'text-slate-200 group-hover:text-white'
+              }">
+                ${escapeHtml(channel.title)}
+              </p>
+              <p class="text-[11px] text-slate-400 truncate">
+                ${escapeHtml(channel.group)}${
+                  state.activePlaylistId === 'all_combined' && channel.playlistName
+                    ? ` • <span class="text-cyan-400/80">${escapeHtml(channel.playlistName)}</span>`
+                    : ''
+                }
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1 shrink-0">
+            ${
+              isPlaying
+                ? `<div class="eq-bars mr-1" title="Now Playing">
+                     <span class="eq-bar"></span>
+                     <span class="eq-bar"></span>
+                     <span class="eq-bar"></span>
+                   </div>`
+                : ''
+            }
+            <button
+              type="button"
+              data-fav-btn="true"
+              title="${isFav ? 'Remove from Favorites' : 'Add to Favorites'}"
+              class="p-2 rounded-xl hover:bg-white/10 transition-colors min-w-[38px] min-h-[38px] flex items-center justify-center ${
+                isFav ? 'text-rose-400' : 'text-slate-500 hover:text-rose-300'
+              }"
+            >
+              <svg class="w-4 h-4" fill="${isFav ? 'currentColor' : 'none'}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </button>
+          </div>
+        `;
+
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('[data-fav-btn="true"]')) {
+            e.stopPropagation();
+            toggleFavorite(channel);
+            return;
+          }
+          playChannel(channel, true);
+        });
+
+        fragment.appendChild(card);
+      });
+
+      dom.channelListContainer.appendChild(fragment);
+    }
+
+    // =========================================================================
+    // HLS & VIDEO PLAYBACK ENGINE
+    // =========================================================================
+    function destroyHls() {
+      if (state.hlsInstance) {
+        state.hlsInstance.destroy();
+        state.hlsInstance = null;
+      }
+      clearInterval(state.retryTimer);
+      state.retryTimer = null;
+    }
+
+    function recordRecentChannel(channel) {
+      if (!channel || !channel.url) return;
+      state.recentChannels = [
+        channel,
+        ...state.recentChannels.filter((c) => c.url !== channel.url),
+      ].slice(0, 25);
+      try {
+        localStorage.setItem(STORAGE_KEYS.RECENT, JSON.stringify(state.recentChannels));
+      } catch (e) {}
+    }
+
+    function playChannel(channel, autoPlay = true) {
+      if (!channel) return;
+      state.currentChannel = channel;
+      localStorage.setItem(STORAGE_KEYS.LAST_CHANNEL, channel.url);
+      recordRecentChannel(channel);
+
+      dom.idleOverlay.classList.add('hidden');
+      dom.errorOverlay.classList.add('hidden');
+      dom.loadingOverlay.classList.remove('hidden');
+      dom.loadingText.textContent = `Tuning ${channel.title}...`;
+      dom.resolutionBadge.classList.add('hidden');
+      dom.bitrateBadge.classList.add('hidden');
+
+      updateNowPlayingUI(channel);
+      renderChannelList();
+
+      // On desktop, scroll active channel into view inside sidebar
+      if (window.innerWidth >= 1024) {
+        requestAnimationFrame(() => {
+          const activeCard = dom.channelListContainer.querySelector('.channel-card.active');
+          if (activeCard) {
+            activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+      }
+
+      destroyHls();
+      dom.qualitySelect.innerHTML = '<option value="-1" class="bg-[#0f131f]">Auto</option>';
+
+      const streamUrl = channel.url;
+      const isHlsStream = /\.m3u8(\?.*)?$/i.test(streamUrl) || !/\.(mp4|webm|ogg|mkv)(\?.*)?$/i.test(streamUrl);
+
+      if (isHlsStream && window.Hls && Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 60,
+          manifestLoadingMaxRetry: 2,
+          levelLoadingMaxRetry: 2,
+        });
+
+        state.hlsInstance = hls;
+        hls.loadSource(streamUrl);
+        hls.attachMedia(dom.videoPlayer);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+          dom.loadingOverlay.classList.add('hidden');
+
+          if (data.levels && data.levels.length > 1) {
+            data.levels.forEach((lvl, index) => {
+              const opt = document.createElement('option');
+              opt.value = index;
+              opt.className = 'bg-[#0f131f]';
+              const heightLabel = lvl.height ? `${lvl.height}p` : `Level ${index + 1}`;
+              const mbps = lvl.bitrate ? ` (${(lvl.bitrate / 1000000).toFixed(1)}M)` : '';
+              opt.textContent = `${heightLabel}${mbps}`;
+              dom.qualitySelect.appendChild(opt);
+            });
+          }
+
+          if (autoPlay) {
+            dom.videoPlayer.play().catch(() => {
+              updatePlayPauseIcons();
+            });
+          }
+        });
+
+        hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+          const level = hls.levels[data.level];
+          if (level) {
+            if (level.height) {
+              dom.resolutionBadge.textContent = `${level.height}p`;
+              dom.resolutionBadge.classList.remove('hidden');
+            }
+            if (level.bitrate) {
+              dom.bitrateBadge.textContent = `${(level.bitrate / 1000000).toFixed(1)} Mbps`;
+              dom.bitrateBadge.classList.remove('hidden');
+            }
+          }
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                handleStreamFailure('Network or CORS error while fetching stream segments.', streamUrl);
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                handleStreamFailure('Fatal playback error encountered on this stream.', streamUrl);
+                break;
+            }
+          }
+        });
+      } else if (dom.videoPlayer.canPlayType('application/vnd.apple.mpegurl') || !isHlsStream) {
+        dom.videoPlayer.src = streamUrl;
+        dom.videoPlayer.addEventListener(
+          'loadedmetadata',
+          () => {
+            dom.loadingOverlay.classList.add('hidden');
+            if (dom.videoPlayer.videoHeight) {
+              dom.resolutionBadge.textContent = `${dom.videoPlayer.videoHeight}p`;
+              dom.resolutionBadge.classList.remove('hidden');
+            }
+            if (autoPlay) dom.videoPlayer.play().catch(() => {});
+          },
+          { once: true }
+        );
+      } else {
+        handleStreamFailure('Your browser does not support HLS playback.', streamUrl);
+      }
+    }
+
+    function handleStreamFailure(reason, streamUrl) {
+      dom.loadingOverlay.classList.add('hidden');
+      dom.errorOverlay.classList.remove('hidden');
+      dom.errorReasonText.textContent = reason;
+
+      const isHttpsPage = window.location.protocol === 'https:';
+      const isHttpStream = /^http:\/\//i.test(streamUrl);
+      if (isHttpsPage && isHttpStream) {
+        dom.mixedContentHint.classList.remove('hidden');
+      } else {
+        dom.mixedContentHint.classList.add('hidden');
+      }
+
+      clearInterval(state.retryTimer);
+      state.retrySeconds = 5;
+      dom.retryCountdown.textContent = state.retrySeconds;
+
+      state.retryTimer = setInterval(() => {
+        state.retrySeconds -= 1;
+        dom.retryCountdown.textContent = state.retrySeconds;
+        if (state.retrySeconds <= 0) {
+          clearInterval(state.retryTimer);
+          if (state.currentChannel) {
+            playChannel(state.currentChannel, true);
+          }
+        }
+      }, 1000);
+    }
+
+    function updateNowPlayingUI(channel) {
+      const monogram = getMonogram(channel.title);
+      const activePlaylist = state.playlists.find((p) => p.id === state.activePlaylistId);
+
+      dom.overlayChannelTitle.textContent = channel.title;
+      dom.overlayChannelGroup.textContent = channel.group;
+      dom.overlayChannelLogo.innerHTML = channel.logo
+        ? `<img src="${escapeHtml(channel.logo)}" class="w-full h-full object-contain p-1" onerror="this.parentElement.innerHTML='<span class=\\'text-xs font-bold text-cyan-300\\'>${monogram}</span>'" />`
+        : `<span class="text-xs font-bold text-cyan-300">${monogram}</span>`;
+
+      dom.infoBarTitle.textContent = channel.title;
+      dom.infoBarPlaylistTag.textContent = channel.playlistName || (activePlaylist ? activePlaylist.name : 'Playlist');
+      dom.infoBarMeta.textContent = `Channel #${channel.number || '•'} • ${channel.group}`;
+      dom.infoBarLogo.innerHTML = channel.logo
+        ? `<img src="${escapeHtml(channel.logo)}" class="w-full h-full object-contain p-1.5" onerror="this.parentElement.innerHTML='<span class=\\'text-sm font-bold text-cyan-400\\'>${monogram}</span>'" />`
+        : `<span class="text-sm font-bold text-cyan-400">${monogram}</span>`;
+
+      dom.infoBarFavBtn.disabled = false;
+      dom.copyStreamUrlBtn.disabled = false;
+      updateInfoBarFavoriteState();
+    }
+
+    function playAdjacentChannel(direction) {
+      const list = state.filteredChannels.length > 0 ? state.filteredChannels : state.channels;
+      if (list.length === 0) return;
+
+      if (!state.currentChannel) {
+        playChannel(list[0], true);
+        return;
+      }
+
+      const currentIndex = list.findIndex((c) => c.url === state.currentChannel.url);
+      let nextIndex = currentIndex + direction;
+      if (nextIndex >= list.length) nextIndex = 0;
+      if (nextIndex < 0) nextIndex = list.length - 1;
+
+      const target = list[nextIndex];
+      showGestureFeedback(`${direction > 0 ? 'Next' : 'Prev'}: ${target.title}`);
+      playChannel(target, true);
+    }
+
+    // =========================================================================
+    // FAVORITES, RECENT HISTORY & PERSISTENCE
+    // =========================================================================
+    function loadSavedUserLists() {
+      try {
+        const savedFavs = JSON.parse(localStorage.getItem(STORAGE_KEYS.FAVORITES) || '[]');
+        state.favorites = new Set(savedFavs);
+      } catch (e) {
+        state.favorites = new Set();
+      }
+
+      try {
+        const savedRecent = JSON.parse(localStorage.getItem(STORAGE_KEYS.RECENT) || '[]');
+        if (Array.isArray(savedRecent)) state.recentChannels = savedRecent;
+      } catch (e) {
+        state.recentChannels = [];
+      }
+
+      updateFavoriteBadges();
+    }
+
+    function toggleFavorite(channel) {
+      if (!channel) return;
+      if (state.favorites.has(channel.url)) {
+        state.favorites.delete(channel.url);
+        showToast(`Removed "${channel.title}" from favorites`, 'info');
+      } else {
+        state.favorites.add(channel.url);
+        showToast(`Added "${channel.title}" to favorites`, 'success');
+      }
+      localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(Array.from(state.favorites)));
+      updateFavoriteBadges();
+      updateInfoBarFavoriteState();
+      applyChannelFilters();
+    }
+
+    function updateFavoriteBadges() {
+      dom.favCountBadge.textContent = state.favorites.size;
+    }
+
+    function updateInfoBarFavoriteState() {
+      if (!state.currentChannel) return;
+      const isFav = state.favorites.has(state.currentChannel.url);
+      if (isFav) {
+        dom.infoBarFavIcon.setAttribute('fill', 'currentColor');
+        dom.infoBarFavIcon.classList.remove('text-slate-400');
+        dom.infoBarFavIcon.classList.add('text-rose-400');
+        dom.infoBarFavBtn.classList.add('border-rose-500/40', 'text-rose-200');
+      } else {
+        dom.infoBarFavIcon.setAttribute('fill', 'none');
+        dom.infoBarFavIcon.classList.add('text-slate-400');
+        dom.infoBarFavIcon.classList.remove('text-rose-400');
+        dom.infoBarFavBtn.classList.remove('border-rose-500/40', 'text-rose-200');
+      }
+    }
+
+    // =========================================================================
+    // VIDEO PLAYER CONTROLS, MOBILE SWIPE GESTURES & KEYBOARD SHORTCUTS
+    // =========================================================================
+    function updatePlayPauseIcons() {
+      if (dom.videoPlayer.paused) {
+        dom.playIcon.classList.remove('hidden');
+        dom.pauseIcon.classList.add('hidden');
+      } else {
+        dom.playIcon.classList.add('hidden');
+        dom.pauseIcon.classList.remove('hidden');
+      }
+    }
+
+    function togglePlayPause() {
+      if (!state.currentChannel) return;
+      if (dom.videoPlayer.paused) {
+        dom.videoPlayer.play().catch(() => {});
+      } else {
+        dom.videoPlayer.pause();
+      }
+    }
+
+    function toggleMute() {
+      dom.videoPlayer.muted = !dom.videoPlayer.muted;
+      updateVolumeIcons();
+    }
+
+    function updateVolumeIcons() {
+      if (dom.videoPlayer.muted || dom.videoPlayer.volume === 0) {
+        dom.volHighIcon.classList.add('hidden');
+        dom.volMuteIcon.classList.remove('hidden');
+      } else {
+        dom.volHighIcon.classList.remove('hidden');
+        dom.volMuteIcon.classList.add('hidden');
+      }
+    }
+
+    function cycleAspectRatio() {
+      const modes = [
+        { className: 'object-contain', label: 'FIT' },
+        { className: 'object-cover', label: 'ZOOM' },
+        { className: 'object-fill', label: 'FILL' },
+      ];
+      state.aspectModeIndex = (state.aspectModeIndex + 1) % modes.length;
+      const current = modes[state.aspectModeIndex];
+      dom.videoPlayer.classList.remove('object-contain', 'object-cover', 'object-fill');
+      dom.videoPlayer.classList.add(current.className);
+      dom.aspectLabel.textContent = current.label;
+      showToast(`Aspect Ratio: ${current.label}`, 'info');
+    }
+
+    function toggleTheaterMode() {
+      state.isTheaterMode = !state.isTheaterMode;
+      if (state.isTheaterMode) {
+        dom.playerSection.classList.remove('lg:col-span-8');
+        dom.playerSection.classList.add('lg:col-span-12');
+        dom.sidebarSection.classList.remove('lg:col-span-4', 'lg:h-[calc(100vh-145px)]');
+        dom.sidebarSection.classList.add('lg:col-span-12', 'lg:h-[420px]');
+      } else {
+        dom.playerSection.classList.add('lg:col-span-8');
+        dom.playerSection.classList.remove('lg:col-span-12');
+        dom.sidebarSection.classList.add('lg:col-span-4', 'lg:h-[calc(100vh-145px)]');
+        dom.sidebarSection.classList.remove('lg:col-span-12', 'lg:h-[420px]');
+      }
+    }
+
+    async function toggleFullscreen() {
+      try {
+        if (!document.fullscreenElement) {
+          if (dom.playerContainer.requestFullscreen) {
+            await dom.playerContainer.requestFullscreen();
+          } else if (dom.videoPlayer.webkitEnterFullscreen) {
+            // iOS Safari native video fullscreen fallback
+            dom.videoPlayer.webkitEnterFullscreen();
+            return;
+          }
+          // Attempt landscape lock on mobile devices when entering fullscreen
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+          }
+        } else {
+          await document.exitFullscreen();
+          if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+          }
+        }
+      } catch (e) {}
+    }
+
+    function resetControlsAutoHide() {
+      dom.playerContainer.classList.remove('controls-hidden');
+      clearTimeout(state.controlsHideTimer);
+      state.controlsHideTimer = setTimeout(() => {
+        if (!dom.videoPlayer.paused && state.currentChannel) {
+          dom.playerContainer.classList.add('controls-hidden');
+        }
+      }, 3200);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    function bindEvents() {
+      // Search filtering
+      dom.searchInput.addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        dom.clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
+        applyChannelFilters();
+      });
+
+      dom.clearSearchBtn.addEventListener('click', () => {
+        state.searchQuery = '';
+        dom.searchInput.value = '';
+        dom.clearSearchBtn.classList.add('hidden');
+        applyChannelFilters();
+      });
+
+      // Favorites & Recent filter toggles
+      dom.favoritesFilterBtn.addEventListener('click', () => {
+        setFilterMode(state.filterMode === 'favorites' ? 'all' : 'favorites');
+      });
+
+      dom.recentFilterBtn.addEventListener('click', () => {
+        setFilterMode(state.filterMode === 'recent' ? 'all' : 'recent');
+      });
+
+      // Dismiss demo banner
+      dom.dismissBannerBtn.addEventListener('click', () => {
+        dom.demoBanner.classList.add('hidden');
+      });
+
+      // Rescan playlists
+      dom.rescanPlaylistsBtn.addEventListener('click', () => {
+        showToast('Scanning root folder & GitHub repo...', 'info');
+        discoverAllPlaylists();
+      });
+
+      // Video events
+      dom.videoPlayer.addEventListener('play', updatePlayPauseIcons);
+      dom.videoPlayer.addEventListener('pause', updatePlayPauseIcons);
+      dom.videoPlayer.addEventListener('waiting', () => {
+        dom.loadingOverlay.classList.remove('hidden');
+        dom.loadingText.textContent = 'Buffering...';
+      });
+      dom.videoPlayer.addEventListener('playing', () => {
+        dom.loadingOverlay.classList.add('hidden');
+        dom.errorOverlay.classList.add('hidden');
+      });
+      dom.videoPlayer.addEventListener('error', () => {
+        if (state.currentChannel && !state.hlsInstance) {
+          handleStreamFailure('Direct video stream failed to load.', state.currentChannel.url);
+        }
+      });
+
+      // Tap video to toggle overlay controls cleanly on touchscreens
+      dom.videoPlayer.addEventListener('click', () => {
+        if (dom.playerContainer.classList.contains('controls-hidden')) {
+          resetControlsAutoHide();
+        } else {
+          togglePlayPause();
+        }
+      });
+
+      // Horizontal Touch Swipe on Player to Zap Channels (Mobile UX)
+      dom.playerContainer.addEventListener(
+        'touchstart',
+        (e) => {
+          resetControlsAutoHide();
+          if (e.touches && e.touches.length === 1) {
+            state.touchStartX = e.touches[0].clientX;
+            state.touchStartY = e.touches[0].clientY;
+          }
+        },
+        { passive: true }
+      );
+
+      dom.playerContainer.addEventListener(
+        'touchend',
+        (e) => {
+          if (!e.changedTouches || e.changedTouches.length !== 1) return;
+          const dx = e.changedTouches[0].clientX - state.touchStartX;
+          const dy = e.changedTouches[0].clientY - state.touchStartY;
+          // Trigger channel zap only on clear horizontal swipe (> 65px)
+          if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.6) {
+            if (dx < 0) {
+              playAdjacentChannel(1);
+            } else {
+              playAdjacentChannel(-1);
+            }
+          }
+        },
+        { passive: true }
+      );
+
+      // Player control buttons
+      dom.playPauseBtn.addEventListener('click', togglePlayPause);
+      dom.prevChannelBtn.addEventListener('click', () => playAdjacentChannel(-1));
+      dom.nextChannelBtn.addEventListener('click', () => playAdjacentChannel(1));
+      dom.muteBtn.addEventListener('click', toggleMute);
+
+      dom.volumeSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        dom.videoPlayer.volume = val;
+        dom.videoPlayer.muted = val === 0;
+        localStorage.setItem(STORAGE_KEYS.VOLUME, val);
+        updateVolumeIcons();
+      });
+
+      dom.qualitySelect.addEventListener('change', (e) => {
+        if (state.hlsInstance) {
+          state.hlsInstance.currentLevel = parseInt(e.target.value, 10);
+          showToast(
+            e.target.value === '-1' ? 'Quality: Auto' : `Quality: ${e.target.options[e.target.selectedIndex].text}`,
+            'info'
+          );
+        }
+      });
+
+      dom.aspectRatioBtn.addEventListener('click', cycleAspectRatio);
+      dom.theaterBtn.addEventListener('click', toggleTheaterMode);
+      dom.fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+      dom.pipBtn.addEventListener('click', async () => {
+        try {
+          if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+          } else if (document.pictureInPictureEnabled) {
+            await dom.videoPlayer.requestPictureInPicture();
+          }
+        } catch (err) {
+          showToast('Picture-in-Picture unavailable for this stream', 'warning');
+        }
+      });
+
+      // Error overlay buttons
+      dom.manualRetryBtn.addEventListener('click', () => {
+        if (state.currentChannel) playChannel(state.currentChannel, true);
+      });
+      dom.errorNextChannelBtn.addEventListener('click', () => playAdjacentChannel(1));
+
+      // Info bar actions
+      dom.infoBarFavBtn.addEventListener('click', () => {
+        if (state.currentChannel) toggleFavorite(state.currentChannel);
+      });
+
+      dom.copyStreamUrlBtn.addEventListener('click', () => {
+        if (!state.currentChannel) return;
+        const tempInput = document.createElement('input');
+        tempInput.value = state.currentChannel.url;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+
+        dom.copyUrlText.textContent = 'Copied!';
+        showToast('Stream URL copied to clipboard', 'success');
+        setTimeout(() => {
+          dom.copyUrlText.textContent = 'Copy URL';
+        }, 2000);
+      });
+
+      // Auto-hide controls on mouse move
+      dom.playerContainer.addEventListener('mousemove', resetControlsAutoHide);
+
+      // Modal open/close
+      dom.openCustomModalBtn.addEventListener('click', () => {
+        dom.customM3uModal.classList.remove('hidden');
+      });
+      dom.closeModalBtn.addEventListener('click', () => {
+        dom.customM3uModal.classList.add('hidden');
+      });
+      dom.customM3uModal.addEventListener('click', (e) => {
+        if (e.target === dom.customM3uModal) dom.customM3uModal.classList.add('hidden');
+      });
+
+      // Upload local .m3u files
+      dom.localM3uFileInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        let lastAddedId = null;
+        for (const file of files) {
+          const text = await file.text();
+          const title = formatFilenameToTitle(file.name);
+          const parsed = parseM3U(text, title);
+          const id = `local_${Date.now()}_${file.name}`;
+          state.playlists.push({
+            id,
+            name: title,
+            filename: file.name,
+            rawContent: text,
+            count: parsed.length,
+            sourceType: 'local',
+          });
+          lastAddedId = id;
+        }
+
+        dom.demoBanner.classList.add('hidden');
+        dom.customM3uModal.classList.add('hidden');
+        renderPlaylistTabs();
+        if (lastAddedId) {
+          await selectPlaylist(lastAddedId, false);
+        }
+        showToast(`Loaded ${files.length} local playlist(s)`, 'success');
+        e.target.value = '';
+      });
+
+      // Load Custom Remote URL
+      dom.loadCustomUrlBtn.addEventListener('click', async () => {
+        const url = dom.customUrlInput.value.trim();
+        if (!url) {
+          showToast('Please enter a valid .m3u or .m3u8 URL', 'warning');
+          return;
+        }
+        const name = dom.customUrlNameInput.value.trim() || formatFilenameToTitle(url.split('/').pop() || 'Custom M3U');
+        const id = `custom_${Date.now()}`;
+        const newPl = {
+          id,
+          name,
+          url,
+          sourceType: 'custom',
+        };
+
+        state.playlists.push(newPl);
+        const savedCustom = state.playlists
+          .filter((p) => p.sourceType === 'custom')
+          .map(({ id, name, url, sourceType }) => ({ id, name, url, sourceType }));
+        localStorage.setItem(STORAGE_KEYS.CUSTOM_PLAYLISTS, JSON.stringify(savedCustom));
+
+        dom.customUrlInput.value = '';
+        dom.customUrlNameInput.value = '';
+        dom.demoBanner.classList.add('hidden');
+        dom.customM3uModal.classList.add('hidden');
+
+        await selectPlaylist(id, false);
+        showToast(`Added "${name}"`, 'success');
+      });
+
+      // Manual GitHub Repo Scan
+      dom.syncGithubRepoBtn.addEventListener('click', async () => {
+        const repo = dom.githubRepoInput.value.trim();
+        if (!repo || !repo.includes('/')) {
+          showToast('Enter format: username/repository', 'warning');
+          return;
+        }
+        localStorage.setItem(STORAGE_KEYS.GITHUB_REPO, repo);
+        dom.customM3uModal.classList.add('hidden');
+        showToast(`Scanning GitHub repo: ${repo}...`, 'info');
+        await discoverAllPlaylists();
+      });
+
+      // Keyboard Shortcuts
+      document.addEventListener('keydown', (e) => {
+        const tag = document.activeElement.tagName.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+        switch (e.key) {
+          case 'ArrowUp':
+            e.preventDefault();
+            playAdjacentChannel(-1);
+            break;
+          case 'ArrowDown':
+            e.preventDefault();
+            playAdjacentChannel(1);
+            break;
+          case ' ':
+            e.preventDefault();
+            togglePlayPause();
+            break;
+          case 'm':
+          case 'M':
+            toggleMute();
+            break;
+          case 'f':
+          case 'F':
+            toggleFullscreen();
+            break;
+          case 't':
+          case 'T':
+            toggleTheaterMode();
+            break;
+        }
+      });
+    }
+
+    // =========================================================================
+    // BOOTSTRAP APPLICATION
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedVol = localStorage.getItem(STORAGE_KEYS.VOLUME);
+      if (savedVol !== null) {
+        dom.videoPlayer.volume = parseFloat(savedVol);
+        dom.volumeSlider.value = savedVol;
+        updateVolumeIcons();
+      }
+
+      loadSavedUserLists();
+      bindEvents();
+      discoverAllPlaylists();
+    });
+  </script>
+</body>
+</html>
