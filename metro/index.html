@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub IPTV Web Player</title>
+  <!-- Live Stream ও HLS সাপোর্টের জন্য লাইব্রেরি -->
+  <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* হেডার বার */
+    header {
+      background: #111827;
+      padding: 12px 20px;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-pill {
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: #1f2937;
+      color: #9ca3af;
+      font-weight: 600;
+    }
+
+    .status-pill.live {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid #ef4444;
+    }
+
+    /* মেইন লেআউট */
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* বাম পাশের চ্যানেল সাইডবার */
+    .sidebar {
+      width: 340px;
+      background: #111827;
+      border-right: 1px solid #1f2937;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .filter-box {
+      padding: 12px;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-box input,
+    .filter-box select {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background: #0b0f19;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .filter-box input:focus,
+    .filter-box select:focus {
+      border-color: #38bdf8;
+    }
+
+    .channel-count {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      padding: 0 4px;
+    }
+
+    .channel-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .channel-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .channel-list::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 4px;
+    }
+
+    .channel-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.15s;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .channel-item:hover {
+      background: #1f2937;
+    }
+
+    .channel-item.active {
+      background: #0284c7;
+      color: #fff;
+    }
+
+    .channel-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      background: #0b0f19;
+      object-fit: contain;
+      flex-shrink: 0;
+      padding: 2px;
+    }
+
+    .channel-info {
+      overflow: hidden;
+    }
+
+    .channel-name {
+      font-size: 0.92rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .channel-group {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .channel-item.active .channel-group {
+      color: #e0f2fe;
+    }
+
+    /* ডান পাশের ভিডিও প্লেয়ার এরিয়া */
+    .player-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .video-wrapper {
+      width: 100%;
+      max-width: 1100px;
+      margin: auto;
+      aspect-ratio: 16 / 9;
+      background: #050505;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #1f2937;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .now-playing-bar {
+      max-width: 1100px;
+      width: 100%;
+      margin: 12px auto 0;
+      background: #111827;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .now-playing-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #38bdf8;
+    }
+
+    .error-msg {
+      font-size: 0.85rem;
+      color: #f87171;
+      margin-top: 4px;
+    }
+
+    /* মোবাইল রেসপন্সিভ */
+    @media (max-width: 768px) {
+      body {
+        height: auto;
+        overflow: auto;
+      }
+      .main-container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        height: 450px;
+        border-right: none;
+        border-top: 1px solid #1f2937;
+        order: 2;
+      }
+      .player-area {
+        order: 1;
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📺 IPTV Stream Hub</h1>
+    <span id="statusPill" class="status-pill">Loading Playlist...</span>
+  </header>
+
+  <div class="main-container">
+    <!-- চ্যানেল লিস্ট সাইডবার -->
+    <aside class="sidebar">
+      <div class="filter-box">
+        <input type="text" id="searchInput" placeholder="🔍 চ্যানেল বা মুভি খুঁজুন..." oninput="filterChannels()" />
+        <select id="groupSelect" onchange="filterChannels()">
+          <option value="ALL">সব ক্যাটাগরি (All Groups)</option>
+        </select>
+        <div class="channel-count" id="channelCount">0 টি চ্যানেল পাওয়া গেছে</div>
+      </div>
+      <div class="channel-list" id="channelList"></div>
+    </aside>
+
+    <!-- ভিডিও প্লেয়ার -->
+    <main class="player-area">
+      <div class="video-wrapper">
+        <video id="videoPlayer" controls autoplay playsinline></video>
+      </div>
+      <div class="now-playing-bar">
+        <div>
+          <div class="now-playing-title" id="currentTitle">বাম পাশ থেকে একটি চ্যানেল সিলেক্ট করুন</div>
+          <div class="error-msg" id="logMsg"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const PLAYLIST_FILE = './playlist.m3u'; // GitHub root folder-এর ফাইল
+
+    const video = document.getElementById('videoPlayer');
+    const channelListEl = document.getElementById('channelList');
+    const searchInput = document.getElementById('searchInput');
+    const groupSelect = document.getElementById('groupSelect');
+    const channelCountEl = document.getElementById('channelCount');
+    const currentTitleEl = document.getElementById('currentTitle');
+    const logMsgEl = document.getElementById('logMsg');
+    const statusPill = document.getElementById('statusPill');
+
+    let allChannels = [];
+    let activeIndex = -1;
+    let mpegtsPlayer = null;
+    let hlsPlayer = null;
+
+    // ১. Root folder থেকে playlist.m3u লোড করা
+    async function loadPlaylist() {
+      try {
+        const response = await fetch(PLAYLIST_FILE);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const text = await response.text();
+        parseM3U(text);
+        statusPill.textContent = 'Playlist Ready';
+      } catch (err) {
+        statusPill.textContent = 'Playlist Error';
+        logMsgEl.textContent = 'playlist.m3u ফাইলটি লোড করা যায়নি। নিশ্চিত করুন ফাইলটি GitHub-এর root ফোল্ডারে আছে।';
+        console.error(err);
+      }
+    }
+
+    // ২. M3U ফাইল পার্স করা
+    function parseM3U(content) {
+      const lines = content.split(/\r?\n/);
+      allChannels = [];
+      const groups = new Set();
+      let currentInfo = null;
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+
+        if (line.startsWith('#EXTINF:')) {
+          const nameMatch = line.match(/,(.*)$/);
+          const logoMatch = line.match(/tvg-logo="([^"]*)"/i);
+          const groupMatch = line.match(/group-title="([^"]*)"/i);
+
+          const name = nameMatch ? nameMatch[1].trim() : 'Unknown Channel';
+          const logo = logoMatch ? logoMatch[1].trim() : '';
+          const group = groupMatch && groupMatch[1].trim() ? groupMatch[1].trim() : 'Uncategorized';
+
+          groups.add(group);
+          currentInfo = { name, logo, group };
+        } else if (!line.startsWith('#') && currentInfo) {
+          allChannels.push({
+            ...currentInfo,
+            url: line
+          });
+          currentInfo = null;
+        }
+      }
+
+      // ক্যাটাগরি ড্রপডাউন পূরণ করা
+      groups.forEach(group => {
+        const opt = document.createElement('option');
+        opt.value = group;
+        opt.textContent = group;
+        groupSelect.appendChild(opt);
+      });
+
+      renderChannels(allChannels);
+    }
+
+    // ৩. চ্যানেল লিস্ট রেন্ডার করা
+    function renderChannels(channels) {
+      channelListEl.innerHTML = '';
+      channelCountEl.textContent = `${channels.length} টি চ্যানেল পাওয়া গেছে`;
+
+      const fragment = document.createDocumentFragment();
+      channels.forEach((ch, idx) => {
+        const item = document.createElement('div');
+        item.className = 'channel-item' + (ch.url === activeIndex ? ' active' : '');
+        
+        const fallbackLogo = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="%2338bdf8"><rect width="36" height="36" rx="6" fill="%231f2937"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-size="16" font-family="sans-serif" fill="%2338bdf8">TV</text></svg>';
+
+        item.innerHTML = `
+          <img class="channel-logo" src="${ch.logo || fallbackLogo}" onerror="this.src='${fallbackLogo}'" alt="" />
+          <div class="channel-info">
+            <div class="channel-name">${ch.name}</div>
+            <div class="channel-group">${ch.group}</div>
+          </div>
+        `;
+
+        item.onclick = () => {
+          document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          activeIndex = ch.url;
+          playStream(ch);
+        };
+
+        fragment.appendChild(item);
+      });
+
+      channelListEl.appendChild(fragment);
+    }
+
+    // ৪. সার্চ ও গ্রুপ ফিল্টার
+    function filterChannels() {
+      const query = searchInput.value.toLowerCase();
+      const selectedGroup = groupSelect.value;
+
+      const filtered = allChannels.filter(ch => {
+        const matchesName = ch.name.toLowerCase().includes(query);
+        const matchesGroup = selectedGroup === 'ALL' || ch.group === selectedGroup;
+        return matchesName && matchesGroup;
+      });
+
+      renderChannels(filtered);
+    }
+
+    // ৫. পুরনো প্লেয়ার পরিষ্কার করা
+    function destroyPlayers() {
+      if (mpegtsPlayer) {
+        mpegtsPlayer.destroy();
+        mpegtsPlayer = null;
+      }
+      if (hlsPlayer) {
+        hlsPlayer.destroy();
+        hlsPlayer = null;
+      }
+      video.removeAttribute('src');
+      video.load();
+    }
+
+    // ৬. ভিডিও / লাইভ স্ট্রিম প্লে করা
+    function playStream(channel) {
+      destroyPlayers();
+      currentTitleEl.textContent = `▶ ${channel.name}`;
+      logMsgEl.textContent = '';
+      statusPill.textContent = 'Connecting...';
+      statusPill.classList.remove('live');
+
+      const url = channel.url;
+
+      // ব্রাউজার সতর্কতা: HTTPS পেজ থেকে HTTP লিংক ব্লক হতে পারে
+      if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+        logMsgEl.textContent = 'সতর্কতা: GitHub Pages (HTTPS) থেকে HTTP স্ট্রিম ব্রাউজার ব্লক করতে পারে। প্লে না হলে ব্রাউজার Settings থেকে "Insecure content" Allow করুন।';
+      }
+
+      // A. সরাসরি MP4 / MKV / WebM ফাইল হলে
+      if (/\.(mp4|mkv|webm|mov)(\?.*)?$/i.test(url)) {
+        video.src = url;
+        video.play().then(() => {
+          statusPill.textContent = '● PLAYING VOD';
+          statusPill.classList.add('live');
+        }).catch(() => {
+          logMsgEl.textContent = 'ভিডিও প্লে করা যাচ্ছে না (সার্ভার অফলাইন বা কোডেক সমস্যা)।';
+        });
+      }
+      // B. M3U8 (HLS) স্ট্রিম হলে
+      else if (url.includes('.m3u8') && Hls.isSupported()) {
+        hlsPlayer = new Hls();
+        hlsPlayer.loadSource(url);
+        hlsPlayer.attachMedia(video);
+        hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play();
+          statusPill.textContent = '● LIVE (HLS)';
+          statusPill.classList.add('live');
+        });
+        hlsPlayer.on(Hls.Events.ERROR, (_, data) => {
+          if (data.fatal) {
+            statusPill.textContent = 'Stream Error';
+            logMsgEl.textContent = 'স্ট্রিম লোড হতে ব্যর্থ হয়েছে (CORS বা Mixed Content এরর)।';
+          }
+        });
+      }
+      // C. Xtream Codes / MPEG-TS লাইভ স্ট্রিম হলে
+      else if (mpegts.getFeatureList().mseLivePlayback) {
+        mpegtsPlayer = mpegts.createPlayer({
+          type: 'mpegts',
+          isLive: true,
+          url: url
+        }, {
+          enableStashBuffer: false,
+          stashInitialSize: 128
+        });
+
+        mpegtsPlayer.attachMediaElement(video);
+        mpegtsPlayer.load();
+        mpegtsPlayer.play().then(() => {
+          statusPill.textContent = '● LIVE';
+          statusPill.classList.add('live');
+        }).catch(() => {
+          statusPill.textContent = 'Playback Error';
+        });
+
+        mpegtsPlayer.on(mpegts.Events.ERROR, () => {
+          statusPill.textContent = 'Connection Failed';
+          logMsgEl.textContent = 'সার্ভার থেকে স্ট্রিম ব্লক করা আছে বা লিংকটি অফলাইন।';
+        });
+      }
+      // D. নেটিভ ফলব্যাক
+      else {
+        video.src = url;
+        video.play();
+      }
+    }
+
+    // পেজ লোড হলে প্লেলিস্ট চালু করা
+    window.addEventListener('DOMContentLoaded', loadPlaylist);
+  </script>
+
+</body>
+</html>
