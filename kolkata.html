@@ -98,7 +98,7 @@
             <!-- Stats & Heritage Route Toggle -->
             <div class="flex items-center gap-2 sm:gap-3">
                 <span class="hidden sm:inline-flex items-center gap-1 bg-emerald-900/60 text-emerald-200 border border-emerald-400/40 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
-                    <i class="fa-solid fa-check-circle text-emerald-400"></i> OSM & Esri Map
+                    <i class="fa-solid fa-check-circle text-emerald-400"></i> 100% Free OSM & Esri Map (No Watermark)
                 </span>
                 <div class="hidden md:flex items-center gap-2 bg-black/25 px-3 py-1.5 rounded-xl border border-[#D69E2E]/40 text-xs">
                     <span class="flex items-center gap-1.5 text-[#FBD38D] font-semibold">
@@ -200,6 +200,22 @@
 
                 <!-- Drawer Body -->
                 <div class="p-4 overflow-y-auto space-y-3 text-sm leading-relaxed text-gray-800">
+                    <!-- Dynamic Place / Street Image Banner -->
+                    <div class="relative w-full h-44 rounded-xl overflow-hidden border border-[#DFD1BA] bg-[#E6DAC6] shadow-inner">
+                        <img id="drawer-image" src="https://placehold.co/600x300/741B1B/FBD38D?text=Kolkata+Heritage" alt="Heritage Photo" class="w-full h-full object-cover transition-opacity duration-300">
+                        <div id="drawer-img-caption" class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-1.5 text-[11px] text-white/95 font-medium truncate">
+                            কলকাতার ঐতিহাসিক দৃশ্য
+                        </div>
+                    </div>
+
+                    <!-- YouTube Video Link Action Button -->
+                    <a id="drawer-youtube-btn" href="#" target="_blank" rel="noopener noreferrer" 
+                        class="w-full py-2 px-3 rounded-xl bg-[#FF0000] hover:bg-[#CC0000] text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-youtube text-lg"></i>
+                        <span>YouTube-এ ভিডিও ও ডকুমেন্টারি দেখুন</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-80"></i>
+                    </a>
+
                     <!-- Old Name / Era Info Box -->
                     <div class="bg-[#F2ECE1] border border-[#DFD1BA] rounded-xl p-3 space-y-1.5 text-xs">
                         <div class="flex items-start gap-2">
@@ -1367,6 +1383,51 @@
         // ============================================================================
         // 5. ITEM SELECTION, FLY-TO & DETAIL DRAWER LOGIC
         // ============================================================================
+        const wikiImageCache = {};
+
+        // Fetch authentic Wikipedia / Wikimedia Commons photo dynamically with clean fallback
+        async function loadPlacePhoto(item) {
+            const imgEl = document.getElementById('drawer-image');
+            const captionEl = document.getElementById('drawer-img-caption');
+            const cleanEnTitle = item.nameEn.split('/')[0].split('(')[0].trim();
+            const fallbackUrl = `https://placehold.co/600x320/${item.type === 'street' ? '741B1B' : '1A365D'}/FAF6F0?text=${encodeURIComponent(cleanEnTitle)}`;
+
+            imgEl.onerror = () => {
+                imgEl.src = fallbackUrl;
+            };
+
+            captionEl.innerText = `📸 ${item.nameBn} (${cleanEnTitle})`;
+
+            if (wikiImageCache[item.id]) {
+                imgEl.src = wikiImageCache[item.id];
+                return;
+            }
+
+            // Set immediate placeholder while fetching real Wikipedia image
+            imgEl.src = fallbackUrl;
+
+            try {
+                const searchQueryWiki = encodeURIComponent(`${cleanEnTitle} Kolkata`);
+                const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${searchQueryWiki}&gsrlimit=1&prop=pageimages&pithumbsize=640&format=json&origin=*`;
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if (data && data.query && data.query.pages) {
+                    const pages = Object.values(data.query.pages);
+                    if (pages[0] && pages[0].thumbnail && pages[0].thumbnail.source) {
+                        const realImgUrl = pages[0].thumbnail.source;
+                        wikiImageCache[item.id] = realImgUrl;
+                        if (selectedItemId === item.id) {
+                            imgEl.src = realImgUrl;
+                        }
+                    }
+                }
+            } catch (err) {
+                // Keep clean fallback image if offline or unavailable
+                imgEl.src = fallbackUrl;
+            }
+        }
+
         function selectItem(id, shouldFly = true) {
             const item = kolkataHeritageData.find(d => d.id === id);
             if (!item) return;
@@ -1409,6 +1470,12 @@
             document.getElementById('drawer-oldname').innerText = item.oldName;
             document.getElementById('drawer-coords').innerText = `${item.lat.toFixed(4)}° N, ${item.lng.toFixed(4)}° E`;
             document.getElementById('drawer-history').innerText = item.historyBn;
+
+            // Load real Wikipedia photo & set YouTube documentary link
+            loadPlacePhoto(item);
+            const cleanQueryName = item.nameEn.split('/')[0].split('(')[0].trim();
+            const ytSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanQueryName + ' Kolkata history documentary')}`;
+            document.getElementById('drawer-youtube-btn').href = ytSearchUrl;
 
             const highlightsEl = document.getElementById('drawer-highlights');
             highlightsEl.innerHTML = item.highlights.map(tag => `
