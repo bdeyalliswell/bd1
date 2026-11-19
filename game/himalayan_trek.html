@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Himalayan Explorer Atlas | 10,000+ Tourist Places & Trekking Points</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Leaflet.js CSS & MarkerCluster CSS (100% Free, Zero API Key) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', 'sans-serif'],
+                        display: ['"Plus Jakarta Sans"', '"Inter"', 'sans-serif'],
+                    },
+                    colors: {
+                        alpine: {
+                            bg: '#090d16',
+                            panel: '#0f1623',
+                            card: '#151e30',
+                            border: '#22304a',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            sky: '#38bdf8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #090d16;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #263550; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        /* Leaflet Dark Theme & Custom Cluster Styling */
+        .leaflet-container {
+            background: #0b111e !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background: #0f1623 !important;
+            color: #f8fafc !important;
+            border: 1px solid #263550;
+            border-radius: 14px !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7) !important;
+        }
+        .leaflet-popup-content {
+            margin: 12px 14px !important;
+        }
+        .leaflet-control-layers {
+            background: #0f1623 !important;
+            color: #f8fafc !important;
+            border: 1px solid #263550 !important;
+            border-radius: 12px !important;
+            padding: 6px 10px !important;
+        }
+        .leaflet-control-zoom a {
+            background-color: #0f1623 !important;
+            color: #f8fafc !important;
+            border-color: #263550 !important;
+        }
+        .leaflet-control-zoom a:hover {
+            background-color: #10b981 !important;
+            color: #090d16 !important;
+        }
+        .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+            background-color: rgba(16, 185, 129, 0.25) !important;
+        }
+        .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+            background-color: #10b981 !important;
+            color: #052e16 !important;
+            font-weight: 800 !important;
+            font-size: 12px !important;
+        }
+        .custom-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            transition: transform 0.15s ease;
+        }
+        .custom-pin:hover {
+            transform: scale(1.2);
+            z-index: 9999 !important;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.45; }
+        }
+        .loading-pulse { animation: pulseGlow 1.5s infinite; }
+    </style>
+</head>
+<body class="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden selection:bg-emerald-500 selection:text-slate-950">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-[#0f1623]/95 backdrop-blur-md border-b border-slate-800/90 z-30 shrink-0">
+        <div class="px-4 py-2.5 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+            
+            <!-- Brand & Live Place Counter -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 via-teal-600 to-sky-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+                        <i class="fa-solid fa-mountain-sun text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h1 class="font-display text-base sm:text-lg font-extrabold tracking-tight text-white">
+                                Himalayan Trekking & Tourist Atlas
+                            </h1>
+                            <span id="total-places-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-bold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                                <span id="total-count-num">125</span> Places Loaded
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 hidden sm:block">
+                            Himachal • Uttarakhand • Kashmir & Ladakh • Assam & Northeast • Sikkim • Nepal & Bhutan (Free OSM + Wikipedia + YouTube)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Mobile Bucket List Button -->
+                <button onclick="toggleBucketListModal()" class="xl:hidden px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-amber-400 text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-route"></i>
+                    <span id="mobile-bucket-count">0</span>
+                </button>
+            </div>
+
+            <!-- Global Search + 10,000+ Mass Loader + Bucket List -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Search Input (Filters local + Geocodes via Nominatim + Searches Wikipedia) -->
+                <form id="global-search-form" class="relative flex-1 sm:w-64 md:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="search-input" placeholder="Search trek, peak, valley, temple..." 
+                        class="w-full pl-8 pr-16 py-1.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                    <button type="submit" class="absolute right-1 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition">
+                        Find
+                    </button>
+                </form>
+
+                <!-- Load 10,000+ Himalayan Places Button (OpenStreetMap Overpass Bulk Harvester) -->
+                <button id="load-10k-btn" onclick="harvestAllHimalayan10K()"
+                    class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-earth-asia"></i>
+                    <span>Load 10,000+ Places</span>
+                </button>
+
+                <!-- Scan Visible Map Viewport -->
+                <button id="scan-view-btn" onclick="scanCurrentMapBounds()"
+                    class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 font-semibold text-xs transition flex items-center gap-1.5"
+                    title="Fetch all peaks, passes, lakes, temples & viewpoints in current map frame">
+                    <i class="fa-solid fa-radar"></i>
+                    <span class="hidden sm:inline">Scan Map Area</span>
+                </button>
+
+                <!-- Bucket List / Saved Treks Button -->
+                <button onclick="toggleBucketListModal()"
+                    class="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition">
+                    <i class="fa-solid fa-bookmark text-amber-400"></i>
+                    <span>My Treks</span>
+                    <span id="desktop-bucket-count" class="px-1.5 py-0.5 rounded-md bg-amber-500 text-slate-950 font-extrabold text-xs">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Region Filter Bar & Category Pills -->
+        <div class="px-4 py-2 bg-[#0b101b] border-t border-slate-800/80 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+            <!-- Regions -->
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar" id="region-filters">
+                <button data-region="all" class="reg-btn active px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap bg-emerald-500 text-slate-950 transition">
+                    🏔️ All Himalayas
+                </button>
+                <button data-region="himachal" class="reg-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-emerald-500/40 transition">
+                    Himachal Pradesh
+                </button>
+                <button data-region="uttarakhand" class="reg-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-emerald-500/40 transition">
+                    Uttarakhand
+                </button>
+                <button data-region="kashmir_ladakh" class="reg-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-emerald-500/40 transition">
+                    Kashmir & Ladakh
+                </button>
+                <button data-region="assam_ne" class="reg-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-emerald-500/40 transition">
+                    Assam & Arunachal (NE)
+                </button>
+                <button data-region="sikkim_bengal" class="reg-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-emerald-500/40 transition">
+                    Sikkim & Darjeeling
+                </button>
+                <button data-region="nepal_bhutan" class="reg-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-emerald-500/40 transition">
+                    Nepal & Bhutan
+                </button>
+            </div>
+
+            <!-- Categories -->
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar" id="category-filters">
+                <button data-cat="all" class="cat-btn active px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap bg-amber-500 text-slate-950 transition">
+                    All Types
+                </button>
+                <button data-cat="trek" class="cat-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-500/40 transition">
+                    🥾 Treks & Passes
+                </button>
+                <button data-cat="peak" class="cat-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-500/40 transition">
+                    ⛰️ Peaks & Glaciers
+                </button>
+                <button data-cat="valley" class="cat-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-500/40 transition">
+                    🌲 Valleys & Hill Stations
+                </button>
+                <button data-cat="lake" class="cat-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-500/40 transition">
+                    💧 Lakes & Waterfalls
+                </button>
+                <button data-cat="spiritual" class="cat-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-500/40 transition">
+                    🛕 Temples & Monasteries
+                </button>
+                <button data-cat="wildlife" class="cat-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-500/40 transition">
+                    🦏 National Parks & Wildlife
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Split Workspace: Left Explorer List + Right Interactive Map -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        
+        <!-- Left Sidebar: Filtered Places List -->
+        <aside class="w-full lg:w-[400px] xl:w-[440px] bg-[#0f1623] border-r border-slate-800/90 flex flex-col h-[48vh] lg:h-full shrink-0 z-20">
+            <!-- Sidebar Subheader -->
+            <div class="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/50 shrink-0">
+                <div class="text-xs text-slate-400">
+                    Showing <strong id="visible-count-num" class="text-white">0</strong> matching destinations
+                </div>
+                <select id="sort-select" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-emerald-500">
+                    <option value="featured">Sort: Featured First</option>
+                    <option value="elevation_desc">Elevation: Highest First</option>
+                    <option value="name_asc">Name: A to Z</option>
+                </select>
+            </div>
+
+            <!-- Harvest Progress Bar (Visible when fetching 10,000+ places) -->
+            <div id="harvest-progress-box" class="hidden px-4 py-2.5 bg-emerald-950/60 border-b border-emerald-500/30 shrink-0">
+                <div class="flex items-center justify-between text-xs mb-1">
+                    <span id="harvest-status-text" class="text-emerald-300 font-semibold loading-pulse">Querying OpenStreetMap Himalayan Nodes...</span>
+                    <span id="harvest-pct-text" class="text-emerald-400 font-bold">0%</span>
+                </div>
+                <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                    <div id="harvest-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Scrollable Place Cards -->
+            <div id="places-list-container" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+                <!-- Cards injected via JS -->
+            </div>
+
+            <!-- Sidebar Load More Button -->
+            <div id="sidebar-more-box" class="p-2.5 border-t border-slate-800 bg-slate-950/60 text-center shrink-0 hidden">
+                <button onclick="renderMoreSidebarItems()" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold transition">
+                    Show Next 60 Places in List
+                </button>
+            </div>
+        </aside>
+
+        <!-- Right Interactive Map Container -->
+        <section class="flex-1 relative h-[52vh] lg:h-full bg-slate-950">
+            <div id="himalaya-map" class="w-full h-full z-10"></div>
+
+            <!-- Floating Map Style Switcher (Zero API Key Tile Providers) -->
+            <div class="absolute top-3 right-3 z-[500] bg-[#0f1623]/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 flex items-center gap-1 shadow-xl">
+                <button onclick="switchBaseMap('topo')" id="layer-btn-topo" class="layer-btn px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 transition">
+                    <i class="fa-solid fa-mountain mr-1"></i>Topo Terrain
+                </button>
+                <button onclick="switchBaseMap('satellite')" id="layer-btn-satellite" class="layer-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition">
+                    <i class="fa-solid fa-satellite mr-1"></i>Satellite
+                </button>
+                <button onclick="switchBaseMap('osm')" id="layer-btn-osm" class="layer-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition">
+                    <i class="fa-solid fa-map mr-1"></i>Street Map
+                </button>
+            </div>
+
+            <!-- Floating Legend Pill (Bottom Left) -->
+            <div class="hidden sm:flex absolute bottom-4 left-4 z-[500] bg-[#0f1623]/90 backdrop-blur-md border border-slate-800 rounded-xl px-3 py-2 items-center gap-3 text-[11px] text-slate-300 shadow-lg">
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Trek / Pass</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> Peak / Glacier</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Valley / Hill Station</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span> Lake / Waterfall</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Temple / Monastery</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-lime-400 inline-block"></span> Wildlife Park</span>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Place Detail Modal / Drawer (Wikipedia Photo & Article + YouTube Video Player & Links) -->
+    <div id="place-modal" class="fixed inset-0 z-[2000] hidden items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm overflow-y-auto">
+        <div class="relative w-full max-w-4xl bg-[#0f1623] border border-slate-700/90 rounded-2xl shadow-2xl overflow-hidden my-auto">
+            
+            <!-- Close Button -->
+            <button onclick="closePlaceModal()" class="absolute top-3.5 right-3.5 z-20 w-9 h-9 rounded-full bg-black/75 hover:bg-rose-600 text-white flex items-center justify-center transition border border-white/15">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 max-h-[88vh] overflow-y-auto">
+                
+                <!-- Left Media Column: Wikipedia High-Res Photo + Embedded YouTube Player -->
+                <div class="lg:col-span-5 bg-slate-950 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800">
+                    <!-- Wikipedia Photo Showcase -->
+                    <div class="relative aspect-[16/11] lg:aspect-[4/3] w-full bg-slate-900 overflow-hidden">
+                        <img id="modal-photo" src="" alt="Himalayan Destination" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0f1623] via-transparent to-black/30"></div>
+                        <div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                            <span id="modal-region-badge" class="px-2.5 py-0.5 rounded-md bg-emerald-500 text-slate-950 font-extrabold text-xs shadow"></span>
+                            <span id="modal-cat-badge" class="px-2.5 py-0.5 rounded-md bg-slate-900/90 text-amber-400 border border-amber-500/30 font-semibold text-xs"></span>
+                        </div>
+                        <div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-slate-200">
+                            <span id="modal-elevation-badge" class="px-2 py-0.5 rounded bg-black/70 border border-white/10 font-semibold"></span>
+                            <span id="modal-coords-badge" class="px-2 py-0.5 rounded bg-black/70 font-mono text-[11px] text-slate-300"></span>
+                        </div>
+                    </div>
+
+                    <!-- Embedded YouTube Video Preview Box (Zero API Key Search Playlist Embed) -->
+                    <div class="p-3.5 space-y-2.5 flex-1 flex flex-col justify-between bg-[#0b101b]">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+                                    <i class="fa-brands fa-youtube text-sm"></i> Live YouTube Video Preview
+                                </span>
+                                <button onclick="toggleInlineYouTubePlayer()" id="toggle-yt-embed-btn" class="text-[11px] px-2 py-0.5 rounded bg-rose-600/20 text-rose-300 border border-rose-500/30 hover:bg-rose-600 hover:text-white transition">
+                                    Load Video Player
+                                </button>
+                            </div>
+                            
+                            <!-- Inline YouTube Player Slot -->
+                            <div id="yt-embed-wrapper" class="hidden rounded-xl overflow-hidden border border-slate-800 aspect-video bg-black">
+                                <iframe id="yt-embed-iframe" class="w-full h-full" src="" title="YouTube Himalayan Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                            <p id="yt-embed-hint" class="text-[11px] text-slate-400 leading-relaxed">
+                                Click <strong>"Load Video Player"</strong> to watch travel vlogs & trail guides right here, or open directly on YouTube below.
+                            </p>
+                        </div>
+
+                        <!-- Direct YouTube Action Buttons -->
+                        <div class="grid grid-cols-1 gap-2 pt-1">
+                            <a id="modal-yt-guide" href="#" target="_blank" rel="noopener noreferrer"
+                                class="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/20 transition">
+                                <i class="fa-brands fa-youtube text-base"></i>
+                                <span>Watch Travel Guide & Vlog on YouTube</span>
+                            </a>
+                            <div class="grid grid-cols-2 gap-2">
+                                <a id="modal-yt-trek" href="#" target="_blank" rel="noopener noreferrer"
+                                    class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition">
+                                    <i class="fa-solid fa-person-hiking text-amber-400"></i>
+                                    <span>Trek & Route Video</span>
+                                </a>
+                                <a id="modal-yt-drone" href="#" target="_blank" rel="noopener noreferrer"
+                                    class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition">
+                                    <i class="fa-solid fa-video text-sky-400"></i>
+                                    <span>4K Drone View</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Details Column: Wikipedia Encyclopedia Extract & Trekking Info -->
+                <div class="lg:col-span-7 p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between gap-3 pr-8">
+                            <div>
+                                <div class="text-xs font-semibold text-emerald-400 mb-0.5" id="modal-subregion">Himalayan Region</div>
+                                <h2 id="modal-title" class="font-display text-xl sm:text-2xl font-extrabold text-white leading-snug"></h2>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats Chips -->
+                        <div class="flex flex-wrap items-center gap-2 text-xs">
+                            <span id="modal-difficulty-chip" class="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 text-amber-300 font-semibold"></span>
+                            <span id="modal-season-chip" class="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 text-sky-300 font-semibold"></span>
+                            <button id="modal-save-btn" class="px-3 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold transition flex items-center gap-1.5">
+                                <i class="fa-regular fa-bookmark"></i> <span>Save to My Treks</span>
+                            </button>
+                        </div>
+
+                        <!-- Live Wikipedia Description -->
+                        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                    <i class="fa-brands fa-wikipedia-w text-amber-400"></i> Overview & History (Wikipedia)
+                                </span>
+                                <span id="modal-wiki-status" class="text-[11px] text-emerald-400 font-medium">Live Encyclopedia</span>
+                            </div>
+                            <p id="modal-description" class="text-xs sm:text-sm text-slate-300 leading-relaxed max-h-56 overflow-y-auto pr-1">
+                                Fetching detailed description and photography from Wikipedia...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Footer Navigation & External Links -->
+                    <div class="pt-3 border-t border-slate-800 flex flex-wrap items-center gap-2.5">
+                        <button id="modal-fly-btn" class="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition">
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                            <span>Zoom on Map</span>
+                        </button>
+                        <a id="modal-osm-dir" href="#" target="_blank" rel="noopener noreferrer"
+                            class="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition">
+                            <i class="fa-solid fa-diamond-turn-right text-sky-400"></i>
+                            <span>OSM Route & Directions</span>
+                        </a>
+                        <a id="modal-wiki-url" href="#" target="_blank" rel="noopener noreferrer"
+                            class="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-semibold text-xs transition">
+                            <i class="fa-brands fa-wikipedia-w"></i>
+                            <span>Read Full Wiki Article</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Treks / Bucket List Modal -->
+    <div id="bucket-modal" class="fixed inset-0 z-[2000] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="w-full max-w-2xl bg-[#0f1623] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-route text-amber-400 text-lg"></i>
+                    <div>
+                        <h3 class="font-display font-bold text-white text-base">My Himalayan Trek & Travel Bucket List</h3>
+                        <p class="text-xs text-slate-400">Export your saved coordinates as GPX (for offline GPS apps) or JSON.</p>
+                    </div>
+                </div>
+                <button onclick="toggleBucketListModal(false)" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-600 text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="bucket-list-items" class="p-4 overflow-y-auto space-y-2.5 flex-1">
+                <!-- Saved items injected here -->
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-950/70 flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs text-slate-400">Compatible with OsmAnd, Gaia GPS & Garmin</span>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportBucketGPX()" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition">
+                        <i class="fa-solid fa-compass mr-1"></i> Export GPX Waypoints
+                    </button>
+                    <button onclick="exportBucketJSON()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold text-xs transition">
+                        <i class="fa-solid fa-download mr-1"></i> Export JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet.js & MarkerCluster Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        // =========================================================================
+        // 1. Curated Master Seed Database (Himachal, Uttarakhand, Kashmir, Ladakh,
+        //    Assam, Arunachal, Sikkim, Darjeeling, Nepal & Bhutan)
+        // =========================================================================
+        const SEED_PLACES = [
+            // --- HIMACHAL PRADESH ---
+            { id: 'hp_1', name: 'Rohtang Pass', wiki: 'Rohtang Pass', lat: 32.3716, lng: 77.2466, elev: 3978, region: 'himachal', subregion: 'Kullu - Lahaul, Himachal Pradesh', cat: 'trek', diff: 'Moderate Drive / Trek', season: 'May – Oct' },
+            { id: 'hp_2', name: 'Hampta Pass Trek', wiki: 'Hampta Pass', lat: 32.2667, lng: 77.3333, elev: 4270, region: 'himachal', subregion: 'Manali - Spiti, Himachal Pradesh', cat: 'trek', diff: 'Moderate Trek', season: 'Jun – Oct' },
+            { id: 'hp_3', name: 'Triund Trek (McLeod Ganj)', wiki: 'Triund', lat: 32.2606, lng: 76.3489, elev: 2850, region: 'himachal', subregion: 'Kangra / Dharamshala, Himachal Pradesh', cat: 'trek', diff: 'Easy - Moderate', season: 'Mar – Dec' },
+            { id: 'hp_4', name: 'Spiti Valley', wiki: 'Spiti Valley', lat: 32.2461, lng: 78.0349, elev: 3810, region: 'himachal', subregion: 'Lahaul & Spiti, Himachal Pradesh', cat: 'valley', diff: 'High Altitude Road', season: 'May – Oct' },
+            { id: 'hp_5', name: 'Chandratal Lake', wiki: 'Chandra Taal', lat: 32.4824, lng: 77.6157, elev: 4250, region: 'himachal', subregion: 'Spiti, Himachal Pradesh', cat: 'lake', diff: 'Easy Hike / Camp', season: 'Jun – Sep' },
+            { id: 'hp_6', name: 'Key Monastery (Kye Gompa)', wiki: 'Key Monastery', lat: 32.2979, lng: 78.0120, elev: 4166, region: 'himachal', subregion: 'Spiti Valley, Himachal Pradesh', cat: 'spiritual', diff: 'Accessible', season: 'May – Oct' },
+            { id: 'hp_7', name: 'Pin Parvati Pass', wiki: 'Pin Parvati Pass', lat: 31.8389, lng: 77.7750, elev: 5319, region: 'himachal', subregion: 'Kullu - Spiti, Himachal Pradesh', cat: 'trek', diff: 'Challenging Trek', season: 'Jul – Sep' },
+            { id: 'hp_8', name: 'Kheerganga Trek', wiki: 'Kheerganga', lat: 31.9922, lng: 77.5089, elev: 2960, region: 'himachal', subregion: 'Parvati Valley, Himachal Pradesh', cat: 'trek', diff: 'Easy - Moderate', season: 'Mar – Nov' },
+            { id: 'hp_9', name: 'Great Himalayan National Park', wiki: 'Great Himalayan National Park', lat: 31.7333, lng: 77.5833, elev: 3500, region: 'himachal', subregion: 'Kullu, Himachal Pradesh', cat: 'wildlife', diff: 'UNESCO Heritage', season: 'Apr – Nov' },
+            { id: 'hp_10', name: 'Manali', wiki: 'Manali, Himachal Pradesh', lat: 32.2432, lng: 77.1892, elev: 2050, region: 'himachal', subregion: 'Kullu Valley, Himachal Pradesh', cat: 'valley', diff: 'Hill Station', season: 'Year-round' },
+            { id: 'hp_11', name: 'Shimla', wiki: 'Shimla', lat: 31.1048, lng: 77.1734, elev: 2276, region: 'himachal', subregion: 'Shimla, Himachal Pradesh', cat: 'valley', diff: 'Hill Station', season: 'Year-round' },
+            { id: 'hp_12', name: 'Kasol & Parvati Valley', wiki: 'Kasol', lat: 32.0100, lng: 77.3150, elev: 1580, region: 'himachal', subregion: 'Kullu, Himachal Pradesh', cat: 'valley', diff: 'Backpacker Hub', season: 'Mar – Nov' },
+            { id: 'hp_13', name: 'Khajjiar (Mini Switzerland)', wiki: 'Khajjiar', lat: 32.5558, lng: 76.0656, elev: 1920, region: 'himachal', subregion: 'Chamba / Dalhousie, Himachal Pradesh', cat: 'valley', diff: 'Easy', season: 'Mar – Nov' },
+            { id: 'hp_14', name: 'Baralacha La Pass', wiki: 'Bara-lacha la', lat: 32.7586, lng: 77.4167, elev: 4850, region: 'himachal', subregion: 'Lahaul, Himachal Pradesh', cat: 'trek', diff: 'High Mountain Pass', season: 'Jun – Sep' },
+            { id: 'hp_15', name: 'Bhrigu Lake Trek', wiki: 'Bhrigu Lake', lat: 32.3333, lng: 77.2333, elev: 4300, region: 'himachal', subregion: 'Manali, Himachal Pradesh', cat: 'lake', diff: 'Moderate Trek', season: 'May – Oct' },
+            { id: 'hp_16', name: 'Kunzum Pass', wiki: 'Kunzum Pass', lat: 32.3964, lng: 77.6361, elev: 4551, region: 'himachal', subregion: 'Lahaul & Spiti, Himachal Pradesh', cat: 'trek', diff: 'High Pass', season: 'Jun – Oct' },
+            { id: 'hp_17', name: 'Kinnaur Kailash', wiki: 'Kinnaur Kailash', lat: 31.5222, lng: 78.3667, elev: 6050, region: 'himachal', subregion: 'Kinnaur, Himachal Pradesh', cat: 'peak', diff: 'Sacred Peak / Trek', season: 'Jun – Sep' },
+            { id: 'hp_18', name: 'Chitkul (Last Village)', wiki: 'Chitkul', lat: 31.3514, lng: 78.4367, elev: 3450, region: 'himachal', subregion: 'Sangla Valley, Himachal Pradesh', cat: 'valley', diff: 'Scenic Village', season: 'Apr – Oct' },
+            { id: 'hp_19', name: 'Bir Billing Paragliding', wiki: 'Bir, Himachal Pradesh', lat: 32.0439, lng: 76.7239, elev: 2400, region: 'himachal', subregion: 'Kangra, Himachal Pradesh', cat: 'trek', diff: 'Adventure Hub', season: 'Mar – Nov' },
+            { id: 'hp_20', name: 'Indrahar Pass Trek', wiki: 'Indrahar Pass', lat: 32.2950, lng: 76.3800, elev: 4342, region: 'himachal', subregion: 'Dhauladhar Range, Himachal Pradesh', cat: 'trek', diff: 'Moderate-Difficult', season: 'May – Oct' },
+
+            // --- UTTARAKHAND ---
+            { id: 'uk_1', name: 'Kedarnath Temple & Trek', wiki: 'Kedarnath Temple', lat: 30.7352, lng: 79.0669, elev: 3583, region: 'uttarakhand', subregion: 'Rudraprayag, Uttarakhand', cat: 'spiritual', diff: '16 km Trek / Pilgrimage', season: 'May – Nov' },
+            { id: 'uk_2', name: 'Valley of Flowers National Park', wiki: 'Valley of Flowers National Park', lat: 30.7280, lng: 79.6053, elev: 3658, region: 'uttarakhand', subregion: 'Chamoli, Uttarakhand', cat: 'wildlife', diff: 'Moderate Trek', season: 'Jul – Sep' },
+            { id: 'uk_3', name: 'Roopkund (Skeleton Lake) Trek', wiki: 'Roopkund', lat: 30.2622, lng: 79.7317, elev: 5029, region: 'uttarakhand', subregion: 'Chamoli, Uttarakhand', cat: 'trek', diff: 'Challenging Trek', season: 'May – Oct' },
+            { id: 'uk_4', name: 'Kedarkantha Peak Trek', wiki: 'Kedarkantha', lat: 31.0225, lng: 78.1722, elev: 3810, region: 'uttarakhand', subregion: 'Uttarkashi, Uttarakhand', cat: 'trek', diff: 'Easy - Moderate Snow Trek', season: 'Dec – Apr' },
+            { id: 'uk_5', name: 'Badrinath Temple', wiki: 'Badrinath Temple', lat: 30.7433, lng: 79.4938, elev: 3133, region: 'uttarakhand', subregion: 'Chamoli, Uttarakhand', cat: 'spiritual', diff: 'Accessible', season: 'May – Nov' },
+            { id: 'uk_6', name: 'Nanda Devi Peak', wiki: 'Nanda Devi', lat: 30.3758, lng: 79.9708, elev: 7816, region: 'uttarakhand', subregion: 'Garhwal Himalayas, Uttarakhand', cat: 'peak', diff: '7,816m Giant', season: 'May – Oct' },
+            { id: 'uk_7', name: 'Tungnath & Chandrashila Trek', wiki: 'Tungnath', lat: 30.4886, lng: 79.2167, elev: 3680, region: 'uttarakhand', subregion: 'Chopta, Uttarakhand', cat: 'trek', diff: 'Easy - Moderate', season: 'Year-round' },
+            { id: 'uk_8', name: 'Har Ki Dun Valley Trek', wiki: 'Har Ki Doon', lat: 31.1436, lng: 78.4239, elev: 3566, region: 'uttarakhand', subregion: 'Uttarkashi, Uttarakhand', cat: 'trek', diff: 'Moderate Trek', season: 'Apr – Nov' },
+            { id: 'uk_9', name: 'Auli Ski Resort & Meadow', wiki: 'Auli, India', lat: 30.5284, lng: 79.5697, elev: 2800, region: 'uttarakhand', subregion: 'Joshimath, Uttarakhand', cat: 'valley', diff: 'Ski & Cable Car', season: 'Year-round' },
+            { id: 'uk_10', name: 'Gangotri Glacier (Gaumukh)', wiki: 'Gangotri Glacier', lat: 30.9261, lng: 79.0811, elev: 4023, region: 'uttarakhand', subregion: 'Uttarkashi, Uttarakhand', cat: 'peak', diff: 'Moderate Trek', season: 'May – Oct' },
+            { id: 'uk_11', name: 'Hemkund Sahib', wiki: 'Hemkund', lat: 30.6997, lng: 79.6156, elev: 4632, region: 'uttarakhand', subregion: 'Chamoli, Uttarakhand', cat: 'lake', diff: 'Steep Trek', season: 'Jun – Oct' },
+            { id: 'uk_12', name: 'Nainital & Naini Lake', wiki: 'Nainital', lat: 29.3919, lng: 79.4542, elev: 2084, region: 'uttarakhand', subregion: 'Kumaon, Uttarakhand', cat: 'lake', diff: 'Hill Station', season: 'Year-round' },
+            { id: 'uk_13', name: 'Munsiyari & Panchachuli Peaks', wiki: 'Munsiyari', lat: 30.0667, lng: 80.2333, elev: 2200, region: 'uttarakhand', subregion: 'Pithoragarh, Uttarakhand', cat: 'valley', diff: 'Trekking Base', season: 'Mar – Nov' },
+            { id: 'uk_14', name: 'Rishikesh', wiki: 'Rishikesh', lat: 30.0869, lng: 78.2676, elev: 372, region: 'uttarakhand', subregion: 'Dehradun / Tehri, Uttarakhand', cat: 'spiritual', diff: 'Gateway to Himalayas', season: 'Year-round' },
+            { id: 'uk_15', name: 'Jim Corbett National Park', wiki: 'Jim Corbett National Park', lat: 29.5300, lng: 78.7747, elev: 400, region: 'uttarakhand', subregion: 'Nainital, Uttarakhand', cat: 'wildlife', diff: 'Tiger Reserve', season: 'Nov – Jun' },
+            { id: 'uk_16', name: 'Dayara Bugyal Trek', wiki: 'Dayara Bugyal', lat: 30.8389, lng: 78.5567, elev: 3408, region: 'uttarakhand', subregion: 'Uttarkashi, Uttarakhand', cat: 'trek', diff: 'Easy Alpine Meadow', season: 'Year-round' },
+            { id: 'uk_17', name: 'Kuari Pass (Lord Curzon Trail)', wiki: 'Kuari Pass', lat: 30.4367, lng: 79.5889, elev: 3876, region: 'uttarakhand', subregion: 'Chamoli, Uttarakhand', cat: 'trek', diff: 'Moderate Trek', season: 'Mar – Dec' },
+            { id: 'uk_18', name: 'Pindari Glacier Trek', wiki: 'Pindari Glacier', lat: 30.2667, lng: 80.0000, elev: 3660, region: 'uttarakhand', subregion: 'Bageshwar, Uttarakhand', cat: 'peak', diff: 'Moderate Trek', season: 'May – Oct' },
+            { id: 'uk_19', name: 'Yamunotri Temple', wiki: 'Yamunotri Temple', lat: 31.0140, lng: 78.4600, elev: 3293, region: 'uttarakhand', subregion: 'Uttarkashi, Uttarakhand', cat: 'spiritual', diff: '6 km Trek', season: 'May – Nov' },
+            { id: 'uk_20', name: 'Brahmatal Winter Trek', wiki: 'Brahmatal', lat: 30.1583, lng: 79.6222, elev: 3734, region: 'uttarakhand', subregion: 'Chamoli, Uttarakhand', cat: 'lake', diff: 'Moderate Snow Trek', season: 'Dec – Apr' },
+
+            // --- KASHMIR & LADAKH ---
+            { id: 'jk_1', name: 'Pangong Tso Lake', wiki: 'Pangong Tso', lat: 33.7595, lng: 78.6674, elev: 4225, region: 'kashmir_ladakh', subregion: 'Leh, Ladakh', cat: 'lake', diff: 'High Altitude Lake', season: 'May – Sep' },
+            { id: 'jk_2', name: 'Khardung La Pass', wiki: 'Khardung La', lat: 34.2787, lng: 77.6047, elev: 5359, region: 'kashmir_ladakh', subregion: 'Leh - Nubra, Ladakh', cat: 'trek', diff: 'Motorable High Pass', season: 'May – Oct' },
+            { id: 'jk_3', name: 'Dal Lake & Srinagar', wiki: 'Dal Lake', lat: 34.1106, lng: 74.8683, elev: 1583, region: 'kashmir_ladakh', subregion: 'Srinagar, Jammu & Kashmir', cat: 'lake', diff: 'Houseboats & Shikara', season: 'Year-round' },
+            { id: 'jk_4', name: 'Gulmarg & Apharwat Peak', wiki: 'Gulmarg', lat: 34.0484, lng: 74.3805, elev: 2650, region: 'kashmir_ladakh', subregion: 'Baramulla, Jammu & Kashmir', cat: 'valley', diff: 'Gondola & Skiing', season: 'Year-round' },
+            { id: 'jk_5', name: 'Kashmir Great Lakes Trek', wiki: 'Vishansar Lake', lat: 34.4036, lng: 75.1389, elev: 4191, region: 'kashmir_ladakh', subregion: 'Sonamarg - Naranag, Kashmir', cat: 'trek', diff: 'Moderate-Difficult', season: 'Jul – Sep' },
+            { id: 'jk_6', name: 'Nubra Valley & Hunder Dunes', wiki: 'Nubra Valley', lat: 34.6863, lng: 77.5673, elev: 3048, region: 'kashmir_ladakh', subregion: 'Ladakh', cat: 'valley', diff: 'Cold Desert Valley', season: 'May – Sep' },
+            { id: 'jk_7', name: 'Pahalgam & Betaab Valley', wiki: 'Pahalgam', lat: 34.0161, lng: 75.3150, elev: 2740, region: 'kashmir_ladakh', subregion: 'Anantnag, Jammu & Kashmir', cat: 'valley', diff: 'Scenic Valley', season: 'Mar – Nov' },
+            { id: 'jk_8', name: 'Sonamarg & Thajiwas Glacier', wiki: 'Sonamarg', lat: 34.3033, lng: 75.2931, elev: 2730, region: 'kashmir_ladakh', subregion: 'Ganderbal, Jammu & Kashmir', cat: 'peak', diff: 'Meadow of Gold', season: 'Apr – Nov' },
+            { id: 'jk_9', name: 'Amarnath Cave Temple', wiki: 'Amarnath Temple', lat: 34.2157, lng: 75.5041, elev: 3888, region: 'kashmir_ladakh', subregion: 'Anantnag, Jammu & Kashmir', cat: 'spiritual', diff: 'Sacred Cave Trek', season: 'Jul – Aug' },
+            { id: 'jk_10', name: 'Markha Valley Trek', wiki: 'Markha Valley', lat: 33.9167, lng: 77.5167, elev: 5200, region: 'kashmir_ladakh', subregion: 'Hemis National Park, Ladakh', cat: 'trek', diff: 'Challenging Trek', season: 'Jun – Sep' },
+            { id: 'jk_11', name: 'Chadar Frozen River Trek', wiki: 'Chadar Trek', lat: 33.9833, lng: 77.2167, elev: 3390, region: 'kashmir_ladakh', subregion: 'Zanskar Gorge, Ladakh', cat: 'trek', diff: 'Extreme Winter Trek', season: 'Jan – Feb' },
+            { id: 'jk_12', name: 'Tso Moriri Lake', wiki: 'Tso Moriri', lat: 32.9000, lng: 78.3167, elev: 4522, region: 'kashmir_ladakh', subregion: 'Changthang, Ladakh', cat: 'lake', diff: 'High Altitude Wetland', season: 'May – Sep' },
+            { id: 'jk_13', name: 'Zoji La Pass', wiki: 'Zoji La', lat: 34.2786, lng: 75.4689, elev: 3528, region: 'kashmir_ladakh', subregion: 'Kashmir - Ladakh Border', cat: 'trek', diff: 'Dramatic Mountain Pass', season: 'May – Nov' },
+            { id: 'jk_14', name: 'Hemis Monastery', wiki: 'Hemis Monastery', lat: 33.9125, lng: 77.7031, elev: 3600, region: 'kashmir_ladakh', subregion: 'Leh, Ladakh', cat: 'spiritual', diff: 'Historic Gompa', season: 'May – Oct' },
+            { id: 'jk_15', name: 'Hemis National Park (Snow Leopard)', wiki: 'Hemis National Park', lat: 33.9500, lng: 77.4500, elev: 4100, region: 'kashmir_ladakh', subregion: 'Ladakh', cat: 'wildlife', diff: 'Snow Leopard Capital', season: 'Year-round' },
+            { id: 'jk_16', name: 'Tarsar Marsar Twin Lakes Trek', wiki: 'Tarsar Lake', lat: 34.1489, lng: 75.1583, elev: 3960, region: 'kashmir_ladakh', subregion: 'Aru Valley, Kashmir', cat: 'lake', diff: 'Moderate Trek', season: 'Jul – Sep' },
+            { id: 'jk_17', name: 'Vaishno Devi Temple (Katra)', wiki: 'Vaishno Devi', lat: 33.0308, lng: 74.9490, elev: 1585, region: 'kashmir_ladakh', subregion: 'Reasi, Jammu & Kashmir', cat: 'spiritual', diff: '13 km Paved Trek', season: 'Year-round' },
+            { id: 'jk_18', name: 'Gurez Valley', wiki: 'Gurez', lat: 34.6333, lng: 74.8333, elev: 2400, region: 'kashmir_ladakh', subregion: 'Bandipora, Jammu & Kashmir', cat: 'valley', diff: 'Offbeat Valley', season: 'May – Oct' },
+
+            // --- ASSAM & ARUNACHAL PRADESH (NORTHEAST HIMALAYAS) ---
+            { id: 'ne_1', name: 'Tawang Monastery & Valley', wiki: 'Tawang Monastery', lat: 27.5861, lng: 91.8594, elev: 3048, region: 'assam_ne', subregion: 'Tawang, Arunachal Pradesh', cat: 'spiritual', diff: 'Largest Indian Monastery', season: 'Mar – Oct' },
+            { id: 'ne_2', name: 'Sela Pass & Paradise Lake', wiki: 'Sela Pass', lat: 27.5033, lng: 92.1044, elev: 4170, region: 'assam_ne', subregion: 'Tawang - West Kameng, Arunachal', cat: 'trek', diff: 'High Alpine Pass', season: 'Year-round' },
+            { id: 'ne_3', name: 'Kaziranga National Park', wiki: 'Kaziranga National Park', lat: 26.5775, lng: 93.1711, elev: 65, region: 'assam_ne', subregion: 'Golaghat / Nagaon, Assam', cat: 'wildlife', diff: 'One-Horned Rhino UNESCO', season: 'Nov – Apr' },
+            { id: 'ne_4', name: 'Majuli River Island', wiki: 'Majuli', lat: 26.9500, lng: 94.1667, elev: 85, region: 'assam_ne', subregion: 'Brahmaputra River, Assam', cat: 'valley', diff: 'World Largest River Island', season: 'Oct – Mar' },
+            { id: 'ne_5', name: 'Kamakhya Temple (Guwahati)', wiki: 'Kamakhya Temple', lat: 26.1664, lng: 91.7056, elev: 171, region: 'assam_ne', subregion: 'Nilachal Hill, Guwahati, Assam', cat: 'spiritual', diff: 'Historic Shakti Peetha', season: 'Year-round' },
+            { id: 'ne_6', name: 'Manas National Park (Himalayan Foothills)', wiki: 'Manas National Park', lat: 26.6594, lng: 91.0011, elev: 150, region: 'assam_ne', subregion: 'Baksa / Chirang, Assam', cat: 'wildlife', diff: 'UNESCO Biosphere', season: 'Nov – Apr' },
+            { id: 'ne_7', name: 'Ziro Valley', wiki: 'Ziro', lat: 27.5449, lng: 93.8197, elev: 1500, region: 'assam_ne', subregion: 'Lower Subansiri, Arunachal Pradesh', cat: 'valley', diff: 'Pine Hills & Rice Fields', season: 'Mar – Oct' },
+            { id: 'ne_8', name: 'Bum La Pass (Indo-China Border)', wiki: 'Bum La Pass', lat: 27.7167, lng: 91.8500, elev: 4633, region: 'assam_ne', subregion: 'Tawang, Arunachal Pradesh', cat: 'trek', diff: 'High Border Pass', season: 'May – Oct' },
+            { id: 'ne_9', name: 'Haflong (Switzerland of the East)', wiki: 'Haflong', lat: 25.1667, lng: 93.0167, elev: 680, region: 'assam_ne', subregion: 'Dima Hasao Hills, Assam', cat: 'valley', diff: 'Assam Only Hill Station', season: 'Oct – Apr' },
+            { id: 'ne_10', name: 'Namdapha National Park', wiki: 'Namdapha National Park', lat: 27.4917, lng: 96.3861, elev: 1200, region: 'assam_ne', subregion: 'Changlang, Arunachal Pradesh', cat: 'wildlife', diff: 'Eastern Himalaya Biodiversity', season: 'Oct – Apr' },
+            { id: 'ne_11', name: 'Mechuka Valley', wiki: 'Mechuka', lat: 28.5983, lng: 94.1333, elev: 1829, region: 'assam_ne', subregion: 'Shi Yomi, Arunachal Pradesh', cat: 'valley', diff: 'Hidden Himalayan Valley', season: 'Oct – Apr' },
+            { id: 'ne_12', name: 'Gorichen Peak', wiki: 'Gorichen Peak', lat: 27.7983, lng: 92.3878, elev: 6488, region: 'assam_ne', subregion: 'Tawang / West Kameng, Arunachal', cat: 'peak', diff: 'Highest Peak in Arunachal', season: 'May – Oct' },
+            { id: 'ne_13', name: 'Madhuri Lake (Sangestar Tso)', wiki: 'Sangestar Tso', lat: 27.7194, lng: 91.8250, elev: 3708, region: 'assam_ne', subregion: 'Tawang, Arunachal Pradesh', cat: 'lake', diff: 'Scenic Alpine Lake', season: 'Apr – Oct' },
+            { id: 'ne_14', name: 'Nuranang Falls (Jang Waterfalls)', wiki: 'Nuranang Falls', lat: 27.5897, lng: 91.9819, elev: 2100, region: 'assam_ne', subregion: 'Tawang, Arunachal Pradesh', cat: 'lake', diff: '100m Plunge Waterfall', season: 'Year-round' },
+            { id: 'ne_15', name: 'Bailey Trail Trek', wiki: 'Bailey Trail', lat: 27.4500, lng: 92.2500, elev: 4200, region: 'assam_ne', subregion: 'West Kameng - Tawang, Arunachal', cat: 'trek', diff: 'Historic Expedition Trek', season: 'May – Oct' },
+            { id: 'ne_16', name: 'Pobitora Wildlife Sanctuary', wiki: 'Pobitora Wildlife Sanctuary', lat: 26.2458, lng: 92.0542, elev: 60, region: 'assam_ne', subregion: 'Morigaon, Assam', cat: 'wildlife', diff: 'Dense Rhino Habitat', season: 'Nov – Apr' },
+            { id: 'ne_17', name: 'Kakochang Waterfalls', wiki: 'Kakochang Waterfall', lat: 26.5333, lng: 93.4167, elev: 320, region: 'assam_ne', subregion: 'Bokakhat, Assam', cat: 'lake', diff: 'Jungle Waterfall', season: 'Oct – Apr' },
+            { id: 'ne_18', name: 'Talley Valley Wildlife Sanctuary', wiki: 'Talley Valley Wildlife Sanctuary', lat: 27.5500, lng: 93.9500, elev: 2400, region: 'assam_ne', subregion: 'Ziro, Arunachal Pradesh', cat: 'trek', diff: 'Cloud Forest Trek', season: 'Mar – Oct' },
+
+            // --- SIKKIM & DARJEELING / NORTH BENGAL ---
+            { id: 'sk_1', name: 'Goechala Trek (Kanchenjunga View)', wiki: 'Goecha La', lat: 27.6067, lng: 88.1867, elev: 4940, region: 'sikkim_bengal', subregion: 'Yuksom, West Sikkim', cat: 'trek', diff: 'Challenging Trek', season: 'Apr – May, Oct – Nov' },
+            { id: 'sk_2', name: 'Sandakphu & Phalut Trek', wiki: 'Sandakphu', lat: 27.1058, lng: 88.0017, elev: 3636, region: 'sikkim_bengal', subregion: 'Singalila Ridge, Darjeeling', cat: 'trek', diff: 'Moderate Ridge Trek', season: 'Oct – May' },
+            { id: 'sk_3', name: 'Gurudongmar Lake', wiki: 'Gurudongmar Lake', lat: 28.0258, lng: 88.7097, elev: 5430, region: 'sikkim_bengal', subregion: 'North Sikkim', cat: 'lake', diff: 'Sacred High Lake', season: 'Apr – Jun, Oct – Nov' },
+            { id: 'sk_4', name: 'Kangchenjunga Peak', wiki: 'Kangchenjunga', lat: 27.7025, lng: 88.1475, elev: 8586, region: 'sikkim_bengal', subregion: 'Sikkim - Nepal Border', cat: 'peak', diff: '3rd Highest Mountain', season: 'Apr – May' },
+            { id: 'sk_5', name: 'Nathu La Pass', wiki: 'Nathu La', lat: 27.3866, lng: 88.8309, elev: 4310, region: 'sikkim_bengal', subregion: 'East Sikkim', cat: 'trek', diff: 'Historic Silk Route Pass', season: 'May – Oct' },
+            { id: 'sk_6', name: 'Tsomgo (Changu) Lake', wiki: 'Lake Tsomgo', lat: 27.3742, lng: 88.7619, elev: 3753, region: 'sikkim_bengal', subregion: 'East Sikkim', cat: 'lake', diff: 'Glacial Lake', season: 'Year-round' },
+            { id: 'sk_7', name: 'Yumthang Valley of Flowers', wiki: 'Yumthang Valley', lat: 27.8267, lng: 88.6958, elev: 3564, region: 'sikkim_bengal', subregion: 'Lachung, North Sikkim', cat: 'valley', diff: 'Alpine Flower Valley', season: 'Feb – Jun, Sep – Dec' },
+            { id: 'sk_8', name: 'Darjeeling & Tiger Hill', wiki: 'Darjeeling', lat: 27.0410, lng: 88.2663, elev: 2042, region: 'sikkim_bengal', subregion: 'Darjeeling, West Bengal', cat: 'valley', diff: 'Queen of Hills', season: 'Year-round' },
+            { id: 'sk_9', name: 'Rumtek Monastery', wiki: 'Rumtek Monastery', lat: 27.2886, lng: 88.5614, elev: 1500, region: 'sikkim_bengal', subregion: 'Gangtok, Sikkim', cat: 'spiritual', diff: 'Dharma Chakra Centre', season: 'Year-round' },
+            { id: 'sk_10', name: 'Singalila National Park', wiki: 'Singalila National Park', lat: 27.1167, lng: 88.0333, elev: 3200, region: 'sikkim_bengal', subregion: 'Darjeeling, West Bengal', cat: 'wildlife', diff: 'Red Panda Habitat', season: 'Oct – May' },
+            { id: 'sk_11', name: 'Dzongri La Trek', wiki: 'Dzongri', lat: 27.4833, lng: 88.1500, elev: 4020, region: 'sikkim_bengal', subregion: 'West Sikkim', cat: 'trek', diff: 'Moderate Panorama Trek', season: 'Mar – May, Oct – Nov' },
+            { id: 'sk_12', name: 'Kalimpong & Deolo Hill', wiki: 'Kalimpong', lat: 27.0594, lng: 88.4695, elev: 1250, region: 'sikkim_bengal', subregion: 'Kalimpong, West Bengal', cat: 'valley', diff: 'Hill Town', season: 'Year-round' },
+            { id: 'sk_13', name: 'Zuluk & Old Silk Route', wiki: 'Zuluk', lat: 27.2514, lng: 88.7806, elev: 3000, region: 'sikkim_bengal', subregion: 'East Sikkim', cat: 'valley', diff: 'Zigzag Mountain Road', season: 'Mar – Nov' },
+
+            // --- NEPAL & BHUTAN HIMALAYAS ---
+            { id: 'np_1', name: 'Everest Base Camp (EBC) Trek', wiki: 'Everest Base Camp', lat: 28.0026, lng: 86.8528, elev: 5364, region: 'nepal_bhutan', subregion: 'Khumbu / Solukhumbu, Nepal', cat: 'trek', diff: 'Iconic High Trek', season: 'Mar – May, Sep – Nov' },
+            { id: 'np_2', name: 'Mount Everest (Sagarmatha)', wiki: 'Mount Everest', lat: 27.9881, lng: 86.9250, elev: 8848, region: 'nepal_bhutan', subregion: 'Nepal - Tibet Border', cat: 'peak', diff: 'Highest Peak on Earth', season: 'Apr – May' },
+            { id: 'np_3', name: 'Annapurna Circuit & Thorong La', wiki: 'Annapurna Circuit', lat: 28.7936, lng: 83.9372, elev: 5416, region: 'nepal_bhutan', subregion: 'Manang - Mustang, Nepal', cat: 'trek', diff: 'Classic World Trek', season: 'Mar – May, Oct – Nov' },
+            { id: 'np_4', name: 'Paro Taktsang (Tiger’s Nest)', wiki: 'Paro Taktsang', lat: 27.4919, lng: 89.3633, elev: 3120, region: 'nepal_bhutan', subregion: 'Paro Valley, Bhutan', cat: 'spiritual', diff: 'Cliffside Monastery Hike', season: 'Mar – May, Sep – Nov' },
+            { id: 'np_5', name: 'Pokhara & Phewa Lake', wiki: 'Pokhara', lat: 28.2096, lng: 83.9856, elev: 822, region: 'nepal_bhutan', subregion: 'Gandaki, Nepal', cat: 'lake', diff: 'Annapurna Gateway', season: 'Year-round' },
+            { id: 'np_6', name: 'Langtang Valley Trek', wiki: 'Langtang', lat: 28.2139, lng: 85.5500, elev: 3870, region: 'nepal_bhutan', subregion: 'Rasuwa, Nepal', cat: 'trek', diff: 'Moderate Valley Trek', season: 'Mar – May, Oct – Nov' },
+            { id: 'np_7', name: 'Gokyo Lakes & Gokyo Ri', wiki: 'Gokyo Lakes', lat: 27.9592, lng: 86.6922, elev: 5357, region: 'nepal_bhutan', subregion: 'Sagarmatha National Park, Nepal', cat: 'lake', diff: 'Turquoise Glacial Lakes', season: 'Mar – May, Oct – Nov' },
+            { id: 'np_8', name: 'Punakha Dzong', wiki: 'Punakha Dzong', lat: 27.5822, lng: 89.8631, elev: 1200, region: 'nepal_bhutan', subregion: 'Punakha, Bhutan', cat: 'spiritual', diff: 'Fortress Monastery', season: 'Year-round' },
+            { id: 'np_9', name: 'Manaslu Circuit Trek', wiki: 'Manaslu', lat: 28.5494, lng: 84.5597, elev: 5106, region: 'nepal_bhutan', subregion: 'Gorkha, Nepal', cat: 'trek', diff: 'Challenging Trek', season: 'Mar – May, Sep – Nov' },
+            { id: 'np_10', name: 'Poon Hill (Ghorepani) Trek', wiki: 'Poon Hill', lat: 28.4000, lng: 83.6894, elev: 3210, region: 'nepal_bhutan', subregion: 'Myagdi, Nepal', cat: 'trek', diff: 'Easy Sunrise Trek', season: 'Year-round' },
+            { id: 'np_11', name: 'Dochula Pass (108 Chortens)', wiki: 'Dochula Pass', lat: 27.4917, lng: 89.7497, elev: 3100, region: 'nepal_bhutan', subregion: 'Thimphu - Punakha, Bhutan', cat: 'trek', diff: 'Panoramic Mountain Pass', season: 'Year-round' },
+            { id: 'np_12', name: 'Upper Mustang & Lo Manthang', wiki: 'Upper Mustang', lat: 29.1833, lng: 83.9500, elev: 3840, region: 'nepal_bhutan', subregion: 'Mustang, Nepal', cat: 'valley', diff: 'Rain-Shadow Kingdom', season: 'Mar – Nov' }
+        ];
+
+        // =========================================================================
+        // 2. Application State & Storage
+        // =========================================================================
+        const BUCKET_STORAGE_KEY = 'himalayan_atlas_bucket_v1';
+        let allPlaces = [...SEED_PLACES];
+        const placeIndexById = new Map();
+        const coordDedupeSet = new Set();
+
+        SEED_PLACES.forEach(p => {
+            placeIndexById.set(p.id, p);
+            coordDedupeSet.add(`${p.lat.toFixed(3)}_${p.lng.toFixed(3)}`);
+        });
+
+        let bucketList = [];
+        let activeRegion = 'all';
+        let activeCategory = 'all';
+        let searchFilter = '';
+        let sortMode = 'featured';
+        let sidebarRenderLimit = 60;
+        let activeModalPlace = null;
+
+        // Leaflet Map & MarkerCluster References
+        let map = null;
+        let markerClusterGroup = null;
+        let baseLayers = {};
+        let currentBaseLayerKey = 'topo';
+
+        // =========================================================================
+        // 3. Utility Functions
+        // =========================================================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            const styles = type === 'success'
+                ? 'bg-[#0f1623] border-emerald-500/60 text-white'
+                : 'bg-rose-950 border-rose-500 text-rose-100';
+            const icon = type === 'success'
+                ? '<i class="fa-solid fa-circle-check text-emerald-400"></i>'
+                : '<i class="fa-solid fa-circle-exclamation text-rose-400"></i>';
+            el.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl border shadow-2xl text-xs sm:text-sm font-medium transition-all duration-300 ${styles}`;
+            el.innerHTML = `${icon}<span>${message}</span>`;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(8px)';
+                setTimeout(() => el.remove(), 300);
+            }, 3400);
+        }
+
+        function detectRegionFromCoords(lat, lng) {
+            if (lat >= 32.5 && lng >= 73.5 && lng <= 79.8) return { region: 'kashmir_ladakh', subregion: 'Jammu, Kashmir & Ladakh' };
+            if (lat >= 30.3 && lat < 33.2 && lng >= 75.5 && lng <= 79.0) return { region: 'himachal', subregion: 'Himachal Pradesh' };
+            if (lat >= 28.7 && lat <= 31.5 && lng > 77.5 && lng <= 81.1) return { region: 'uttarakhand', subregion: 'Uttarakhand Himalayas' };
+            if (lat >= 26.8 && lat <= 28.2 && lng >= 87.9 && lng <= 89.0) return { region: 'sikkim_bengal', subregion: 'Sikkim & Darjeeling' };
+            if (lat >= 24.5 && lat <= 29.5 && lng > 89.8 && lng <= 97.5) return { region: 'assam_ne', subregion: 'Assam & Arunachal Himalayas' };
+            if (lat >= 26.3 && lat <= 30.5 && lng > 80.0 && lng <= 92.2) return { region: 'nepal_bhutan', subregion: 'Nepal & Bhutan Himalayas' };
+            return { region: 'all', subregion: 'Greater Himalayan Range' };
+        }
+
+        function getCategoryMeta(cat) {
+            const mapMeta = {
+                trek: { label: 'Trek / Pass', color: '#f59e0b', icon: 'fa-person-hiking' },
+                peak: { label: 'Peak / Glacier', color: '#38bdf8', icon: 'fa-mountain' },
+                valley: { label: 'Valley / Hill Station', color: '#10b981', icon: 'fa-tree' },
+                lake: { label: 'Lake / Waterfall', color: '#22d3ee', icon: 'fa-water' },
+                spiritual: { label: 'Temple / Monastery', color: '#f43f5e', icon: 'fa-gopuram' },
+                wildlife: { label: 'Wildlife / National Park', color: '#a3e635', icon: 'fa-paw' }
+            };
+            return mapMeta[cat] || { label: 'Himalayan Point', color: '#10b981', icon: 'fa-location-dot' };
+        }
+
+        function getScenicFallbackImage(placeName, elev) {
+            const text = `${placeName}${elev ? ' • ' + elev + 'm' : ''}`;
+            return `https://placehold.co/800x500/0f1623/10b981?text=${encodeURIComponent(text)}`;
+        }
+
+        // =========================================================================
+        // 4. Initialize Interactive Leaflet Map (Zero API Key)
+        // =========================================================================
+        function initMap() {
+            map = L.map('himalaya-map', {
+                center: [30.2, 83.5],
+                zoom: 5,
+                zoomControl: true,
+                preferCanvas: true
+            });
+
+            // 100% Free Tile Layers (No API Keys)
+            baseLayers = {
+                topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 17,
+                    attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Style: &copy; OpenTopoMap'
+                }),
+                satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 18,
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
+                }),
+                osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                })
+            };
+
+            baseLayers.topo.addTo(map);
+
+            // High-performance MarkerCluster for 10,000+ pins
+            markerClusterGroup = L.markerClusterGroup({
+                chunkedLoading: true,
+                chunkInterval: 100,
+                chunkDelay: 25,
+                maxClusterRadius: 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false
+            });
+
+            map.addLayer(markerClusterGroup);
+        }
+
+        function switchBaseMap(layerKey) {
+            if (!map || !baseLayers[layerKey] || currentBaseLayerKey === layerKey) return;
+            map.removeLayer(baseLayers[currentBaseLayerKey]);
+            baseLayers[layerKey].addTo(map);
+            currentBaseLayerKey = layerKey;
+
+            document.querySelectorAll('.layer-btn').forEach(btn => {
+                btn.className = 'layer-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition';
+            });
+            const activeBtn = document.getElementById(`layer-btn-${layerKey}`);
+            if (activeBtn) {
+                activeBtn.className = 'layer-btn px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 transition';
+            }
+        }
+
+        function createCustomMarker(place) {
+            const meta = getCategoryMeta(place.cat);
+            const iconHtml = `
+                <div class="custom-pin" style="width:28px;height:28px;background:${meta.color};color:#090d16;">
+                    <i class="fa-solid ${meta.icon} text-[11px]"></i>
+                </div>
+            `;
+            const divIcon = L.divIcon({
+                html: iconHtml,
+                className: '',
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+
+            const marker = L.marker([place.lat, place.lng], { icon: divIcon });
+            marker.on('click', () => {
+                openPlaceModal(place);
+            });
+
+            marker.bindTooltip(`<strong>${place.name}</strong>${place.elev ? ` (${place.elev}m)` : ''}`, {
+                direction: 'top',
+                offset: [0, -10]
+            });
+
+            return marker;
+        }
+
+        // =========================================================================
+        // 5. Filtering, Sorting & Rendering Map + Sidebar
+        // =========================================================================
+        function getFilteredPlaces() {
+            const q = searchFilter.toLowerCase().trim();
+            let filtered = allPlaces.filter(p => {
+                if (activeRegion !== 'all' && p.region !== activeRegion) return false;
+                if (activeCategory !== 'all' && p.cat !== activeCategory) return false;
+                if (q) {
+                    const matchName = p.name.toLowerCase().includes(q);
+                    const matchSub = (p.subregion || '').toLowerCase().includes(q);
+                    if (!matchName && !matchSub) return false;
+                }
+                return true;
+            });
+
+            if (sortMode === 'elevation_desc') {
+                filtered.sort((a, b) => (b.elev || 0) - (a.elev || 0));
+            } else if (sortMode === 'name_asc') {
+                filtered.sort((a, b) => a.name.localeCompare(b.name));
+            }
+            return filtered;
+        }
+
+        function refreshWorkspace(fitMapToResults = false) {
+            document.getElementById('total-count-num').textContent = allPlaces.length.toLocaleString();
+            const filtered = getFilteredPlaces();
+            document.getElementById('visible-count-num').textContent = filtered.length.toLocaleString();
+
+            // Rebuild Map Clusters smoothly
+            markerClusterGroup.clearLayers();
+            const markers = filtered.map(p => createCustomMarker(p));
+            markerClusterGroup.addLayers(markers);
+
+            if (fitMapToResults && filtered.length > 0 && filtered.length <= 800) {
+                const bounds = markerClusterGroup.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
+                }
+            }
+
+            // Render Sidebar Cards (Paginated for instant DOM speed even with 12,000+ items)
+            sidebarRenderLimit = 60;
+            renderSidebarCards(filtered);
+        }
+
+        function renderSidebarCards(filteredList) {
+            const container = document.getElementById('places-list-container');
+            const moreBox = document.getElementById('sidebar-more-box');
+            container.innerHTML = '';
+
+            if (filteredList.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 px-4">
+                        <i class="fa-solid fa-compass text-3xl text-slate-600 mb-3"></i>
+                        <h4 class="text-sm font-bold text-white mb-1">No matching places found</h4>
+                        <p class="text-xs text-slate-400 mb-4">Try clearing filters or click "Load 10,000+ Places" to fetch more Himalayan destinations.</p>
+                        <button onclick="resetAllFilters()" class="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">Reset Filters</button>
+                    </div>
+                `;
+                moreBox.classList.add('hidden');
+                return;
+            }
+
+            const slice = filteredList.slice(0, sidebarRenderLimit);
+            slice.forEach(place => {
+                const meta = getCategoryMeta(place.cat);
+                const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(place.name + ' ' + (place.subregion || 'Himalayas') + ' travel vlog trek')}`;
+                const saved = isPlaceSaved(place.id);
+
+                const card = document.createElement('div');
+                card.className = 'bg-[#151e30] hover:bg-[#1a253b] border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 transition cursor-pointer group';
+                card.onclick = () => openPlaceModal(place);
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold" style="background:${meta.color}22;color:${meta.color};border:1px solid ${meta.color}44;">
+                                    <i class="fa-solid ${meta.icon} mr-1"></i>${meta.label}
+                                </span>
+                                ${place.elev ? `<span class="text-[11px] font-mono font-semibold text-slate-300 bg-slate-900 px-1.5 py-0.5 rounded">${place.elev}m</span>` : ''}
+                            </div>
+                            <h3 class="text-sm font-bold text-white group-hover:text-emerald-400 transition truncate">${place.name}</h3>
+                            <p class="text-[11px] text-slate-400 truncate mt-0.5">${place.subregion || 'Himalayan Region'}</p>
+                        </div>
+
+                        <button onclick="event.stopPropagation(); toggleSavePlace('${place.id}')" title="Save to My Treks"
+                            class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 flex items-center justify-center shrink-0 transition">
+                            ${saved ? '<i class="fa-solid fa-bookmark text-amber-400 text-xs"></i>' : '<i class="fa-regular fa-bookmark text-slate-400 text-xs"></i>'}
+                        </button>
+                    </div>
+
+                    <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                        <button onclick="event.stopPropagation(); flyToPlace('${place.id}')" class="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot"></i> Locate on Map
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <a href="${ytUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()"
+                                class="px-2 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-bold transition flex items-center gap-1">
+                                <i class="fa-brands fa-youtube"></i> Video
+                            </a>
+                            <span class="px-2 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 text-[11px] font-semibold">
+                                <i class="fa-brands fa-wikipedia-w text-amber-400 mr-0.5"></i> Info
+                            </span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            if (filteredList.length > sidebarRenderLimit) {
+                moreBox.classList.remove('hidden');
+            } else {
+                moreBox.classList.add('hidden');
+            }
+        }
+
+        function renderMoreSidebarItems() {
+            sidebarRenderLimit += 60;
+            renderSidebarCards(getFilteredPlaces());
+        }
+
+        function flyToPlace(placeId) {
+            const p = placeIndexById.get(placeId);
+            if (!p) return;
+            map.flyTo([p.lat, p.lng], 12, { duration: 1.2 });
+        }
+
+        // =========================================================================
+        // 6. 10,000+ Himalayan Places Live Harvester (OpenStreetMap Overpass API)
+        //    Fetches Peaks, Passes, Viewpoints, Alpine Lakes, Waterfalls, Temples,
+        //    Monasteries & National Parks across the entire Himalayan Arc!
+        // =========================================================================
+        const OVERPASS_ENDPOINTS = [
+            'https://overpass-api.de/api/interpreter',
+            'https://overpass.private.coffee/api/interpreter'
+        ];
+
+        const HIMALAYAN_REGIONAL_QUERIES = [
+            {
+                label: 'Himachal Pradesh & Pir Panjal (Peaks, Passes, Treks & Temples)',
+                region: 'himachal',
+                subregion: 'Himachal Pradesh',
+                bbox: '30.35,75.55,33.25,79.05'
+            },
+            {
+                label: 'Uttarakhand Garhwal & Kumaon Himalayas',
+                region: 'uttarakhand',
+                subregion: 'Uttarakhand',
+                bbox: '28.75,77.60,31.48,81.05'
+            },
+            {
+                label: 'Kashmir Valley, Pir Panjal & Ladakh',
+                region: 'kashmir_ladakh',
+                subregion: 'Kashmir & Ladakh',
+                bbox: '32.55,73.70,35.80,79.60'
+            },
+            {
+                label: 'Assam Hills & Arunachal Eastern Himalayas',
+                region: 'assam_ne',
+                subregion: 'Assam & Arunachal Pradesh',
+                bbox: '24.80,89.85,29.35,97.30'
+            },
+            {
+                label: 'Sikkim, Darjeeling & Bhutan Himalayas',
+                region: 'sikkim_bengal',
+                subregion: 'Sikkim, Darjeeling & Bhutan',
+                bbox: '26.70,87.95,28.30,92.10'
+            },
+            {
+                label: 'Nepal Central & Everest Himalayas',
+                region: 'nepal_bhutan',
+                subregion: 'Nepal Himalayas',
+                bbox: '27.20,81.00,29.90,88.15'
+            }
+        ];
+
+        function classifyOsmTags(tags) {
+            if (!tags) return 'valley';
+            if (tags.mountain_pass === 'yes' || tags.route === 'hiking' || tags.tourism === 'viewpoint' || tags.tourism === 'camp_site') return 'trek';
+            if (tags.natural === 'peak' || tags.natural === 'glacier' || tags.natural === 'saddle') return 'peak';
+            if (tags.natural === 'water' || tags.water === 'lake' || tags.waterway === 'waterfall') return 'lake';
+            if (tags.amenity === 'place_of_worship' || tags.historic === 'monastery') return 'spiritual';
+            if (tags.boundary === 'national_park' || tags.leisure === 'nature_reserve') return 'wildlife';
+            return 'valley';
+        }
+
+        async function queryOverpassWithFallback(qlQuery) {
+            for (const endpoint of OVERPASS_ENDPOINTS) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 28000);
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'data=' + encodeURIComponent(qlQuery),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    if (!res.ok) continue;
+                    return await res.json();
+                } catch (e) {
+                    console.warn('Overpass mirror retry:', endpoint);
+                }
+            }
+            return null;
+        }
+
+        function ingestOverpassElements(elements, fallbackRegion = 'all', fallbackSubregion = 'Himalayas') {
+            let addedCount = 0;
+            elements.forEach(el => {
+                const lat = el.lat ?? el.center?.lat;
+                const lng = el.lon ?? el.center?.lon;
+                const tags = el.tags || {};
+                const rawName = tags['name:en'] || tags.name;
+                if (!lat || !lng || !rawName || rawName.length < 2) return;
+
+                const dedupeKey = `${lat.toFixed(3)}_${lng.toFixed(3)}`;
+                if (coordDedupeSet.has(dedupeKey)) return;
+                coordDedupeSet.add(dedupeKey);
+
+                const detected = fallbackRegion === 'all'
+                    ? detectRegionFromCoords(lat, lng)
+                    : { region: fallbackRegion, subregion: fallbackSubregion };
+
+                const elevNum = tags.ele ? parseInt(String(tags.ele).replace(/[^\d]/g, ''), 10) : null;
+                const cat = classifyOsmTags(tags);
+                const wikiTag = tags.wikipedia ? tags.wikipedia.replace(/^en:/, '') : rawName;
+
+                const newPlace = {
+                    id: `osm_${el.type}_${el.id}`,
+                    name: rawName,
+                    wiki: wikiTag,
+                    lat: lat,
+                    lng: lng,
+                    elev: (elevNum && elevNum > 30 && elevNum < 8900) ? elevNum : null,
+                    region: detected.region,
+                    subregion: detected.subregion,
+                    cat: cat,
+                    diff: cat === 'trek' ? 'Trail / Viewpoint' : (cat === 'peak' ? 'Mountain Summit' : 'Tourist Destination'),
+                    season: 'Mar – Nov'
+                };
+
+                allPlaces.push(newPlace);
+                placeIndexById.set(newPlace.id, newPlace);
+                addedCount++;
+            });
+            return addedCount;
+        }
+
+        let isHarvesting = false;
+        async function harvestAllHimalayan10K() {
+            if (isHarvesting) return;
+            isHarvesting = true;
+
+            const btn = document.getElementById('load-10k-btn');
+            const progressBox = document.getElementById('harvest-progress-box');
+            const statusText = document.getElementById('harvest-status-text');
+            const pctText = document.getElementById('harvest-pct-text');
+            const bar = document.getElementById('harvest-bar');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Harvesting 10,000+...</span>';
+            progressBox.classList.remove('hidden');
+
+            let totalNew = 0;
+
+            for (let i = 0; i < HIMALAYAN_REGIONAL_QUERIES.length; i++) {
+                const sector = HIMALAYAN_REGIONAL_QUERIES[i];
+                const pct = Math.round(((i) / HIMALAYAN_REGIONAL_QUERIES.length) * 100);
+                pctText.textContent = `${pct}%`;
+                bar.style.width = `${pct}%`;
+                statusText.textContent = `Loading ${sector.label}...`;
+
+                // Overpass QL fetching named peaks, passes, viewpoints, lakes, waterfalls, temples & attractions (up to 2,500 per sector = 12,000+ total)
+                const ql = `
+                    [out:json][timeout:25];
+                    (
+                      node["natural"="peak"]["name"](${sector.bbox});
+                      node["mountain_pass"="yes"]["name"](${sector.bbox});
+                      node["tourism"~"attraction|viewpoint|alpine_hut"]["name"](${sector.bbox});
+                      node["waterway"="waterfall"]["name"](${sector.bbox});
+                      way["natural"="water"]["water"="lake"]["name"](${sector.bbox});
+                      node["amenity"="place_of_worship"]["name"]["wikipedia"](${sector.bbox});
+                      way["boundary"="national_park"]["name"](${sector.bbox});
+                    );
+                    out center 2500;
+                `;
+
+                const data = await queryOverpassWithFallback(ql);
+                if (data && Array.isArray(data.elements)) {
+                    const added = ingestOverpassElements(data.elements, sector.region, sector.subregion);
+                    totalNew += added;
+                    document.getElementById('total-count-num').textContent = allPlaces.length.toLocaleString();
+                }
+            }
+
+            pctText.textContent = '100%';
+            bar.style.width = '100%';
+            statusText.textContent = `Completed! ${allPlaces.length.toLocaleString()} Himalayan places mapped.`;
+
+            refreshWorkspace(false);
+            showToast(`Loaded ${allPlaces.length.toLocaleString()} Himalayan tourist & trekking points onto the map!`);
+
+            setTimeout(() => {
+                progressBox.classList.add('hidden');
+            }, 3500);
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> <span>10,000+ Loaded</span>';
+            isHarvesting = false;
+        }
+
+        // Scan currently visible map bounding box (OSM Overpass + Wikipedia Geosearch)
+        async function scanCurrentMapBounds() {
+            const btn = document.getElementById('scan-view-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Scanning...</span>';
+
+            const b = map.getBounds();
+            const south = b.getSouth().toFixed(4);
+            const west = b.getWest().toFixed(4);
+            const north = b.getNorth().toFixed(4);
+            const east = b.getEast().toFixed(4);
+
+            // Guard against scanning the entire planet at zoom 2
+            if ((north - south) > 8 || (east - west) > 12) {
+                showToast('Zoom in closer to a state or valley first, or click "Load 10,000+ Places".', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-radar"></i> <span class="hidden sm:inline">Scan Map Area</span>';
+                return;
+            }
+
+            const bbox = `${south},${west},${north},${east}`;
+            const ql = `
+                [out:json][timeout:20];
+                (
+                  node["natural"~"peak|glacier|saddle"]["name"](${bbox});
+                  node["mountain_pass"="yes"]["name"](${bbox});
+                  node["tourism"~"attraction|viewpoint|camp_site|museum"]["name"](${bbox});
+                  node["waterway"="waterfall"]["name"](${bbox});
+                  way["natural"="water"]["name"](${bbox});
+                  node["amenity"="place_of_worship"]["name"](${bbox});
+                );
+                out center 1200;
+            `;
+
+            const data = await queryOverpassWithFallback(ql);
+            let added = 0;
+            if (data && Array.isArray(data.elements)) {
+                added = ingestOverpassElements(data.elements, 'all');
+            }
+
+            // Also run Wikipedia Geosearch at map center for encyclopedia articles
+            const center = map.getCenter();
+            try {
+                const wikiGeoUrl = `https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${center.lat.toFixed(4)}|${center.lng.toFixed(4)}&gsradius=10000&gslimit=50&format=json&origin=*`;
+                const wRes = await fetch(wikiGeoUrl);
+                const wData = await wRes.json();
+                const geoItems = wData.query?.geosearch || [];
+                geoItems.forEach(item => {
+                    const key = `${item.lat.toFixed(3)}_${item.lon.toFixed(3)}`;
+                    if (!coordDedupeSet.has(key)) {
+                        coordDedupeSet.add(key);
+                        const det = detectRegionFromCoords(item.lat, item.lon);
+                        const p = {
+                            id: `wikigeo_${item.pageid}`,
+                            name: item.title,
+                            wiki: item.title,
+                            lat: item.lat,
+                            lng: item.lon,
+                            elev: null,
+                            region: det.region,
+                            subregion: det.subregion,
+                            cat: 'valley',
+                            diff: 'Wikipedia Landmark',
+                            season: 'Year-round'
+                        };
+                        allPlaces.push(p);
+                        placeIndexById.set(p.id, p);
+                        added++;
+                    }
+                });
+            } catch (e) {}
+
+            refreshWorkspace(false);
+            showToast(`Added ${added} new tourist & trekking points in this map view!`);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-radar"></i> <span class="hidden sm:inline">Scan Map Area</span>';
+        }
+
+        // =========================================================================
+        // 7. Place Detail Modal: Multi-Tier Wikipedia Photo & Article + YouTube
+        // =========================================================================
+        function isUsefulWikiImage(filename) {
+            if (!filename) return false;
+            const low = filename.toLowerCase();
+            if (!/\.(jpg|jpeg|png|webp)$/i.test(low)) return false;
+            const skip = ['commons-logo', 'flag_of_', 'ambox', 'icon', 'logo', 'map_of_', 'location_map', 'symbol', 'padlock', 'question_book'];
+            return !skip.some(s => low.includes(s));
+        }
+
+        async function fetchWikipediaPhotoAndSummary(place) {
+            const queriesToTry = [place.wiki, place.name];
+            let result = { photo: null, summary: null, fullUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(place.wiki || place.name)}` };
+
+            for (const title of queriesToTry) {
+                if (!title) continue;
+                try {
+                    const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&redirects=1&prop=pageimages|extracts|info|images&exintro=1&explaintext=1&inprop=url&pithumbsize=900&imlimit=20&format=json&origin=*`;
+                    const res = await fetch(apiUrl);
+                    const data = await res.json();
+                    const pages = data.query?.pages || {};
+                    const pageId = Object.keys(pages)[0];
+                    if (pageId && pageId !== '-1') {
+                        const p = pages[pageId];
+                        if (p.extract) result.summary = p.extract;
+                        if (p.fullurl) result.fullUrl = p.fullurl;
+                        if (p.thumbnail?.source) {
+                            result.photo = p.thumbnail.source;
+                            return result;
+                        }
+                        // Fallback: inspect embedded page images
+                        if (Array.isArray(p.images)) {
+                            const validFile = p.images.find(img => isUsefulWikiImage(img.title));
+                            if (validFile) {
+                                const fileRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(validFile.title)}&prop=imageinfo&iiprop=url&iiurlwidth=800&format=json&origin=*`);
+                                const fileData = await fileRes.json();
+                                const fPages = fileData.query?.pages || {};
+                                const fObj = Object.values(fPages)[0];
+                                const imgUrl = fObj?.imageinfo?.[0]?.thumburl || fObj?.imageinfo?.[0]?.url;
+                                if (imgUrl) {
+                                    result.photo = imgUrl;
+                                    return result;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // Tier 2: Wikipedia Search API if exact title had no match
+            if (!result.summary || !result.photo) {
+                try {
+                    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(place.name + ' Himalayas')}&gsrlimit=1&prop=pageimages|extracts|info&exintro=1&explaintext=1&inprop=url&pithumbsize=800&format=json&origin=*`;
+                    const sRes = await fetch(searchUrl);
+                    const sData = await sRes.json();
+                    const sPages = sData.query?.pages || {};
+                    const firstPage = Object.values(sPages)[0];
+                    if (firstPage) {
+                        if (!result.summary && firstPage.extract) result.summary = firstPage.extract;
+                        if (!result.photo && firstPage.thumbnail?.source) result.photo = firstPage.thumbnail.source;
+                        if (firstPage.fullurl) result.fullUrl = firstPage.fullurl;
+                    }
+                } catch (e) {}
+            }
+
+            return result;
+        }
+
+        async function openPlaceModal(place) {
+            activeModalPlace = place;
+            const modal = document.getElementById('place-modal');
+            const meta = getCategoryMeta(place.cat);
+
+            // Reset inline YouTube player
+            const ytWrapper = document.getElementById('yt-embed-wrapper');
+            const ytIframe = document.getElementById('yt-embed-iframe');
+            const ytBtn = document.getElementById('toggle-yt-embed-btn');
+            ytWrapper.classList.add('hidden');
+            ytIframe.src = '';
+            ytBtn.textContent = 'Load Video Player';
+
+            // Populate immediate metadata
+            const fallbackPhoto = getScenicFallbackImage(place.name, place.elev);
+            const photoEl = document.getElementById('modal-photo');
+            photoEl.src = fallbackPhoto;
+            photoEl.onerror = () => { photoEl.src = fallbackPhoto; };
+
+            document.getElementById('modal-region-badge').textContent = place.subregion || 'Himalayas';
+            document.getElementById('modal-cat-badge').textContent = meta.label;
+            document.getElementById('modal-elevation-badge').textContent = place.elev ? `Elevation: ${place.elev.toLocaleString()} m` : 'Himalayan Altitude';
+            document.getElementById('modal-coords-badge').textContent = `${place.lat.toFixed(4)}°N, ${place.lng.toFixed(4)}°E`;
+            document.getElementById('modal-subregion').textContent = place.subregion || 'Greater Himalayan Range';
+            document.getElementById('modal-title').textContent = place.name;
+            document.getElementById('modal-difficulty-chip').innerHTML = `<i class="fa-solid fa-compass mr-1"></i> ${place.diff || 'Tourist & Trekking Point'}`;
+            document.getElementById('modal-season-chip').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Best Season: ${place.season || 'Mar – Nov'}`;
+
+            // YouTube Direct Links
+            const searchBase = `${place.name} ${place.subregion || 'Himalayas'}`;
+            document.getElementById('modal-yt-guide').href = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchBase + ' travel guide vlog')}`;
+            document.getElementById('modal-yt-trek').href = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchBase + ' trekking route trail')}`;
+            document.getElementById('modal-yt-drone').href = `https://www.youtube.com/results?search_query=${encodeURIComponent(place.name + ' 4K drone aerial view')}`;
+
+            // OSM & Wiki Links
+            document.getElementById('modal-osm-dir').href = `https://www.openstreetmap.org/directions?to=${place.lat}%2C${place.lng}`;
+            document.getElementById('modal-wiki-url').href = `https://en.wikipedia.org/wiki/${encodeURIComponent(place.wiki || place.name)}`;
+
+            // Fly button
+            document.getElementById('modal-fly-btn').onclick = () => {
+                closePlaceModal();
+                flyToPlace(place.id);
+            };
+
+            // Save button state
+            const updateSaveBtn = () => {
+                const saved = isPlaceSaved(place.id);
+                const btn = document.getElementById('modal-save-btn');
+                btn.innerHTML = saved
+                    ? '<i class="fa-solid fa-bookmark text-amber-400"></i> <span>Saved in My Treks</span>'
+                    : '<i class="fa-regular fa-bookmark"></i> <span>Save to My Treks</span>';
+            };
+            updateSaveBtn();
+            document.getElementById('modal-save-btn').onclick = () => {
+                toggleSavePlace(place.id);
+                updateSaveBtn();
+            };
+
+            document.getElementById('modal-wiki-status').textContent = 'Fetching Wikipedia...';
+            document.getElementById('modal-description').textContent = `Loading live Wikipedia summary and high-resolution photography for ${place.name}...`;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            // Fetch Wikipedia live data
+            const wikiInfo = await fetchWikipediaPhotoAndSummary(place);
+            if (activeModalPlace && activeModalPlace.id === place.id) {
+                if (wikiInfo.photo) photoEl.src = wikiInfo.photo;
+                document.getElementById('modal-wiki-url').href = wikiInfo.fullUrl;
+                document.getElementById('modal-wiki-status').textContent = wikiInfo.summary ? 'Wikipedia Live' : 'OSM Geodata';
+                document.getElementById('modal-description').textContent = wikiInfo.summary ||
+                    `${place.name} is a notable Himalayan destination located in ${place.subregion || 'the Himalayan mountain range'} at coordinates ${place.lat.toFixed(4)}°N, ${place.lng.toFixed(4)}°E${place.elev ? ` (elevation ${place.elev} meters)` : ''}. Use the YouTube buttons on the left to watch travel vlogs, trekking routes, and aerial views.`;
+            }
+        }
+
+        function toggleInlineYouTubePlayer() {
+            if (!activeModalPlace) return;
+            const wrapper = document.getElementById('yt-embed-wrapper');
+            const iframe = document.getElementById('yt-embed-iframe');
+            const btn = document.getElementById('toggle-yt-embed-btn');
+
+            if (wrapper.classList.contains('hidden')) {
+                const query = encodeURIComponent(`${activeModalPlace.name} ${activeModalPlace.subregion || 'Himalayas'} travel trek`);
+                iframe.src = `https://www.youtube-nocookie.com/embed?listType=search&list=${query}`;
+                wrapper.classList.remove('hidden');
+                btn.textContent = 'Hide Player';
+            } else {
+                iframe.src = '';
+                wrapper.classList.add('hidden');
+                btn.textContent = 'Load Video Player';
+            }
+        }
+
+        function closePlaceModal() {
+            const modal = document.getElementById('place-modal');
+            document.getElementById('yt-embed-iframe').src = '';
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        document.getElementById('place-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'place-modal') closePlaceModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closePlaceModal();
+                toggleBucketListModal(false);
+            }
+        });
+
+        // =========================================================================
+        // 8. Bucket List / Saved Treks + GPX & JSON Export
+        // =========================================================================
+        function loadBucketList() {
+            try {
+                const raw = localStorage.getItem(BUCKET_STORAGE_KEY);
+                bucketList = raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                bucketList = [];
+            }
+            updateBucketCounts();
+        }
+
+        function saveBucketList() {
+            try {
+                localStorage.setItem(BUCKET_STORAGE_KEY, JSON.stringify(bucketList));
+            } catch (e) {}
+            updateBucketCounts();
+        }
+
+        function updateBucketCounts() {
+            const c = String(bucketList.length);
+            document.getElementById('desktop-bucket-count').textContent = c;
+            document.getElementById('mobile-bucket-count').textContent = c;
+        }
+
+        function isPlaceSaved(id) {
+            return bucketList.some(item => item.id === id);
+        }
+
+        function toggleSavePlace(id) {
+            const place = placeIndexById.get(id);
+            if (!place) return;
+            const idx = bucketList.findIndex(item => item.id === id);
+            if (idx > -1) {
+                bucketList.splice(idx, 1);
+                showToast(`Removed "${place.name}" from My Treks`, 'error');
+            } else {
+                bucketList.unshift(place);
+                showToast(`Saved "${place.name}" to My Treks!`);
+            }
+            saveBucketList();
+            renderSidebarCards(getFilteredPlaces());
+            renderBucketListModal();
+        }
+
+        function toggleBucketListModal(force = null) {
+            const modal = document.getElementById('bucket-modal');
+            const isHidden = modal.classList.contains('hidden');
+            const shouldOpen = force !== null ? force : isHidden;
+            if (shouldOpen) {
+                renderBucketListModal();
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function renderBucketListModal() {
+            const listEl = document.getElementById('bucket-list-items');
+            if (bucketList.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-10 text-xs text-slate-400">Your trek & travel bucket list is empty. Click the bookmark icon on any Himalayan destination to save it here.</div>`;
+                return;
+            }
+            listEl.innerHTML = bucketList.map(p => `
+                <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-900 border border-slate-800">
+                    <div class="min-w-0">
+                        <div class="text-sm font-bold text-white truncate">${p.name}</div>
+                        <div class="text-[11px] text-slate-400">${p.subregion || 'Himalayas'} • ${p.lat.toFixed(4)}°N, ${p.lng.toFixed(4)}°E ${p.elev ? `• ${p.elev}m` : ''}</div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="toggleBucketListModal(false); flyToPlace('${p.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500 hover:text-slate-950 transition">Map</button>
+                        <button onclick="toggleSavePlace('${p.id}')" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 text-xs font-bold hover:bg-rose-600 hover:text-white transition">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function exportBucketJSON() {
+            if (!bucketList.length) return showToast('Save at least one place before exporting.', 'error');
+            const blob = new Blob([JSON.stringify(bucketList, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'himalayan_treks_bucketlist.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Exported JSON trek list!');
+        }
+
+        function exportBucketGPX() {
+            if (!bucketList.length) return showToast('Save at least one place before exporting GPX.', 'error');
+            const wpts = bucketList.map(p => `
+  <wpt lat="${p.lat}" lon="${p.lng}">
+    ${p.elev ? `<ele>${p.elev}</ele>` : ''}
+    <name>${p.name.replace(/&/g, '&amp;')}</name>
+    <desc>${(p.subregion || 'Himalayan Destination').replace(/&/g, '&amp;')}</desc>
+  </wpt>`).join('');
+
+            const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Himalayan Explorer Atlas" xmlns="http://www.topografix.com/GPX/1/1">${wpts}
+</gpx>`;
+
+            const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'himalayan_treks_waypoints.gpx';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Exported GPX file for offline GPS navigation!');
+        }
+
+        // =========================================================================
+        // 9. Filter Controls & Free Nominatim Geocoding Search
+        // =========================================================================
+        function resetAllFilters() {
+            activeRegion = 'all';
+            activeCategory = 'all';
+            searchFilter = '';
+            document.getElementById('search-input').value = '';
+            syncFilterButtonStyles();
+            refreshWorkspace(true);
+        }
+
+        function syncFilterButtonStyles() {
+            document.querySelectorAll('.reg-btn').forEach(btn => {
+                btn.className = btn.dataset.region === activeRegion
+                    ? 'reg-btn active px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap bg-emerald-500 text-slate-950 transition'
+                    : 'reg-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-emerald-500/40 transition';
+            });
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = btn.dataset.cat === activeCategory
+                    ? 'cat-btn active px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap bg-amber-500 text-slate-950 transition'
+                    : 'cat-btn px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-500/40 transition';
+            });
+        }
+
+        function initEventListeners() {
+            // Region buttons
+            document.querySelectorAll('.reg-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    activeRegion = btn.dataset.region;
+                    syncFilterButtonStyles();
+                    refreshWorkspace(true);
+                });
+            });
+
+            // Category buttons
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    activeCategory = btn.dataset.cat;
+                    syncFilterButtonStyles();
+                    refreshWorkspace(false);
+                });
+            });
+
+            // Sort dropdown
+            document.getElementById('sort-select').addEventListener('change', (e) => {
+                sortMode = e.target.value;
+                refreshWorkspace(false);
+            });
+
+            // Instant local typing filter
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                searchFilter = e.target.value;
+                refreshWorkspace(false);
+            });
+
+            // Form submit: if not found locally, geocode via Free Nominatim OSM API & fly there!
+            document.getElementById('global-search-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const q = document.getElementById('search-input').value.trim();
+                if (!q) return;
+                searchFilter = q;
+                const localMatches = getFilteredPlaces();
+                refreshWorkspace(true);
+
+                if (localMatches.length === 0) {
+                    showToast(`Searching OpenStreetMap & Wikipedia for "${q}"...`);
+                    try {
+                        const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ' Himalayas')}&format=json&limit=5`;
+                        const res = await fetch(nomUrl);
+                        const results = await res.json();
+                        if (results && results.length > 0) {
+                            const top = results[0];
+                            const lat = parseFloat(top.lat);
+                            const lng = parseFloat(top.lon);
+                            const det = detectRegionFromCoords(lat, lng);
+                            const newPlace = {
+                                id: `nom_${top.place_id}`,
+                                name: top.name || q,
+                                wiki: top.name || q,
+                                lat,
+                                lng,
+                                elev: null,
+                                region: det.region,
+                                subregion: top.display_name.split(',').slice(0, 3).join(', '),
+                                cat: 'valley',
+                                diff: 'Geocoded Destination',
+                                season: 'Year-round'
+                            };
+                            allPlaces.unshift(newPlace);
+                            placeIndexById.set(newPlace.id, newPlace);
+                            refreshWorkspace(false);
+                            map.flyTo([lat, lng], 12);
+                            openPlaceModal(newPlace);
+                        } else {
+                            showToast(`No exact coordinates found for "${q}".`, 'error');
+                        }
+                    } catch (err) {}
+                }
+            });
+        }
+
+        // =========================================================================
+        // 10. Boot Application
+        // =========================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            loadBucketList();
+            initMap();
+            initEventListeners();
+            refreshWorkspace(false);
+        });
+    </script>
+</body>
+</html>
