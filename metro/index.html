@@ -1,505 +1,939 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="bn" class="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GitHub IPTV Web Player</title>
-  <!-- Live Stream ও HLS সাপোর্টের জন্য লাইব্রেরি -->
-  <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    }
-
-    body {
-      background-color: #0b0f19;
-      color: #f1f5f9;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* হেডার বার */
-    header {
-      background: #111827;
-      padding: 12px 20px;
-      border-bottom: 1px solid #1f2937;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    header h1 {
-      font-size: 1.2rem;
-      color: #38bdf8;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-pill {
-      font-size: 0.8rem;
-      padding: 4px 12px;
-      border-radius: 20px;
-      background: #1f2937;
-      color: #9ca3af;
-      font-weight: 600;
-    }
-
-    .status-pill.live {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-      border: 1px solid #ef4444;
-    }
-
-    /* মেইন লেআউট */
-    .main-container {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    /* বাম পাশের চ্যানেল সাইডবার */
-    .sidebar {
-      width: 340px;
-      background: #111827;
-      border-right: 1px solid #1f2937;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-
-    .filter-box {
-      padding: 12px;
-      border-bottom: 1px solid #1f2937;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .filter-box input,
-    .filter-box select {
-      width: 100%;
-      padding: 9px 12px;
-      border-radius: 8px;
-      border: 1px solid #374151;
-      background: #0b0f19;
-      color: #fff;
-      font-size: 0.9rem;
-      outline: none;
-    }
-
-    .filter-box input:focus,
-    .filter-box select:focus {
-      border-color: #38bdf8;
-    }
-
-    .channel-count {
-      font-size: 0.8rem;
-      color: #9ca3af;
-      padding: 0 4px;
-    }
-
-    .channel-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-    }
-
-    .channel-list::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .channel-list::-webkit-scrollbar-thumb {
-      background: #374151;
-      border-radius: 4px;
-    }
-
-    .channel-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.15s;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    }
-
-    .channel-item:hover {
-      background: #1f2937;
-    }
-
-    .channel-item.active {
-      background: #0284c7;
-      color: #fff;
-    }
-
-    .channel-logo {
-      width: 36px;
-      height: 36px;
-      border-radius: 6px;
-      background: #0b0f19;
-      object-fit: contain;
-      flex-shrink: 0;
-      padding: 2px;
-    }
-
-    .channel-info {
-      overflow: hidden;
-    }
-
-    .channel-name {
-      font-size: 0.92rem;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .channel-group {
-      font-size: 0.75rem;
-      color: #9ca3af;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .channel-item.active .channel-group {
-      color: #e0f2fe;
-    }
-
-    /* ডান পাশের ভিডিও প্লেয়ার এরিয়া */
-    .player-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: #000;
-      padding: 16px;
-      overflow-y: auto;
-    }
-
-    .video-wrapper {
-      width: 100%;
-      max-width: 1100px;
-      margin: auto;
-      aspect-ratio: 16 / 9;
-      background: #050505;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid #1f2937;
-    }
-
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .now-playing-bar {
-      max-width: 1100px;
-      width: 100%;
-      margin: 12px auto 0;
-      background: #111827;
-      padding: 12px 16px;
-      border-radius: 10px;
-      border: 1px solid #1f2937;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .now-playing-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #38bdf8;
-    }
-
-    .error-msg {
-      font-size: 0.85rem;
-      color: #f87171;
-      margin-top: 4px;
-    }
-
-    /* মোবাইল রেসপন্সিভ */
-    @media (max-width: 768px) {
-      body {
-        height: auto;
-        overflow: auto;
-      }
-      .main-container {
-        flex-direction: column;
-      }
-      .sidebar {
-        width: 100%;
-        height: 450px;
-        border-right: none;
-        border-top: 1px solid #1f2937;
-        order: 2;
-      }
-      .player-area {
-        order: 1;
-        padding: 10px;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <header>
-    <h1>📺 IPTV Stream Hub</h1>
-    <span id="statusPill" class="status-pill">Loading Playlist...</span>
-  </header>
-
-  <div class="main-container">
-    <!-- চ্যানেল লিস্ট সাইডবার -->
-    <aside class="sidebar">
-      <div class="filter-box">
-        <input type="text" id="searchInput" placeholder="🔍 চ্যানেল বা মুভি খুঁজুন..." oninput="filterChannels()" />
-        <select id="groupSelect" onchange="filterChannels()">
-          <option value="ALL">সব ক্যাটাগরি (All Groups)</option>
-        </select>
-        <div class="channel-count" id="channelCount">0 টি চ্যানেল পাওয়া গেছে</div>
-      </div>
-      <div class="channel-list" id="channelList"></div>
-    </aside>
-
-    <!-- ভিডিও প্লেয়ার -->
-    <main class="player-area">
-      <div class="video-wrapper">
-        <video id="videoPlayer" controls autoplay playsinline></video>
-      </div>
-      <div class="now-playing-bar">
-        <div>
-          <div class="now-playing-title" id="currentTitle">বাম পাশ থেকে একটি চ্যানেল সিলেক্ট করুন</div>
-          <div class="error-msg" id="logMsg"></div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <script>
-    const PLAYLIST_FILE = './playlist.m3u'; // GitHub root folder-এর ফাইল
-
-    const video = document.getElementById('videoPlayer');
-    const channelListEl = document.getElementById('channelList');
-    const searchInput = document.getElementById('searchInput');
-    const groupSelect = document.getElementById('groupSelect');
-    const channelCountEl = document.getElementById('channelCount');
-    const currentTitleEl = document.getElementById('currentTitle');
-    const logMsgEl = document.getElementById('logMsg');
-    const statusPill = document.getElementById('statusPill');
-
-    let allChannels = [];
-    let activeIndex = -1;
-    let mpegtsPlayer = null;
-    let hlsPlayer = null;
-
-    // ১. Root folder থেকে playlist.m3u লোড করা
-    async function loadPlaylist() {
-      try {
-        const response = await fetch(PLAYLIST_FILE);
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        const text = await response.text();
-        parseM3U(text);
-        statusPill.textContent = 'Playlist Ready';
-      } catch (err) {
-        statusPill.textContent = 'Playlist Error';
-        logMsgEl.textContent = 'playlist.m3u ফাইলটি লোড করা যায়নি। নিশ্চিত করুন ফাইলটি GitHub-এর root ফোল্ডারে আছে।';
-        console.error(err);
-      }
-    }
-
-    // ২. M3U ফাইল পার্স করা
-    function parseM3U(content) {
-      const lines = content.split(/\r?\n/);
-      allChannels = [];
-      const groups = new Set();
-      let currentInfo = null;
-
-      for (let line of lines) {
-        line = line.trim();
-        if (!line) continue;
-
-        if (line.startsWith('#EXTINF:')) {
-          const nameMatch = line.match(/,(.*)$/);
-          const logoMatch = line.match(/tvg-logo="([^"]*)"/i);
-          const groupMatch = line.match(/group-title="([^"]*)"/i);
-
-          const name = nameMatch ? nameMatch[1].trim() : 'Unknown Channel';
-          const logo = logoMatch ? logoMatch[1].trim() : '';
-          const group = groupMatch && groupMatch[1].trim() ? groupMatch[1].trim() : 'Uncategorized';
-
-          groups.add(group);
-          currentInfo = { name, logo, group };
-        } else if (!line.startsWith('#') && currentInfo) {
-          allChannels.push({
-            ...currentInfo,
-            url: line
-          });
-          currentInfo = null;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamVault — Sequential MP4 Player (178090 - 198090)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Hind Siliguri -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Hind Siliguri', 'sans-serif'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#151e2e',
+                            900: '#0f172a',
+                            950: '#090d16',
+                        }
+                    }
+                }
+            }
         }
-      }
+    </script>
+    <style>
+        /* Custom Scrollbar for Playlist */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6366f1;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
 
-      // ক্যাটাগরি ড্রপডাউন পূরণ করা
-      groups.forEach(group => {
-        const opt = document.createElement('option');
-        opt.value = group;
-        opt.textContent = group;
-        groupSelect.appendChild(opt);
-      });
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-play text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                        StreamVault Player
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Range: 178090 — 198090 (20,001 Videos)</p>
+                </div>
+            </div>
 
-      renderChannels(allChannels);
-    }
+            <!-- Direct Jump Input -->
+            <form id="jumpForm" class="flex items-center gap-2 flex-1 max-w-xs sm:max-w-sm justify-end">
+                <div class="relative flex-1">
+                    <input 
+                        type="number" 
+                        id="jumpInput" 
+                        min="178090" 
+                        max="198090" 
+                        placeholder="ID লিখুন (178090-198090)" 
+                        class="w-full bg-slate-850 border border-slate-700 text-slate-100 text-sm rounded-xl px-3.5 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition placeholder:text-slate-500"
+                    >
+                </div>
+                <button 
+                    type="submit" 
+                    class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-sm font-medium px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-md shadow-indigo-600/20 shrink-0"
+                >
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Play</span>
+                </button>
+            </form>
+        </div>
+    </header>
 
-    // ৩. চ্যানেল লিস্ট রেন্ডার করা
-    function renderChannels(channels) {
-      channelListEl.innerHTML = '';
-      channelCountEl.textContent = `${channels.length} টি চ্যানেল পাওয়া গেছে`;
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-      const fragment = document.createDocumentFragment();
-      channels.forEach((ch, idx) => {
-        const item = document.createElement('div');
-        item.className = 'channel-item' + (ch.url === activeIndex ? ' active' : '');
-        
-        const fallbackLogo = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="%2338bdf8"><rect width="36" height="36" rx="6" fill="%231f2937"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-size="16" font-family="sans-serif" fill="%2338bdf8">TV</text></svg>';
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left / Top Section: Video Player & Controls (8 cols on desktop) -->
+            <div class="lg:col-span-8 flex flex-col gap-4">
+                
+                <!-- Video Wrapper -->
+                <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-slate-800 group">
+                    <video 
+                        id="videoPlayer" 
+                        class="w-full h-full object-contain bg-black" 
+                        controls 
+                        playsinline
+                        preload="metadata"
+                    ></video>
 
-        item.innerHTML = `
-          <img class="channel-logo" src="${ch.logo || fallbackLogo}" onerror="this.src='${fallbackLogo}'" alt="" />
-          <div class="channel-info">
-            <div class="channel-name">${ch.name}</div>
-            <div class="channel-group">${ch.group}</div>
-          </div>
-        `;
+                    <!-- Loading Spinner Overlay -->
+                    <div id="loadingOverlay" class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3 hidden pointer-events-none">
+                        <div class="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                        <p class="text-sm font-medium text-slate-300">ভিডিও লোড হচ্ছে (ID: <span id="loadingIdText">178090</span>)...</p>
+                    </div>
 
-        item.onclick = () => {
-          document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
-          item.classList.add('active');
-          activeIndex = ch.url;
-          playStream(ch);
-        };
+                    <!-- Error / Broken Link Banner Overlay -->
+                    <div id="errorOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center hidden z-10">
+                        <div class="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center text-2xl mb-3">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-1">ভিডিওটি পাওয়া যায়নি (404 / Stream Error)</h3>
+                        <p class="text-sm text-slate-400 max-w-md mb-4">
+                            ID <span id="errorIdText" class="text-rose-400 font-semibold">178090</span> সার্ভারে উপলব্ধ নয় অথবা লোড হতে সমস্যা হচ্ছে।
+                        </p>
+                        
+                        <div id="autoSkipCountdownBox" class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-xs text-amber-400 mb-4 hidden">
+                            <i class="fa-solid fa-forward-fast mr-1.5"></i>
+                            Auto-Skip চালু আছে: <span id="skipTimer" class="font-bold text-sm">3</span> সেকেন্ডের মধ্যে পরবর্তী ভিডিওতে যাচ্ছে...
+                        </div>
 
-        fragment.appendChild(item);
-      });
+                        <div class="flex flex-wrap items-center justify-center gap-3">
+                            <button onclick="retryCurrentVideo()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition flex items-center gap-2">
+                                <i class="fa-solid fa-rotate-right"></i> আবার চেষ্টা করুন
+                            </button>
+                            <button onclick="playNextVideo()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition flex items-center gap-2">
+                                <span>পরবর্তী ভিডিও (+1)</span> <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-      channelListEl.appendChild(fragment);
-    }
+                <!-- Now Playing Info & Primary Controls Card -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-lg">
+                    
+                    <!-- Top Row: Title, Badge, Favorite & Copy URL -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <span class="px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 font-bold text-base sm:text-lg tracking-wide">
+                                #<span id="currentIdDisplay">178090</span>
+                            </span>
+                            <div>
+                                <h2 class="text-base sm:text-lg font-semibold text-white">Video Stream #<span id="currentIdTitle">178090</span></h2>
+                                <p class="text-xs text-slate-400 truncate max-w-[240px] sm:max-w-md" id="currentUrlDisplay">
+                                    https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/178090.mp4
+                                </p>
+                            </div>
+                        </div>
 
-    // ৪. সার্চ ও গ্রুপ ফিল্টার
-    function filterChannels() {
-      const query = searchInput.value.toLowerCase();
-      const selectedGroup = groupSelect.value;
+                        <div class="flex items-center gap-2 self-start sm:self-center">
+                            <button 
+                                id="favToggleBtn" 
+                                onclick="toggleFavoriteCurrent()" 
+                                class="px-3.5 py-2 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2"
+                                title="ফেভারিটে সেভ করুন"
+                            >
+                                <i id="favIcon" class="fa-regular fa-heart text-rose-400"></i>
+                                <span class="hidden sm:inline">Favorite</span>
+                            </button>
 
-      const filtered = allChannels.filter(ch => {
-        const matchesName = ch.name.toLowerCase().includes(query);
-        const matchesGroup = selectedGroup === 'ALL' || ch.group === selectedGroup;
-        return matchesName && matchesGroup;
-      });
+                            <button 
+                                onclick="copyCurrentUrl()" 
+                                class="px-3.5 py-2 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2"
+                                title="ভিডিও লিংক কপি করুন"
+                            >
+                                <i class="fa-regular fa-copy text-indigo-400"></i>
+                                <span>Copy URL</span>
+                            </button>
 
-      renderChannels(filtered);
-    }
+                            <a 
+                                id="directOpenLink" 
+                                href="https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/178090.mp4" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                class="p-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-300 text-sm transition"
+                                title="নতুন ট্যাবে ওপেন করুন"
+                            >
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                    </div>
 
-    // ৫. পুরনো প্লেয়ার পরিষ্কার করা
-    function destroyPlayers() {
-      if (mpegtsPlayer) {
-        mpegtsPlayer.destroy();
-        mpegtsPlayer = null;
-      }
-      if (hlsPlayer) {
-        hlsPlayer.destroy();
-        hlsPlayer = null;
-      }
-      video.removeAttribute('src');
-      video.load();
-    }
+                    <!-- Navigation & Playback Controls Row -->
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <!-- Prev / Next Buttons -->
+                        <div class="flex items-center gap-2">
+                            <button 
+                                id="prevBtn" 
+                                onclick="playPrevVideo()" 
+                                class="px-4 py-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 active:scale-95 disabled:opacity-40 disabled:pointer-events-none border border-slate-700 text-slate-200 text-sm font-medium transition flex items-center gap-2"
+                            >
+                                <i class="fa-solid fa-backward-step"></i>
+                                <span>Previous (-1)</span>
+                            </button>
 
-    // ৬. ভিডিও / লাইভ স্ট্রিম প্লে করা
-    function playStream(channel) {
-      destroyPlayers();
-      currentTitleEl.textContent = `▶ ${channel.name}`;
-      logMsgEl.textContent = '';
-      statusPill.textContent = 'Connecting...';
-      statusPill.classList.remove('live');
+                            <button 
+                                id="nextBtn" 
+                                onclick="playNextVideo()" 
+                                class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-white text-sm font-medium transition flex items-center gap-2 shadow-md shadow-indigo-600/20"
+                            >
+                                <span>Next (+1)</span>
+                                <i class="fa-solid fa-forward-step"></i>
+                            </button>
+                        </div>
 
-      const url = channel.url;
+                        <!-- Speed Selector -->
+                        <div class="flex items-center gap-2 bg-slate-850 border border-slate-700/80 rounded-xl px-3 py-1.5">
+                            <i class="fa-solid fa-gauge-high text-slate-400 text-xs"></i>
+                            <label for="speedSelect" class="text-xs text-slate-400">Speed:</label>
+                            <select id="speedSelect" onchange="changePlaybackSpeed(this.value)" class="bg-transparent text-sm text-slate-200 font-medium focus:outline-none cursor-pointer">
+                                <option value="0.5" class="bg-slate-900">0.5x</option>
+                                <option value="0.75" class="bg-slate-900">0.75x</option>
+                                <option value="1" selected class="bg-slate-900">1.0x</option>
+                                <option value="1.25" class="bg-slate-900">1.25x</option>
+                                <option value="1.5" class="bg-slate-900">1.5x</option>
+                                <option value="2" class="bg-slate-900">2.0x</option>
+                            </select>
+                        </div>
+                    </div>
 
-      // ব্রাউজার সতর্কতা: HTTPS পেজ থেকে HTTP লিংক ব্লক হতে পারে
-      if (window.location.protocol === 'https:' && url.startsWith('http://')) {
-        logMsgEl.textContent = 'সতর্কতা: GitHub Pages (HTTPS) থেকে HTTP স্ট্রিম ব্রাউজার ব্লক করতে পারে। প্লে না হলে ব্রাউজার Settings থেকে "Insecure content" Allow করুন।';
-      }
+                    <!-- Automation Toggles (Autoplay, Auto-Next, Auto-Skip Broken) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <!-- Autoplay Toggle -->
+                        <label class="flex items-center justify-between bg-slate-850/80 border border-slate-800 rounded-xl p-3 cursor-pointer hover:border-slate-700 transition">
+                            <div class="flex items-center gap-2.5">
+                                <i class="fa-solid fa-circle-play text-emerald-400"></i>
+                                <span class="text-xs sm:text-sm font-medium text-slate-300">Autoplay</span>
+                            </div>
+                            <input type="checkbox" id="autoplayToggle" checked class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                        </label>
 
-      // A. সরাসরি MP4 / MKV / WebM ফাইল হলে
-      if (/\.(mp4|mkv|webm|mov)(\?.*)?$/i.test(url)) {
-        video.src = url;
-        video.play().then(() => {
-          statusPill.textContent = '● PLAYING VOD';
-          statusPill.classList.add('live');
-        }).catch(() => {
-          logMsgEl.textContent = 'ভিডিও প্লে করা যাচ্ছে না (সার্ভার অফলাইন বা কোডেক সমস্যা)।';
+                        <!-- Auto-Next on Finish Toggle -->
+                        <label class="flex items-center justify-between bg-slate-850/80 border border-slate-800 rounded-xl p-3 cursor-pointer hover:border-slate-700 transition">
+                            <div class="flex items-center gap-2.5">
+                                <i class="fa-solid fa-forward text-indigo-400"></i>
+                                <span class="text-xs sm:text-sm font-medium text-slate-300">Auto-Next (শেষ হলে)</span>
+                            </div>
+                            <input type="checkbox" id="autoNextToggle" checked class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                        </label>
+
+                        <!-- Auto-Skip Broken Links Toggle -->
+                        <label class="flex items-center justify-between bg-slate-850/80 border border-slate-800 rounded-xl p-3 cursor-pointer hover:border-slate-700 transition">
+                            <div class="flex items-center gap-2.5">
+                                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                                <span class="text-xs sm:text-sm font-medium text-slate-300">Auto-Skip Error</span>
+                            </div>
+                            <input type="checkbox" id="autoSkipErrorToggle" class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right / Bottom Section: Paginated Playlist, Favorites & History (4 cols on desktop) -->
+            <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-[620px] shadow-xl overflow-hidden">
+                
+                <!-- Tabs Header -->
+                <div class="grid grid-cols-3 border-b border-slate-800 bg-slate-950/50 p-1.5 gap-1">
+                    <button 
+                        onclick="switchTab('all')" 
+                        id="tab-all" 
+                        class="py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow"
+                    >
+                        <i class="fa-solid fa-list-ol"></i>
+                        <span>সব ভিডিও</span>
+                    </button>
+                    <button 
+                        onclick="switchTab('favorites')" 
+                        id="tab-favorites" 
+                        class="py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    >
+                        <i class="fa-solid fa-heart text-rose-400"></i>
+                        <span>Favorites (<span id="favCount">0</span>)</span>
+                    </button>
+                    <button 
+                        onclick="switchTab('history')" 
+                        id="tab-history" 
+                        class="py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    >
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i>
+                        <span>History</span>
+                    </button>
+                </div>
+
+                <!-- Filter & Range Controls (Visible on 'all' tab) -->
+                <div id="allTabControls" class="p-3 border-b border-slate-800 flex flex-col gap-2.5 bg-slate-900">
+                    <!-- Range Selector Dropdown (1,000 IDs per block) -->
+                    <div class="flex items-center gap-2">
+                        <label for="rangeBlockSelect" class="text-xs text-slate-400 shrink-0">Range:</label>
+                        <select 
+                            id="rangeBlockSelect" 
+                            onchange="selectRangeBlock(this.value)" 
+                            class="w-full bg-slate-850 border border-slate-700 text-slate-200 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500"
+                        ></select>
+                    </div>
+
+                    <!-- Search within range or jump -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input 
+                            type="text" 
+                            id="playlistSearchInput" 
+                            oninput="handlePlaylistSearch(this.value)"
+                            placeholder="ID খুঁজুন (যেমন: 178500)..." 
+                            class="w-full bg-slate-850 border border-slate-700 text-slate-200 text-xs sm:text-sm rounded-xl pl-8 pr-3 py-2 focus:outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                        >
+                    </div>
+                </div>
+
+                <!-- Clear Action Bar for Favorites / History -->
+                <div id="secondaryTabHeader" class="px-3 py-2.5 border-b border-slate-800 flex items-center justify-between bg-slate-900 hidden">
+                    <span id="secondaryTabLabel" class="text-xs text-slate-400 font-medium">সেভ করা ভিডিওসমূহ</span>
+                    <button 
+                        onclick="clearSecondaryList()" 
+                        class="text-xs text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-rose-500/10 transition"
+                    >
+                        <i class="fa-solid fa-trash-can"></i> মুছে ফেলুন
+                    </button>
+                </div>
+
+                <!-- Scrollable List Container -->
+                <div id="playlistContainer" class="flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 content-start">
+                    <!-- Dynamic ID Cards injected via JS -->
+                </div>
+
+                <!-- Pagination Footer (Visible on 'all' tab) -->
+                <div id="paginationFooter" class="p-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between gap-2">
+                    <button 
+                        id="prevPageBtn" 
+                        onclick="changePage(-1)" 
+                        class="px-3 py-1.5 rounded-xl bg-slate-850 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none border border-slate-700 text-xs font-medium text-slate-300 transition"
+                    >
+                        <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+                    </button>
+                    
+                    <span id="pageIndicator" class="text-xs text-slate-400 font-medium">
+                        Page 1 / 201
+                    </span>
+
+                    <button 
+                        id="nextPageBtn" 
+                        onclick="changePage(1)" 
+                        class="px-3 py-1.5 rounded-xl bg-slate-850 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none border border-slate-700 text-xs font-medium text-slate-300 transition"
+                    >
+                        Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 py-4 text-center text-xs text-slate-500">
+        Sequential MP4 Streamer • IDs <span class="text-slate-400 font-medium">178090</span> to <span class="text-slate-400 font-medium">198090</span> • Keyboard Shortcuts: <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded">←</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded">→</kbd> for Prev/Next
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // ==========================================
+        // Configuration & Constants
+        // ==========================================
+        const BASE_URL = "https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/";
+        const MIN_ID = 178090;
+        const MAX_ID = 198090;
+        const ITEMS_PER_PAGE = 100; // 100 IDs per page for fast rendering
+        const TOTAL_ITEMS = MAX_ID - MIN_ID + 1; // 20,001 videos
+        const TOTAL_PAGES = Math.ceil(TOTAL_ITEMS / ITEMS_PER_PAGE);
+
+        // ==========================================
+        // State Management
+        // ==========================================
+        let currentId = parseInt(localStorage.getItem('sv_last_id')) || MIN_ID;
+        if (currentId < MIN_ID || currentId > MAX_ID) currentId = MIN_ID;
+
+        let currentPage = Math.floor((currentId - MIN_ID) / ITEMS_PER_PAGE) + 1;
+        let currentTab = 'all'; // 'all' | 'favorites' | 'history'
+        let searchQuery = '';
+        let favorites = JSON.parse(localStorage.getItem('sv_favorites') || '[]');
+        let historyList = JSON.parse(localStorage.getItem('sv_history') || '[]');
+        let workingIds = new Set(JSON.parse(localStorage.getItem('sv_working') || '[]'));
+        let brokenIds = new Set(JSON.parse(localStorage.getItem('sv_broken') || '[]'));
+        let autoSkipTimerInterval = null;
+
+        // ==========================================
+        // DOM References
+        // ==========================================
+        const videoPlayer = document.getElementById('videoPlayer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingIdText = document.getElementById('loadingIdText');
+        const errorOverlay = document.getElementById('errorOverlay');
+        const errorIdText = document.getElementById('errorIdText');
+        const autoSkipCountdownBox = document.getElementById('autoSkipCountdownBox');
+        const skipTimerSpan = document.getElementById('skipTimer');
+
+        const currentIdDisplay = document.getElementById('currentIdDisplay');
+        const currentIdTitle = document.getElementById('currentIdTitle');
+        const currentUrlDisplay = document.getElementById('currentUrlDisplay');
+        const directOpenLink = document.getElementById('directOpenLink');
+        const favIcon = document.getElementById('favIcon');
+        const favCount = document.getElementById('favCount');
+
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const autoplayToggle = document.getElementById('autoplayToggle');
+        const autoNextToggle = document.getElementById('autoNextToggle');
+        const autoSkipErrorToggle = document.getElementById('autoSkipErrorToggle');
+
+        const rangeBlockSelect = document.getElementById('rangeBlockSelect');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const pageIndicator = document.getElementById('pageIndicator');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+
+        // ==========================================
+        // Initialization
+        // ==========================================
+        function init() {
+            // Load saved toggle preferences
+            const savedAutoplay = localStorage.getItem('sv_autoplay');
+            const savedAutoNext = localStorage.getItem('sv_autonext');
+            const savedAutoSkip = localStorage.getItem('sv_autoskip');
+
+            if (savedAutoplay !== null) autoplayToggle.checked = savedAutoplay === 'true';
+            if (savedAutoNext !== null) autoNextToggle.checked = savedAutoNext === 'true';
+            if (savedAutoSkip !== null) autoSkipErrorToggle.checked = savedAutoSkip === 'true';
+
+            // Save preferences on change
+            autoplayToggle.addEventListener('change', () => localStorage.setItem('sv_autoplay', autoplayToggle.checked));
+            autoNextToggle.addEventListener('change', () => localStorage.setItem('sv_autonext', autoNextToggle.checked));
+            autoSkipErrorToggle.addEventListener('change', () => localStorage.setItem('sv_autoskip', autoSkipErrorToggle.checked));
+
+            populateRangeDropdown();
+            updateFavCount();
+            setupVideoEvents();
+            loadVideo(currentId, false); // Load last/first video on startup
+            renderPlaylist();
+        }
+
+        // Populate 1,000-step range dropdown for fast navigation
+        function populateRangeDropdown() {
+            rangeBlockSelect.innerHTML = '';
+            const step = 1000;
+            for (let start = MIN_ID; start <= MAX_ID; start += step) {
+                const end = Math.min(start + step - 1, MAX_ID);
+                const option = document.createElement('option');
+                option.value = start;
+                option.textContent = `${start} — ${end}`;
+                option.className = 'bg-slate-900';
+                rangeBlockSelect.appendChild(option);
+            }
+            syncRangeDropdownWithPage();
+        }
+
+        function syncRangeDropdownWithPage() {
+            const pageStartId = MIN_ID + (currentPage - 1) * ITEMS_PER_PAGE;
+            const blockStart = Math.floor((pageStartId - MIN_ID) / 1000) * 1000 + MIN_ID;
+            rangeBlockSelect.value = blockStart;
+        }
+
+        // ==========================================
+        // Video Playback Core
+        // ==========================================
+        function getStreamUrl(id) {
+            return `${BASE_URL}${id}.mp4`;
+        }
+
+        function clearAutoSkipTimer() {
+            if (autoSkipTimerInterval) {
+                clearInterval(autoSkipTimerInterval);
+                autoSkipTimerInterval = null;
+            }
+            autoSkipCountdownBox.classList.add('hidden');
+        }
+
+        function loadVideo(id, shouldAutoPlay = true) {
+            id = parseInt(id);
+            if (isNaN(id) || id < MIN_ID || id > MAX_ID) {
+                showToast(`দয়া করে ${MIN_ID} থেকে ${MAX_ID} এর মধ্যে সঠিক ID দিন।`, 'error');
+                return;
+            }
+
+            clearAutoSkipTimer();
+            currentId = id;
+            localStorage.setItem('sv_last_id', currentId);
+
+            const streamUrl = getStreamUrl(currentId);
+
+            // Update UI Metadata
+            currentIdDisplay.textContent = currentId;
+            currentIdTitle.textContent = currentId;
+            currentUrlDisplay.textContent = streamUrl;
+            directOpenLink.href = streamUrl;
+            loadingIdText.textContent = currentId;
+            errorIdText.textContent = currentId;
+
+            // Update Prev/Next button states
+            prevBtn.disabled = currentId <= MIN_ID;
+            nextBtn.disabled = currentId >= MAX_ID;
+
+            // Update Favorite Button State
+            updateFavoriteButtonUI();
+
+            // Show loading, hide error
+            errorOverlay.classList.add('hidden');
+            loadingOverlay.classList.remove('hidden');
+
+            // Set video source
+            videoPlayer.src = streamUrl;
+            videoPlayer.playbackRate = parseFloat(document.getElementById('speedSelect').value) || 1.0;
+            videoPlayer.load();
+
+            if (shouldAutoPlay && autoplayToggle.checked) {
+                const playPromise = videoPlayer.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(() => {
+                        // Autoplay blocked by browser policy until user interaction
+                        loadingOverlay.classList.add('hidden');
+                    });
+                }
+            }
+
+            // Add to Watch History
+            addToHistory(currentId);
+
+            // Sync Playlist Page if on 'all' tab and not searching
+            if (currentTab === 'all' && !searchQuery) {
+                const targetPage = Math.floor((currentId - MIN_ID) / ITEMS_PER_PAGE) + 1;
+                if (targetPage !== currentPage) {
+                    currentPage = targetPage;
+                    syncRangeDropdownWithPage();
+                }
+                renderPlaylist();
+            } else {
+                renderPlaylist();
+            }
+        }
+
+        function setupVideoEvents() {
+            // Video metadata/data loaded successfully
+            videoPlayer.addEventListener('loadeddata', () => {
+                loadingOverlay.classList.add('hidden');
+                errorOverlay.classList.add('hidden');
+                clearAutoSkipTimer();
+
+                // Mark ID as working
+                if (!workingIds.has(currentId)) {
+                    workingIds.add(currentId);
+                    brokenIds.delete(currentId);
+                    saveStatusSets();
+                    renderPlaylist();
+                }
+            });
+
+            videoPlayer.addEventListener('playing', () => {
+                loadingOverlay.classList.add('hidden');
+                errorOverlay.classList.add('hidden');
+            });
+
+            videoPlayer.addEventListener('waiting', () => {
+                loadingOverlay.classList.remove('hidden');
+            });
+
+            // Auto-Next when video ends
+            videoPlayer.addEventListener('ended', () => {
+                if (autoNextToggle.checked && currentId < MAX_ID) {
+                    showToast(`ভিডিও #${currentId} শেষ হয়েছে। পরবর্তী ভিডিও #${currentId + 1} চালু হচ্ছে...`, 'info');
+                    playNextVideo();
+                }
+            });
+
+            // Handle 404 or Stream Error
+            videoPlayer.addEventListener('error', () => {
+                loadingOverlay.classList.add('hidden');
+                errorOverlay.classList.remove('hidden');
+
+                // Mark ID as broken
+                if (!brokenIds.has(currentId)) {
+                    brokenIds.add(currentId);
+                    workingIds.delete(currentId);
+                    saveStatusSets();
+                    renderPlaylist();
+                }
+
+                // Trigger Auto-Skip countdown if enabled
+                if (autoSkipErrorToggle.checked && currentId < MAX_ID) {
+                    startAutoSkipCountdown();
+                }
+            });
+        }
+
+        function startAutoSkipCountdown() {
+            clearAutoSkipTimer();
+            let secondsLeft = 3;
+            skipTimerSpan.textContent = secondsLeft;
+            autoSkipCountdownBox.classList.remove('hidden');
+
+            autoSkipTimerInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    clearAutoSkipTimer();
+                    playNextVideo();
+                } else {
+                    skipTimerSpan.textContent = secondsLeft;
+                }
+            }, 1000);
+        }
+
+        function retryCurrentVideo() {
+            loadVideo(currentId, true);
+        }
+
+        function playNextVideo() {
+            if (currentId < MAX_ID) {
+                loadVideo(currentId + 1, true);
+            } else {
+                showToast('আপনি শেষ ভিডিওতে (198090) পৌঁছে গেছেন।', 'info');
+            }
+        }
+
+        function playPrevVideo() {
+            if (currentId > MIN_ID) {
+                loadVideo(currentId - 1, true);
+            } else {
+                showToast('এটিই প্রথম ভিডিও (178090)।', 'info');
+            }
+        }
+
+        function changePlaybackSpeed(speed) {
+            videoPlayer.playbackRate = parseFloat(speed);
+            showToast(`Playback speed: ${speed}x`, 'info');
+        }
+
+        // ==========================================
+        // Direct Jump Form
+        // ==========================================
+        document.getElementById('jumpForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = parseInt(document.getElementById('jumpInput').value);
+            if (!isNaN(val) && val >= MIN_ID && val <= MAX_ID) {
+                loadVideo(val, true);
+                document.getElementById('jumpInput').value = '';
+            } else {
+                showToast(`অনুগ্রহ করে ${MIN_ID} থেকে ${MAX_ID} এর মধ্যে সংখ্যা দিন।`, 'error');
+            }
         });
-      }
-      // B. M3U8 (HLS) স্ট্রিম হলে
-      else if (url.includes('.m3u8') && Hls.isSupported()) {
-        hlsPlayer = new Hls();
-        hlsPlayer.loadSource(url);
-        hlsPlayer.attachMedia(video);
-        hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play();
-          statusPill.textContent = '● LIVE (HLS)';
-          statusPill.classList.add('live');
-        });
-        hlsPlayer.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) {
-            statusPill.textContent = 'Stream Error';
-            logMsgEl.textContent = 'স্ট্রিম লোড হতে ব্যর্থ হয়েছে (CORS বা Mixed Content এরর)।';
-          }
-        });
-      }
-      // C. Xtream Codes / MPEG-TS লাইভ স্ট্রিম হলে
-      else if (mpegts.getFeatureList().mseLivePlayback) {
-        mpegtsPlayer = mpegts.createPlayer({
-          type: 'mpegts',
-          isLive: true,
-          url: url
-        }, {
-          enableStashBuffer: false,
-          stashInitialSize: 128
+
+        // ==========================================
+        // Clipboard Copy (iFrame Safe)
+        // ==========================================
+        function copyCurrentUrl() {
+            const url = getStreamUrl(currentId);
+            const tempInput = document.createElement('input');
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast(`লিংক কপি হয়েছে: #${currentId}.mp4`, 'success');
+            } catch (err) {
+                showToast('লিংক কপি করা সম্ভব হয়নি।', 'error');
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        // ==========================================
+        // Favorites & History Management
+        // ==========================================
+        function toggleFavoriteCurrent() {
+            const index = favorites.indexOf(currentId);
+            if (index === -1) {
+                favorites.unshift(currentId);
+                showToast(`ভিডিও #${currentId} ফেভারিটে যুক্ত হয়েছে!`, 'success');
+            } else {
+                favorites.splice(index, 1);
+                showToast(`ভিডিও #${currentId} ফেভারিট থেকে সরানো হয়েছে।`, 'info');
+            }
+            localStorage.setItem('sv_favorites', JSON.stringify(favorites));
+            updateFavoriteButtonUI();
+            updateFavCount();
+            if (currentTab === 'favorites') renderPlaylist();
+        }
+
+        function updateFavoriteButtonUI() {
+            const isFav = favorites.includes(currentId);
+            if (isFav) {
+                favIcon.className = 'fa-solid fa-heart text-rose-500';
+            } else {
+                favIcon.className = 'fa-regular fa-heart text-rose-400';
+            }
+        }
+
+        function updateFavCount() {
+            favCount.textContent = favorites.length;
+        }
+
+        function addToHistory(id) {
+            historyList = historyList.filter(item => item !== id);
+            historyList.unshift(id);
+            if (historyList.length > 100) historyList.pop(); // Keep last 100 watched
+            localStorage.setItem('sv_history', JSON.stringify(historyList));
+        }
+
+        function saveStatusSets() {
+            // Keep max 500 cached status indicators in localStorage
+            localStorage.setItem('sv_working', JSON.stringify(Array.from(workingIds).slice(-500)));
+            localStorage.setItem('sv_broken', JSON.stringify(Array.from(brokenIds).slice(-500)));
+        }
+
+        function clearSecondaryList() {
+            if (currentTab === 'favorites') {
+                favorites = [];
+                localStorage.setItem('sv_favorites', '[]');
+                updateFavoriteButtonUI();
+                updateFavCount();
+                showToast('সব ফেভারিট মুছে ফেলা হয়েছে।', 'info');
+            } else if (currentTab === 'history') {
+                historyList = [];
+                localStorage.setItem('sv_history', '[]');
+                showToast('ওয়াচ হিস্ট্রি মুছে ফেলা হয়েছে।', 'info');
+            }
+            renderPlaylist();
+        }
+
+        // ==========================================
+        // Playlist Tabs, Pagination & Rendering
+        // ==========================================
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Update Tab Button Styles
+            ['all', 'favorites', 'history'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = 'py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow';
+                } else {
+                    btn.className = 'py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60';
+                }
+            });
+
+            const allControls = document.getElementById('allTabControls');
+            const secHeader = document.getElementById('secondaryTabHeader');
+            const paginationFooter = document.getElementById('paginationFooter');
+            const secLabel = document.getElementById('secondaryTabLabel');
+
+            if (tab === 'all') {
+                allControls.classList.remove('hidden');
+                paginationFooter.classList.remove('hidden');
+                secHeader.classList.add('hidden');
+            } else {
+                allControls.classList.add('hidden');
+                paginationFooter.classList.add('hidden');
+                secHeader.classList.remove('hidden');
+                secLabel.textContent = tab === 'favorites' ? 'ফেভারিট ভিডিও তালিকা' : 'সাম্প্রতিক দেখা ভিডিওসমূহ';
+            }
+
+            renderPlaylist();
+        }
+
+        function selectRangeBlock(startIdStr) {
+            const startId = parseInt(startIdStr);
+            currentPage = Math.floor((startId - MIN_ID) / ITEMS_PER_PAGE) + 1;
+            searchQuery = '';
+            document.getElementById('playlistSearchInput').value = '';
+            renderPlaylist();
+        }
+
+        function handlePlaylistSearch(query) {
+            searchQuery = query.trim();
+            renderPlaylist();
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= TOTAL_PAGES) {
+                currentPage = newPage;
+                syncRangeDropdownWithPage();
+                renderPlaylist();
+                playlistContainer.scrollTop = 0;
+            }
+        }
+
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            let idsToRender = [];
+
+            if (currentTab === 'all') {
+                if (searchQuery) {
+                    // Search matching IDs across the entire 20,001 range (limit to 100 matches for speed)
+                    for (let id = MIN_ID; id <= MAX_ID; id++) {
+                        if (String(id).includes(searchQuery)) {
+                            idsToRender.push(id);
+                            if (idsToRender.length >= 100) break;
+                        }
+                    }
+                    pageIndicator.textContent = `Search: ${idsToRender.length} match(es)`;
+                    prevPageBtn.disabled = true;
+                    nextPageBtn.disabled = true;
+                } else {
+                    const startId = MIN_ID + (currentPage - 1) * ITEMS_PER_PAGE;
+                    const endId = Math.min(startId + ITEMS_PER_PAGE - 1, MAX_ID);
+                    for (let id = startId; id <= endId; id++) {
+                        idsToRender.push(id);
+                    }
+                    pageIndicator.textContent = `Page ${currentPage} / ${TOTAL_PAGES}`;
+                    prevPageBtn.disabled = currentPage <= 1;
+                    nextPageBtn.disabled = currentPage >= TOTAL_PAGES;
+                }
+            } else if (currentTab === 'favorites') {
+                idsToRender = favorites;
+            } else if (currentTab === 'history') {
+                idsToRender = historyList;
+            }
+
+            // Empty State
+            if (idsToRender.length === 0) {
+                playlistContainer.className = 'flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center text-center text-slate-500';
+                playlistContainer.innerHTML = `
+                    <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-600"></i>
+                    <p class="text-sm">কোনো ভিডিও পাওয়া যায়নি</p>
+                `;
+                return;
+            }
+
+            // Grid Layout for ID Items
+            playlistContainer.className = 'flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 content-start';
+
+            const fragment = document.createDocumentFragment();
+
+            idsToRender.forEach(id => {
+                const isCurrent = id === currentId;
+                const isWorking = workingIds.has(id);
+                const isBroken = brokenIds.has(id);
+                const isFav = favorites.includes(id);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => loadVideo(id, true);
+
+                let baseClasses = 'flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition group ';
+                if (isCurrent) {
+                    baseClasses += 'bg-indigo-600 border-indigo-400 text-white shadow-md shadow-indigo-600/25';
+                } else if (isBroken) {
+                    baseClasses += 'bg-slate-900/60 border-rose-900/40 text-slate-500 hover:border-rose-700/60 hover:text-slate-300';
+                } else {
+                    baseClasses += 'bg-slate-850 border-slate-800 text-slate-300 hover:border-indigo-500/50 hover:bg-slate-800';
+                }
+                btn.className = baseClasses;
+
+                // Status dot / icon
+                let statusBadge = '';
+                if (isCurrent) {
+                    statusBadge = '<i class="fa-solid fa-volume-high text-xs animate-pulse text-white"></i>';
+                } else if (isWorking) {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-emerald-400" title="Verified Working"></span>';
+                } else if (isBroken) {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-rose-500/70" title="Failed to load previously"></span>';
+                } else {
+                    statusBadge = '<i class="fa-solid fa-play text-[10px] text-slate-600 group-hover:text-indigo-400 transition"></i>';
+                }
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-1.5 truncate">
+                        <span class="text-xs sm:text-sm font-semibold tracking-tight">#${id}</span>
+                        ${isFav ? '<i class="fa-solid fa-heart text-[10px] text-rose-400"></i>' : ''}
+                    </div>
+                    ${statusBadge}
+                `;
+
+                fragment.appendChild(btn);
+            });
+
+            playlistContainer.appendChild(fragment);
+        }
+
+        // ==========================================
+        // Toast Notification Helper
+        // ==========================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let colors = 'bg-slate-800 border-slate-700 text-slate-100';
+            let icon = 'fa-circle-info text-indigo-400';
+
+            if (type === 'success') {
+                colors = 'bg-slate-900 border-emerald-500/40 text-emerald-300';
+                icon = 'fa-circle-check text-emerald-400';
+            } else if (type === 'error') {
+                colors = 'bg-slate-900 border-rose-500/40 text-rose-300';
+                icon = 'fa-circle-exclamation text-rose-400';
+            }
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-xl text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${colors}`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ==========================================
+        // Keyboard Shortcuts (Left/Right Arrow)
+        // ==========================================
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+            if (e.key === 'ArrowRight') {
+                playNextVideo();
+            } else if (e.key === 'ArrowLeft') {
+                playPrevVideo();
+            }
         });
 
-        mpegtsPlayer.attachMediaElement(video);
-        mpegtsPlayer.load();
-        mpegtsPlayer.play().then(() => {
-          statusPill.textContent = '● LIVE';
-          statusPill.classList.add('live');
-        }).catch(() => {
-          statusPill.textContent = 'Playback Error';
-        });
-
-        mpegtsPlayer.on(mpegts.Events.ERROR, () => {
-          statusPill.textContent = 'Connection Failed';
-          logMsgEl.textContent = 'সার্ভার থেকে স্ট্রিম ব্লক করা আছে বা লিংকটি অফলাইন।';
-        });
-      }
-      // D. নেটিভ ফলব্যাক
-      else {
-        video.src = url;
-        video.play();
-      }
-    }
-
-    // পেজ লোড হলে প্লেলিস্ট চালু করা
-    window.addEventListener('DOMContentLoaded', loadPlaylist);
-  </script>
-
+        // Start App
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
