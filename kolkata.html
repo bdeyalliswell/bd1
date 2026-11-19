@@ -98,7 +98,7 @@
             <!-- Stats & Heritage Route Toggle -->
             <div class="flex items-center gap-2 sm:gap-3">
                 <span class="hidden sm:inline-flex items-center gap-1 bg-emerald-900/60 text-emerald-200 border border-emerald-400/40 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
-                    <i class="fa-solid fa-check-circle text-emerald-400"></i> 100% Free OSM & Esri Map (No Watermark)
+                    <i class="fa-solid fa-check-circle text-emerald-400"></i> OSM & Esri Map
                 </span>
                 <div class="hidden md:flex items-center gap-2 bg-black/25 px-3 py-1.5 rounded-xl border border-[#D69E2E]/40 text-xs">
                     <span class="flex items-center gap-1.5 text-[#FBD38D] font-semibold">
@@ -108,7 +108,12 @@
                     <span class="text-white/40">|</span>
                     <span class="flex items-center gap-1.5 text-[#9AE6B4] font-semibold">
                         <span class="w-2.5 h-2.5 rounded-full bg-[#2B6CB0] inline-block"></span>
-                        দর্শনীয় স্থান: <span id="place-count" class="text-white text-sm">40</span>
+                        স্থান: <span id="place-count" class="text-white text-sm">110</span>
+                    </span>
+                    <span class="text-white/40">|</span>
+                    <span class="flex items-center gap-1.5 text-[#F6AD55] font-semibold">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#D69E2E] inline-block"></span>
+                        রেল ও মেট্রো: <span id="transit-count" class="text-white text-sm">0</span>
                     </span>
                 </div>
 
@@ -139,15 +144,21 @@
                 </div>
 
                 <!-- Category Filter Pills -->
-                <div class="grid grid-cols-3 gap-1.5 bg-[#E6DAC6] p-1 rounded-xl">
-                    <button onclick="setFilter('all')" id="tab-all" class="filter-tab py-1.5 px-2 rounded-lg text-xs sm:text-sm font-bold transition bg-[#9B2C2C] text-white shadow">
-                        সব (<span id="count-all">245</span>)
+                <div class="grid grid-cols-5 gap-1 bg-[#E6DAC6] p-1 rounded-xl">
+                    <button onclick="setFilter('all')" id="tab-all" class="filter-tab py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-bold transition bg-[#9B2C2C] text-white shadow">
+                        সব (<span id="count-all">0</span>)
                     </button>
-                    <button onclick="setFilter('street')" id="tab-street" class="filter-tab py-1.5 px-2 rounded-lg text-xs sm:text-sm font-semibold text-[#5C4938] hover:bg-white/60 transition flex items-center justify-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-[#C53030]"></span> রাস্তা (<span id="count-street">205</span>)
+                    <button onclick="setFilter('street')" id="tab-street" class="filter-tab py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-semibold text-[#5C4938] hover:bg-white/60 transition flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-[#C53030]"></span> রাস্তা (<span id="count-street">0</span>)
                     </button>
-                    <button onclick="setFilter('place')" id="tab-place" class="filter-tab py-1.5 px-2 rounded-lg text-xs sm:text-sm font-semibold text-[#5C4938] hover:bg-white/60 transition flex items-center justify-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-[#2B6CB0]"></span> স্থান (<span id="count-place">40</span>)
+                    <button onclick="setFilter('place')" id="tab-place" class="filter-tab py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-semibold text-[#5C4938] hover:bg-white/60 transition flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-[#2B6CB0]"></span> স্থান (<span id="count-place">0</span>)
+                    </button>
+                    <button onclick="setFilter('metro')" id="tab-metro" class="filter-tab py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-semibold text-[#5C4938] hover:bg-white/60 transition flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-[#0077B6]"></span> মেট্রো (<span id="count-metro">0</span>)
+                    </button>
+                    <button onclick="setFilter('rail')" id="tab-rail" class="filter-tab py-1.5 px-1 rounded-lg text-[11px] sm:text-xs font-semibold text-[#5C4938] hover:bg-white/60 transition flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-[#2F855A]"></span> রেল (<span id="count-rail">0</span>)
                     </button>
                 </div>
             </div>
@@ -171,14 +182,26 @@
             </div>
 
             <!-- Floating Legend (Bottom Left on Desktop) -->
-            <div class="hidden sm:flex absolute bottom-5 left-3 z-[500] bg-[#FAF6F0]/95 backdrop-blur-sm border border-[#D4C3A8] px-3.5 py-2 rounded-xl shadow-lg items-center gap-4 text-xs font-semibold text-gray-800">
-                <div class="flex items-center gap-1.5">
-                    <span class="w-3.5 h-3.5 rounded-full bg-[#C53030] border-2 border-white shadow inline-block"></span>
-                    <span>ঐতিহাসিক রাস্তা (Streets)</span>
+            <div class="hidden sm:flex flex-wrap absolute bottom-5 left-3 z-[500] bg-[#FAF6F0]/95 backdrop-blur-sm border border-[#D4C3A8] px-3 py-2 rounded-xl shadow-lg items-center gap-3 text-[11px] font-semibold text-gray-800 max-w-[75%]">
+                <div class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full bg-[#C53030] border border-white shadow inline-block"></span>
+                    <span>রাস্তা</span>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-3.5 h-3.5 rounded-full bg-[#2B6CB0] border-2 border-white shadow inline-block"></span>
-                    <span>দর্শনীয় স্থান (Landmarks)</span>
+                <div class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full bg-[#2B6CB0] border border-white shadow inline-block"></span>
+                    <span>দর্শনীয় স্থান</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full bg-[#2F855A] border border-white shadow inline-block"></span>
+                    <span>রেল স্টেশন</span>
+                </div>
+                <div class="flex items-center gap-1" title="Blue, Green, Purple, Orange, Yellow Metro Lines">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#0072CE] inline-block"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#009A44] inline-block"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#6F2C91] inline-block"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#F37021] inline-block"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block"></span>
+                    <span>মেট্রো (লাইন কালার)</span>
                 </div>
             </div>
 
@@ -1219,19 +1242,155 @@
             });
         });
 
+        // ============================================================================
+        // 1D. KOLKATA METRO STATIONS (LINE COLOR-CODED: BLUE, GREEN, PURPLE, ORANGE, YELLOW)
+        // ============================================================================
+        const kolkataMetroStations = [
+            // BLUE LINE (North-South Corridor: Dakshineswar to Kavi Subhash) - #0072CE
+            ['দক্ষিণেশ্বর মেট্রো স্টেশন', 'Dakshineswar Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২২ ফেব্রুয়ারি ২০২১', 22.6525, 88.3588, '#0072CE', 'Blue Line', 'দক্ষিণেশ্বর কালীবাড়ি ও স্কাইওয়াক সংলগ্ন উত্তর প্রান্তের টার্মিনাস স্টেশন।'],
+            ['বরাহনগর মেট্রো স্টেশন', 'Baranagar Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২২ ফেব্রুয়ারি ২০২১', 22.6412, 88.3745, '#0072CE', 'Blue Line', 'বি.টি. রোড ও বরাহনগর রেল স্টেশন সংলগ্ন গুরুত্বপূর্ণ মেট্রো স্টেশন।'],
+            ['নোয়াপাড়া মেট্রো স্টেশন', 'Noapara Metro Station', 'ব্লু ও ইয়েলো লাইন জংশন | উদ্বোধন: ১০ জুলাই ২০১৩', 22.6398, 88.3935, '#0072CE', 'Blue Line', 'কলকাতা মেট্রোর বৃহত্তম স্টেশন ও ইয়েলো লাইনের (এয়ারপোর্ট) ইন্টারচেঞ্জ।'],
+            ['দমদম মেট্রো স্টেশন', 'Dum Dum Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৪ অক্টোবর ১৯৮৪', 22.6212, 88.3928, '#0072CE', 'Blue Line', 'ভারতের প্রথম মেট্রো রেলের আদি প্রান্তিক স্টেশন ও পূর্ব রেলের ব্যস্ততম জংশন।'],
+            ['বেলগাছিয়া মেট্রো স্টেশন', 'Belgachia Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৪ অক্টোবর ১৯৮৪', 22.6058, 88.3865, '#0072CE', 'Blue Line', '১৯৮৪ সালে ভারতের প্রথম মেট্রো যাত্রার সাক্ষী ভূগর্ভস্থ স্টেশন।'],
+            ['শ্যামবাজার মেট্রো স্টেশন', 'Shyambazar Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ১২ নভেম্বর ১৯৮৪', 22.6012, 88.3735, '#0072CE', 'Blue Line', 'শ্যামবাজার পাঁচমাথার মোড়ের নিচে অবস্থিত উত্তর কলকাতার ঐতিহ্যবাহী স্টেশন।'],
+            ['শোভাবাজার সুতানুটি মেট্রো স্টেশন', 'Shobhabazar Sutanuti Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ১২ নভেম্বর ১৯৮৪', 22.5960, 88.3665, '#0072CE', 'Blue Line', 'কলকাতার আদি গ্রাম সুতানুটি ও শোভাবাজার রাজবাড়ি সংলগ্ন স্টেশন।'],
+            ['গিরিশ পার্ক মেট্রো স্টেশন', 'Girish Park Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ১২ নভেম্বর ১৯৮৪', 22.5872, 88.3632, '#0072CE', 'Blue Line', 'নাট্যাচার্য গিরিশচন্দ্র ঘোষের নামে নামাঙ্কিত জোড়াসাঁকো ও মার্বেল প্যালেস সংলগ্ন স্টেশন।'],
+            ['মহাত্মা গান্ধী রোড মেট্রো স্টেশন', 'Mahatma Gandhi Road Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৭ সেপ্টেম্বর ১৯৯৫', 22.5798, 88.3602, '#0072CE', 'Blue Line', 'বড়বাজার ও কলেজ স্ট্রিটের সংযোগস্থলে অবস্থিত ব্যস্ততম ভূগর্ভস্থ স্টেশন।'],
+            ['সেন্ট্রাল মেট্রো স্টেশন', 'Central Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ১৫ ফেব্রুয়ারি ১৯৯৫', 22.5728, 88.3585, '#0072CE', 'Blue Line', 'বউবাজার ও মেডিকেল কলেজ সংলগ্ন মধ্য কলকাতার গুরুত্বপূর্ণ স্টেশন।'],
+            ['চাঁদনি চক মেট্রো স্টেশন', 'Chandni Chowk Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ১৫ ফেব্রুয়ারি ১৯৯৫', 22.5675, 88.3545, '#0072CE', 'Blue Line', 'চাঁদনি চক মার্কেট ও অফিসপাড়ার প্রবেশদ্বার।'],
+            ['এসপ্ল্যানেড মেট্রো স্টেশন (সুপার হাব)', 'Esplanade Metro Station', 'ব্লু, গ্রিন ও পার্পল লাইন জংশন | উদ্বোধন: ২৪ অক্টোবর ১৯৮৪', 22.5648, 88.3515, '#0072CE', 'Blue Line', '১৯৮৪ সালে এখান থেকেই ভারতের প্রথম মেট্রো যাত্রা শুরু হয়েছিল; বর্তমানে তিনটি লাইনের মেগা জংশন।'],
+            ['পার্ক স্ট্রিট মেট্রো স্টেশন', 'Park Street Metro Station', 'ব্লু ও পার্পল লাইন জংশন | উদ্বোধন: ২৪ অক্টোবর ১৯৮৪', 22.5552, 88.3502, '#0072CE', 'Blue Line', 'ভারতীয় জাদুঘর ও পার্ক স্ট্রিট সংলগ্ন আদি মেট্রো স্টেশন।'],
+            ['ময়দান মেট্রো স্টেশন', 'Maidan Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৪ অক্টোবর ১৯৮৪', 22.5495, 88.3485, '#0072CE', 'Blue Line', 'কলকাতা ময়দান ও ভিক্টোরিয়া মেমোরিয়াল সংলগ্ন স্টেশন।'],
+            ['রবীন্দ্র সদন মেট্রো স্টেশন', 'Rabindra Sadan Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৪ অক্টোবর ১৯৮৪', 22.5418, 88.3472, '#0072CE', 'Blue Line', 'নন্দন-রবীন্দ্র সদন, ভিক্টোরিয়া ও এস.এস.কে.এম হাসপাতাল সংলগ্ন সাংস্কৃতিক কেন্দ্রের স্টেশন।'],
+            ['নেতাজি ভবন মেট্রো স্টেশন', 'Netaji Bhavan Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৪ অক্টোবর ১৯৮৪', 22.5335, 88.3462, '#0072CE', 'Blue Line', '১৯৮৪ সালের প্রথম মেট্রো রুটের দক্ষিণ প্রান্তিক স্টেশন (পূর্বনাম ভবানীপুর)।'],
+            ['যতীন দাস পার্ক মেট্রো স্টেশন', 'Jatin Das Park Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৯ এপ্রিল ১৯৮৬', 22.5248, 88.3465, '#0072CE', 'Blue Line', 'বিপ্লবী যতীন দাসের স্মৃতিবিজড়িত হাজরা মোড়ের ভূগর্ভস্থ স্টেশন।'],
+            ['কালীঘাট মেট্রো স্টেশন', 'Kalighat Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৯ এপ্রিল ১৯৮৬', 22.5175, 88.3462, '#0072CE', 'Blue Line', 'কালীঘাট শক্তিপীঠ মন্দির ও রাসবিহারী মোড় সংলগ্ন ঐতিহাসিক স্টেশন।'],
+            ['রবীন্দ্র সরোবর মেট্রো স্টেশন', 'Rabindra Sarobar Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৯ এপ্রিল ১৯৮৬', 22.5072, 88.3458, '#0072CE', 'Blue Line', 'রবীন্দ্র সরোবর লেক ও টালিগঞ্জ রেল স্টেশন সংলগ্ন ইন্টারচেঞ্জ।'],
+            ['মহানায়ক উত্তম কুমার মেট্রো স্টেশন (টালিগঞ্জ)', 'Mahanayak Uttam Kumar Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২৯ এপ্রিল ১৯৮৬', 22.4948, 88.3452, '#0072CE', 'Blue Line', 'মহানায়ক উত্তম কুমারের নামে নামাঙ্কিত টলিউড স্টুডিও পাড়ার স্টেশন।'],
+            ['নেতাজি মেট্রো স্টেশন (কুঁদঘাট)', 'Netaji Metro Station (Kudghat)', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২২ আগস্ট ২০০৯', 22.4812, 88.3455, '#0072CE', 'Blue Line', 'আদিগঙ্গার ওপর নির্মিত এলিভেটেড মেট্রো স্টেশন।'],
+            ['মাস্টারদা সূর্য সেন মেট্রো স্টেশন (বাঁশদ্রোণী)', 'Masterda Surya Sen Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২২ আগস্ট ২০০৯', 22.4735, 88.3535, '#0072CE', 'Blue Line', 'বিপ্লবী মাস্টারদা সূর্য সেনের নামে নামাঙ্কিত দক্ষিণ কলকাতার স্টেশন।'],
+            ['গীতাঞ্জলি মেট্রো স্টেশন (নাকতলা)', 'Gitanjali Metro Station (Naktala)', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২২ আগস্ট ২০০৯', 22.4722, 88.3635, '#0072CE', 'Blue Line', 'রবীন্দ্রনাথ ঠাকুরের নোবেলজয়ী কাব্যগ্রন্থ \'গীতাঞ্জলি\'-র নামে নামাঙ্কিত স্টেশন।'],
+            ['কবি নজরুল মেট্রো স্টেশন (গড়িয়া বাজার)', 'Kavi Nazrul Metro Station (Garia Bazar)', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ২২ আগস্ট ২০০৯', 22.4738, 88.3745, '#0072CE', 'Blue Line', 'বিদ্রোহী কবি কাজী নজরুল ইসলামের নামে নামাঙ্কিত গড়িয়া বাজারের স্টেশন।'],
+            ['শহীদ ক্ষুদিরাম মেট্রো স্টেশন (ব্রিজি)', 'Shahid Khudiram Metro Station', 'ব্লু লাইন (Blue Line) | উদ্বোধন: ৭ অক্টোবর ২০১০', 22.4765, 88.3845, '#0072CE', 'Blue Line', 'অগ্নিযুগের বীর শহীদ ক্ষুদিরাম বসুর নামে নামাঙ্কিত স্টেশন।'],
+            ['কবি সুভাষ মেট্রো স্টেশন (নিউ গড়িয়া)', 'Kavi Subhash Metro Station (New Garia)', 'ব্লু ও অরেঞ্জ লাইন টার্মিনাস | উদ্বোধন: ৭ অক্টোবর ২০১০', 22.4725, 88.3975, '#0072CE', 'Blue Line', 'কবি সুভাষ মুখোপাধ্যায়ের নামে নামাঙ্কিত ব্লু লাইন ও অরেঞ্জ লাইনের দক্ষিণ জংশন।'],
+
+            // GREEN LINE (East-West Corridor: Howrah Maidan to Salt Lake Sector V) - #009A44
+            ['হাওড়া ময়দান মেট্রো স্টেশন', 'Howrah Maidan Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ৬ মার্চ ২০২৪', 22.5835, 88.3325, '#009A44', 'Green Line', 'ভারতের গভীরতম মেট্রো স্টেশনগুলোর অন্যতম ও পশ্চিম প্রান্তিক টার্মিনাস।'],
+            ['হাওড়া মেট্রো স্টেশন (ভারতের গভীরতম)', 'Howrah Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ৬ মার্চ ২০২৪', 22.5838, 88.3422, '#009A44', 'Green Line', 'ভূপৃষ্ঠ থেকে ৩৩ মিটার নিচে অবস্থিত ভারতের গভীরতম মেট্রো স্টেশন; হাওড়া রেল স্টেশনের সাথে যুক্ত।'],
+            ['মহাকরণ মেট্রো স্টেশন (বি.বা.দী. বাগ)', 'Mahakaran Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ৬ মার্চ ২০২৪', 22.5732, 88.3485, '#009A44', 'Green Line', 'হুগলি নদীর তলদেশ দিয়ে সুড়ঙ্গ পার হয়ে কলকাতার প্রথম স্টেশন; রাইটার্স বিল্ডিং সংলগ্ন।'],
+            ['শিয়ালদহ মেট্রো স্টেশন', 'Sealdah Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ১১ জুলাই ২০২২', 22.5678, 88.3702, '#009A44', 'Green Line', 'শিয়ালদহ রেল টার্মিনাসের সাথে সরাসরি যুক্ত ব্যস্ততম ভূগর্ভস্থ মেট্রো স্টেশন।'],
+            ['ফুলবাগান মেট্রো স্টেশন', 'Phoolbagan Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ৪ অক্টোবর ২০২০', 22.5718, 88.3878, '#009A44', 'Green Line', 'ইস্ট-ওয়েস্ট মেট্রোর প্রথম ভূগর্ভস্থ স্টেশন।'],
+            ['সল্টলেক স্টেডিয়াম মেট্রো স্টেশন', 'Salt Lake Stadium Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ১৩ ফেব্রুয়ারি ২০২০', 22.5712, 88.4045, '#009A44', 'Green Line', 'বিবেকানন্দ যুবভারতী ক্রীড়াঙ্গন ও ই.এম. বাইপাস সংলগ্ন এলিভেটেড স্টেশন।'],
+            ['বেঙ্গল কেমিক্যাল মেট্রো স্টেশন', 'Bengal Chemical Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ১৩ ফেব্রুয়ারি ২০২০', 22.5758, 88.4115, '#009A44', 'Green Line', 'আচার্য প্রফুল্ল চন্দ্র রায়ের ঐতিহাসিক বেঙ্গল কেমিক্যাল কারখানা সংলগ্ন স্টেশন।'],
+            ['সিটি সেন্টার মেট্রো স্টেশন', 'City Centre Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ১৩ ফেব্রুয়ারি ২০২০', 22.5855, 88.4118, '#009A44', 'Green Line', 'সল্টলেক সিটি সেন্টার ১ ও সিজিও কমপ্লেক্স সংলগ্ন স্টেশন।'],
+            ['সেন্ট্রাল পার্ক মেট্রো স্টেশন', 'Central Park Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ১৩ ফেব্রুয়ারি ২০২০', 22.5878, 88.4195, '#009A44', 'Green Line', 'সল্টলেক সেন্ট্রাল পার্ক ও মেট্রো ডিপো সংলগ্ন স্টেশন।'],
+            ['করুণাময়ী মেট্রো স্টেশন', 'Karunamoyee Metro Station', 'গ্রিন লাইন (Green Line) | উদ্বোধন: ১৩ ফেব্রুয়ারি ২০২০', 22.5862, 88.4275, '#009A44', 'Green Line', 'আন্তর্জাতিক কলকাতা বইমেলা প্রাঙ্গণ ও করুণাময়ী বাস টার্মিনাস সংলগ্ন স্টেশন।'],
+            ['সল্টলেক সেক্টর ফাইভ মেট্রো স্টেশন', 'Salt Lake Sector V Metro Station', 'গ্রিন ও অরেঞ্জ লাইন জংশন | উদ্বোধন: ১৩ ফেব্রুয়ারি ২০২০', 22.5805, 88.4345, '#009A44', 'Green Line', 'কলকাতার আইটি হাব সেক্টর ফাইভের প্রধান স্টেশন।'],
+
+            // PURPLE LINE (Joka - Esplanade Corridor) - #6F2C91
+            ['জোকা মেট্রো স্টেশন', 'Joka Metro Station', 'পার্পল লাইন (Purple Line) | উদ্বোধন: ৩০ ডিসেম্বর ২০২২', 22.4512, 88.3015, '#6F2C91', 'Purple Line', 'আই.আই.এম কলকাতা (IIM Calcutta) সংলগ্ন পার্পল লাইনের দক্ষিণ প্রান্তিক স্টেশন।'],
+            ['ঠাকুরপুকুর মেট্রো স্টেশন', 'Thakurpukur Metro Station', 'পার্পল লাইন (Purple Line) | উদ্বোধন: ৩০ ডিসেম্বর ২০২২', 22.4635, 88.3045, '#6F2C91', 'Purple Line', 'ডায়মন্ড হারবার রোডের ওপর অবস্থিত ঠাকুরপুকুর অঞ্চলের স্টেশন।'],
+            ['সখেরবাজার মেট্রো স্টেশন', 'Sakherbazar Metro Station', 'পার্পল লাইন (Purple Line) | উদ্বোধন: ৩০ ডিসেম্বর ২০২২', 22.4785, 88.3085, '#6F2C91', 'Purple Line', 'বড়িশা ও সখেরবাজারের ঐতিহাসিক অঞ্চলের মেট্রো স্টেশন।'],
+            ['বেহালা চৌরাস্তা মেট্রো স্টেশন', 'Behala Chowrasta Metro Station', 'পার্পল লাইন (Purple Line) | উদ্বোধন: ৩০ ডিসেম্বর ২০২২', 22.4885, 88.3112, '#6F2C91', 'Purple Line', 'বেহালা চৌরাস্তার প্রাণকেন্দ্রে অবস্থিত এলিভেটেড মেট্রো স্টেশন।'],
+            ['বেহালা বাজার মেট্রো স্টেশন', 'Behala Bazar Metro Station', 'পার্পল লাইন (Purple Line) | উদ্বোধন: ৩০ ডিসেম্বর ২০২২', 22.4975, 88.3145, '#6F2C91', 'Purple Line', 'বেহালা বাজার ও সাবর্ণ পাড়া সংলগ্ন স্টেশন।'],
+            ['তারাতলা মেট্রো স্টেশন', 'Taratala Metro Station', 'পার্পল লাইন (Purple Line) | উদ্বোধন: ৩০ ডিসেম্বর ২০২২', 22.5075, 88.3175, '#6F2C91', 'Purple Line', 'তারাতলা মোড় ও আলিপুর মিন্ট সংলগ্ন স্টেশন।'],
+            ['মাঝেরহাট মেট্রো স্টেশন', 'Majerhat Metro Station', 'পার্পল লাইন (Purple Line) | উদ্বোধন: ৬ মার্চ ২০২৪', 22.5165, 88.3215, '#6F2C91', 'Purple Line', 'মাঝেরহাট রেল স্টেশন ও নিউ আলিপুর সংলগ্ন গুরুত্বপূর্ণ ইন্টারচেঞ্জ।'],
+
+            // ORANGE LINE (New Garia - Airport Corridor via EM Bypass) - #F37021
+            ['সত্যজিৎ রায় মেট্রো স্টেশন (হাইল্যান্ড পার্ক)', 'Satyajit Ray Metro Station', 'অরেঞ্জ লাইন (Orange Line) | উদ্বোধন: ৬ মার্চ ২০২৪', 22.4825, 88.3985, '#F37021', 'Orange Line', 'কিংবদন্তি চলচ্চিত্রকার সত্যজিৎ রায়ের নামে নামাঙ্কিত ই.এম. বাইপাসের স্টেশন।'],
+            ['জ্যোতিরিন্দ্র নন্দী মেট্রো স্টেশন (মুকুন্দপুর)', 'Jyotirindra Nandi Metro Station', 'অরেঞ্জ লাইন (Orange Line) | উদ্বোধন: ৬ মার্চ ২০২৪', 22.4925, 88.3995, '#F37021', 'Orange Line', 'সাহিত্যিক জ্যোতিরিন্দ্র নন্দীর নামে নামাঙ্কিত মুকুন্দপুর হাসপাতাল হাবের স্টেশন।'],
+            ['কবি সুকান্ত মেট্রো স্টেশন (কালিকাপুর)', 'Kavi Sukanta Metro Station', 'অরেঞ্জ লাইন (Orange Line) | উদ্বোধন: ৬ মার্চ ২০২৪', 22.5015, 88.4005, '#F37021', 'Orange Line', 'কবি সুকান্ত ভট্টাচার্যের নামে নামাঙ্কিত কালিকাপুর-সন্তোষপুর সংলগ্ন স্টেশন।'],
+            ['হেমন্ত মুখোপাধ্যায় মেট্রো স্টেশন (রুবি মোড়)', 'Hemanta Mukhopadhyay Metro Station (Ruby)', 'অরেঞ্জ লাইন (Orange Line) | উদ্বোধন: ৬ মার্চ ২০২৪', 22.5135, 88.4015, '#F37021', 'Orange Line', 'কিংবদন্তি সংগীতশিল্পী হেমন্ত মুখোপাধ্যায়ের নামে নামাঙ্কিত রুবি মোড়ের স্টেশন।'],
+            ['বেলেঘাটা মেট্রো স্টেশন (বরুণ সেনগুপ্ত)', 'Beleghata Metro Station (Barun Sengupta)', 'অরেঞ্জ লাইন (Orange Line) | সাংবাদিক বরুণ সেনগুপ্তের নামে নামাঙ্কিত', 22.5565, 88.3985, '#F37021', 'Orange Line', 'চিংড়িঘাটা ও বেলেঘাটা সংলগ্ন ই.এম. বাইপাসের স্টেশন।'],
+
+            // YELLOW LINE (Noapara - Airport - Barasat Corridor) - #D97706
+            ['দমদম ক্যান্টনমেন্ট মেট্রো স্টেশন', 'Dum Dum Cantonment Metro Station', 'ইয়েলো লাইন (Yellow Line) | নোয়াপাড়া-বিমানবন্দর করিডোর', 22.6375, 88.4145, '#D97706', 'Yellow Line', 'দমদম ক্যান্টনমেন্ট রেল স্টেশনের সাথে যুক্ত ইন্টারচেঞ্জ মেট্রো স্টেশন।'],
+            ['যশোর রোড মেট্রো স্টেশন', 'Jessore Road Metro Station', 'ইয়েলো লাইন (Yellow Line) | ঐতিহাসিক যশোর রোডের ওপর অবস্থিত', 22.6425, 88.4265, '#D97706', 'Yellow Line', 'কলকাতা বিমানবন্দরের ঠিক আগের ভূগর্ভস্থ-সমতল সংযোগকারী স্টেশন।'],
+            ['জয় হিন্দ মেট্রো স্টেশন (কলকাতা বিমানবন্দর)', 'Jai Hind Metro Station (NSCBI Airport)', 'ইয়েলো ও অরেঞ্জ লাইন মেগা হাব | নেতাজি সুভাষচন্দ্র বসু আন্তর্জাতিক বিমানবন্দর', 22.6465, 88.4395, '#D97706', 'Yellow Line', 'নেতাজির \'জয় হিন্দ\' ধ্বনির নামে নামাঙ্কিত ভারতের বৃহত্তম ভূগর্ভস্থ বিমানবন্দর মেট্রো স্টেশন।']
+        ];
+
+        kolkataMetroStations.forEach((mt, index) => {
+            kolkataHeritageData.push({
+                id: `metro-${index + 1}`,
+                type: 'metro',
+                metroColor: mt[5],
+                metroLine: mt[6],
+                nameBn: mt[0],
+                nameEn: mt[1],
+                oldName: mt[2],
+                lat: mt[3],
+                lng: mt[4],
+                summaryBn: mt[7],
+                historyBn: `${mt[0]} (${mt[1]}) কলকাতা মেট্রো রেলওয়ের ${mt[6]}-এর একটি গুরুত্বপূর্ণ স্টেশন। ${mt[2]}। ${mt[7]} ১৯৮৪ সালে ভারতের প্রথম পাতাল রেল হিসেবে যাত্রা শুরু করা কলকাতা মেট্রোর আধুনিক সম্প্রসারণের এক উজ্জ্বল নিদর্শন এটি।`,
+                highlights: [`Kolkata Metro ${mt[6]}`, 'পাতাল রেল ঐতিহ্য', 'দ্রুত নগর পরিবহন']
+            });
+        });
+
+        // ============================================================================
+        // 1E. KOLKATA SUBURBAN & CIRCULAR RAILWAY STATIONS (রেলওয়ে স্টেশন সমূহ)
+        // ============================================================================
+        const kolkataRailStations = [
+            ['কলকাতা রেলওয়ে স্টেশন (চিৎপুর টার্মিনাস)', 'Kolkata Railway Station (Chitpur)', 'উদ্বোধন: ২০০৬ | উত্তর কলকাতার প্রধান দূরপাল্লার টার্মিনাস', 22.6012, 88.3835, 'হাওড়া ও শিয়ালদহের চাপ কমাতে চিৎপুর রেল ইয়ার্ডে নির্মিত কলকাতার আধুনিক রেল টার্মিনাস।'],
+            ['শালিমার রেলওয়ে স্টেশন', 'Shalimar Railway Station', 'প্রতিষ্ঠা: ১৮৮৩ | দক্ষিণ-পূর্ব রেলের গুরুত্বপূর্ণ টার্মিনাস', 22.5565, 88.3165, 'বোটানিক্যাল গার্ডেন ও বিদ্যাসাগর সেতু সংলগ্ন ঐতিহাসিক মালবাহী ও যাত্রীবাহী টার্মিনাস।'],
+            ['বিধাননগর রোড রেলওয়ে স্টেশন', 'Bidhannagar Road Railway Station', 'প্রতিষ্ঠা: ১৯৭০-এর দশক | সল্টলেক ও উল্টোডাঙার প্রবেশদ্বার', 22.5912, 88.3915, 'শিয়ালদহ মেইন ও উত্তর শাখার অন্যতম ব্যস্ততম স্টেশন।'],
+            ['দমদম জংশন রেলওয়ে স্টেশন', 'Dum Dum Junction Railway Station', 'প্রতিষ্ঠা: ১৮৬২ | ইস্টার্ন বেঙ্গল রেলওয়ের ঐতিহাসিক জংশন', 22.6215, 88.3932, 'শিয়ালদহ উত্তর ও বনগাঁ শাখার সংযোগস্থল এবং মেট্রো ইন্টারচেঞ্জ।'],
+            ['বালিগঞ্জ জংশন রেলওয়ে স্টেশন', 'Ballygunge Junction Railway Station', 'প্রতিষ্ঠা: ১৮৬২ | দক্ষিণ শহরতলি রেলপথের প্রধান জংশন', 22.5262, 88.3688, 'শিয়ালদহ দক্ষিণ শাখার (বজবজ, ডায়মন্ড হারবার, লক্ষ্মীকান্তপুর ও ক্যানিং লাইন) প্রধান জংশন।'],
+            ['যাদবপুর রেলওয়ে স্টেশন', 'Jadavpur Railway Station', 'প্রতিষ্ঠা: ১৮৬২ | যাদবপুর বিশ্ববিদ্যালয় সংলগ্ন ঐতিহাসিক স্টেশন', 22.4955, 88.3745, 'শিয়ালদহ-সোনারপুর শাখার অন্যতম ব্যস্ততম স্টেশন।'],
+            ['টালিগঞ্জ রেলওয়ে স্টেশন', 'Tollygunge Railway Station', 'প্রতিষ্ঠা: ১৮৯০ | বজবজ শাখার ঐতিহাসিক স্টেশন', 22.5068, 88.3452, 'রবীন্দ্র সরোবর মেট্রো স্টেশনের সাথে যুক্ত গুরুত্বপূর্ণ রেল স্টেশন।'],
+            ['নিউ আলিপুর রেলওয়ে স্টেশন', 'New Alipore Railway Station', 'প্রতিষ্ঠা: ১৯৫০-এর দশক | নিউ আলিপুর ও চেতলা সংলগ্ন স্টেশন', 22.5095, 88.3365, 'শিয়ালদহ-বজবজ লাইনের গুরুত্বপূর্ণ স্টেশন।'],
+            ['মাঝেরহাট জংশন রেলওয়ে স্টেশন', 'Majerhat Railway Station', 'প্রতিষ্ঠা: ১৮৯০ | সার্কুলার রেল ও বজবজ লাইনের জংশন', 22.5162, 88.3212, 'বেহালা, আলিপুর ও খিদিরপুর সংযোগকারী গুরুত্বপূর্ণ রেল জংশন।'],
+            ['প্রিন্সেপ ঘাট সার্কুলার রেল স্টেশন', 'Prinsep Ghat Railway Station', 'উদ্বোধন: ১৯৮৪ | গঙ্গার তীর বরাবর কলকাতা চক্ররেল (Circular Railway)', 22.5578, 88.3322, 'হুগলি নদীর মনোরম তীর ঘেঁষে চলা কলকাতা চক্ররেলের ঐতিহাসিক স্টেশন।'],
+            ['ইডেন গার্ডেনস সার্কুলার রেল স্টেশন', 'Eden Gardens Railway Station', 'উদ্বোধন: ১৯৮৪ | ইডেন গার্ডেনস ও আকাশবাণী ভবন সংলগ্ন চক্ররেল স্টেশন', 22.5655, 88.3412, 'বাবুঘাট ও হাইকোর্ট সংলগ্ন কলকাতা চক্ররেলের স্টেশন।'],
+            ['বি.বা.দী. বাগ সার্কুলার রেল স্টেশন', 'B.B.D. Bagh Railway Station', 'উদ্বোধন: ১৯৮৪ | অফিসপাড়া ও মহাকরণ সংলগ্ন চক্ররেল স্টেশন', 22.5735, 88.3455, 'স্ট্র্যান্ড রোডে অবস্থিত কলকাতা চক্ররেলের অন্যতম গুরুত্বপূর্ণ স্টেশন।'],
+            ['বড়বাজার সার্কুলার রেল স্টেশন', 'Burra Bazar Railway Station', 'উদ্বোধন: ১৯৮৪ | হাওড়া ব্রিজ ও পোস্তা সংলগ্ন চক্ররেল স্টেশন', 22.5832, 88.3485, 'বড়বাজারের পাইকারি বাজার ও ফুলের বাজারের পাশের স্টেশন।'],
+            ['শোভাবাজার আহিরীটোলা রেল স্টেশন', 'Sovabazar Ahiritola Railway Station', 'উদ্বোধন: ১৯৮৪ | গঙ্গার ঘাট ও কুমোরটুলি সংলগ্ন চক্ররেল স্টেশন', 22.5965, 88.3568, 'উত্তর কলকাতার বনেদি পাড়া ও গঙ্গার ঘাটের সংযোগকারী চক্ররেল স্টেশন।'],
+            ['বাগবাজার সার্কুলার রেল স্টেশন', 'Bagbazar Railway Station', 'উদ্বোধন: ১৯৮৪ | বাগবাজার ঘাট সংলগ্ন চক্ররেল স্টেশন', 22.6045, 88.3642, 'উত্তর কলকাতার ঐতিহাসিক বাগবাজার ঘাটের পাশের রেল স্টেশন।'],
+            ['দক্ষিণেশ্বর রেলওয়ে স্টেশন', 'Dakshineswar Railway Station', 'প্রতিষ্ঠা: ১৯৩২ | উইলিংডন ব্রিজ (বিবেকানন্দ সেতু) সংলগ্ন স্টেশন', 22.6535, 88.3618, 'শিয়ালদহ-ডানকুনি কর্ড লাইনের ঐতিহাসিক স্টেশন, যা দক্ষিণেশ্বর মন্দিরের কাছেই অবস্থিত।'],
+            ['বেলুড় রেলওয়ে স্টেশন', 'Belur Railway Station', 'প্রতিষ্ঠা: ১৮৫৪ | হাওড়া-বর্ধমান মেইন লাইনের আদি স্টেশন', 22.6355, 88.3425, 'বেলুড় মঠ সংলগ্ন পূর্ব রেলের ঐতিহাসিক স্টেশন।'],
+            ['লিলুয়া রেলওয়ে স্টেশন', 'Liluah Railway Station', 'প্রতিষ্ঠা: ১৮৫৪ | ১৮৫৪ সালের ১৫ আগস্ট প্রথম ট্রেন যাত্রার সাক্ষী ও রেল ওয়ার্কশপ', 22.6205, 88.3445, 'ভারতের প্রাচীনতম রেলওয়ে ক্যারেজ অ্যান্ড ওয়াগন ওয়ার্কশপ (১৯০০)-এর জন্য বিখ্যাত।'],
+            ['সাঁতরাগাছি জংশন রেলওয়ে স্টেশন', 'Santragachi Junction Railway Station', 'প্রতিষ্ঠা: উনিশ শতকের শেষভাগ | দক্ষিণ-পূর্ব রেলের প্রধান টার্মিনাস ও রেল ইয়ার্ড', 22.5825, 88.2845, 'হাওড়া-খড়গপুর লাইনের অন্যতম বৃহৎ রেল জংশন ও পরিযায়ী পাখিদের সাঁতরাগাছি ঝিল সংলগ্ন।'],
+            ['ঢাকুরিয়া রেলওয়ে স্টেশন', 'Dhakuria Railway Station', 'প্রতিষ্ঠা: ১৮৬২ | ঢাকুরিয়া ও গড়িয়াহাট সংলগ্ন স্টেশন', 22.5085, 88.3712, 'শিয়ালদহ দক্ষিণ শাখার গুরুত্বপূর্ণ স্টেশন।'],
+            ['বাঘাযতীন রেলওয়ে স্টেশন', 'Baghajatin Railway Station', 'প্রতিষ্ঠা: ১৯৫০-এর দশক | বিপ্লবী বাঘাযতীনের নামে নামাঙ্কিত স্টেশন', 22.4825, 88.3785, 'দেশভাগের পর গড়ে ওঠা বাঘাযতীন কলোনির ঐতিহাসিক রেল স্টেশন।'],
+            ['গড়িয়া রেলওয়ে স্টেশন', 'Garia Railway Station', 'প্রতিষ্ঠা: ১৮৬২ | দক্ষিণ কলকাতার প্রান্তিক ঐতিহাসিক রেল স্টেশন', 22.4665, 88.3885, 'শিয়ালদহ দক্ষিণ শাখার অন্যতম প্রাচীন স্টেশন।'],
+            ['খিদিরপুর সার্কুলার রেল স্টেশন', 'Khidirpur Railway Station', 'প্রতিষ্ঠা: উনিশ শতক | কলকাতা বন্দর ও খিদিরপুর ডক সংলগ্ন স্টেশন', 22.5365, 88.3235, 'বন্দর এলাকার পণ্য ও যাত্রী পরিবহনের ঐতিহাসিক স্টেশন।'],
+            ['পার্ক সার্কাস রেলওয়ে স্টেশন', 'Park Circus Railway Station', 'প্রতিষ্ঠা: উনিশ শতক | বালিগঞ্জ-শিয়ালদহ সংযোগকারী স্টেশন', 22.5415, 88.3745, 'পার্ক সার্কাস ও তিলজলা অঞ্চলের গুরুত্বপূর্ণ রেল স্টেশন।'],
+            ['স্যার গুরুদাস ব্যানার্জী হল্ট (ফুলবাগান)', 'Sir Gurudas Banerjee Halt', 'প্রতিষ্ঠা: বিশ শতক | কলকাতা বিশ্ববিদ্যালয়ের প্রথম ভারতীয় উপাচার্যের নামে', 22.5745, 88.3895, 'শিয়ালদহ-বিধাননগর ও কাঁকুড়গাছি কর্ড লাইনের স্টেশন।']
+        ];
+
+        kolkataRailStations.forEach((rl, index) => {
+            kolkataHeritageData.push({
+                id: `rail-${index + 1}`,
+                type: 'rail',
+                nameBn: rl[0],
+                nameEn: rl[1],
+                oldName: rl[2],
+                lat: rl[3],
+                lng: rl[4],
+                summaryBn: rl[5],
+                historyBn: `${rl[0]} (${rl[1]}) কলকাতা ও শহরতলির রেল ইতিহাসের এক গুরুত্বপূর্ণ অধ্যায়। ${rl[2]}। ${rl[5]} প্রতিদিন লক্ষ লক্ষ যাত্রীর যাতায়াত এবং বাংলার অর্থনৈতিক ও সামাজিক যোগাযোগ রক্ষায় এই স্টেশনটির ভূমিকা অপরিসীম।`,
+                highlights: ['কলকাতা রেলওয়ে নেটওয়ার্ক', 'রেলওয়ে ঐতিহ্য', 'সাবআর্বান ও চক্ররেল']
+            });
+        });
+
         // Dynamically update total counts in header & filter tabs
         const totalStreetsCount = kolkataHeritageData.filter(d => d.type === 'street').length;
         const totalPlacesCount = kolkataHeritageData.filter(d => d.type === 'place').length;
+        const totalMetroCount = kolkataHeritageData.filter(d => d.type === 'metro').length;
+        const totalRailCount = kolkataHeritageData.filter(d => d.type === 'rail').length;
+
         document.getElementById('street-count').innerText = totalStreetsCount;
         document.getElementById('place-count').innerText = totalPlacesCount;
+        document.getElementById('transit-count').innerText = totalMetroCount + totalRailCount;
         document.getElementById('count-all').innerText = kolkataHeritageData.length;
         document.getElementById('count-street').innerText = totalStreetsCount;
         document.getElementById('count-place').innerText = totalPlacesCount;
+        document.getElementById('count-metro').innerText = totalMetroCount;
+        document.getElementById('count-rail').innerText = totalRailCount;
 
         // ============================================================================
         // 2. INITIALIZE LEAFLET MAP (100% FREE OSM & ESRI TILES - NO WATERMARK)
         // ============================================================================
-        const KOLKATA_CENTER = [22.5626, 88.3580];
+        const KOLKATA_CENTER = [22.5650, 88.3650];
         const map = L.map('kolkata-map', {
             center: KOLKATA_CENTER,
             zoom: 12,
@@ -1273,10 +1432,26 @@
         setTimeout(() => { map.invalidateSize(); }, 250);
         window.addEventListener('resize', () => { map.invalidateSize(); });
 
-        // Custom SVG Marker Generator
-        function createCustomIcon(type, isSelected = false) {
-            const color = type === 'street' ? '#C53030' : '#2B6CB0';
-            const iconClass = type === 'street' ? 'fa-road' : 'fa-landmark';
+        // Custom SVG Marker Generator (Supports Street, Place, Color-coded Metro & Rail)
+        function createCustomIcon(itemOrType, isSelected = false) {
+            const type = typeof itemOrType === 'string' ? itemOrType : itemOrType.type;
+            let color = '#2B6CB0';
+            let iconClass = 'fa-landmark';
+
+            if (type === 'street') {
+                color = '#C53030';
+                iconClass = 'fa-road';
+            } else if (type === 'place') {
+                color = '#2B6CB0';
+                iconClass = 'fa-landmark';
+            } else if (type === 'metro') {
+                color = (typeof itemOrType === 'object' && itemOrType.metroColor) ? itemOrType.metroColor : '#0072CE';
+                iconClass = 'fa-train-subway';
+            } else if (type === 'rail') {
+                color = '#2F855A';
+                iconClass = 'fa-train';
+            }
+
             const size = isSelected ? 40 : 32;
             const pulseHtml = isSelected 
                 ? `<div class="marker-pulse absolute inset-0 rounded-full" style="background-color: ${color};"></div>` 
@@ -1308,20 +1483,30 @@
         // Create markers for all items
         kolkataHeritageData.forEach(item => {
             const marker = L.marker([item.lat, item.lng], {
-                icon: createCustomIcon(item.type, false)
+                icon: createCustomIcon(item, false)
             }).addTo(map);
 
-            const badgeColor = item.type === 'street' ? 'bg-[#C53030]' : 'bg-[#2B6CB0]';
-            const badgeText = item.type === 'street' ? 'ঐতিহাসিক রাস্তা' : 'দর্শনীয় স্থান';
+            let badgeBgStyle = 'background-color: #2B6CB0;';
+            let badgeText = 'দর্শনীয় স্থান';
+            if (item.type === 'street') {
+                badgeBgStyle = 'background-color: #C53030;';
+                badgeText = 'ঐতিহাসিক রাস্তা';
+            } else if (item.type === 'metro') {
+                badgeBgStyle = `background-color: ${item.metroColor || '#0072CE'};`;
+                badgeText = `মেট্রো • ${item.metroLine || 'Metro'}`;
+            } else if (item.type === 'rail') {
+                badgeBgStyle = 'background-color: #2F855A;';
+                badgeText = 'রেলওয়ে স্টেশন';
+            }
 
             marker.bindPopup(`
                 <div class="min-w-[200px] max-w-[250px]">
-                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white ${badgeColor} mb-1">${badgeText}</span>
+                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white mb-1" style="${badgeBgStyle}">${badgeText}</span>
                     <h4 class="font-bold text-sm text-[#1A202C] leading-snug">${item.nameBn}</h4>
                     <p class="text-[11px] text-gray-600 font-medium mb-1.5">${item.nameEn}</p>
                     <p class="text-xs text-gray-700 leading-relaxed mb-2">${item.summaryBn}</p>
                     <button onclick="selectItem('${item.id}')" class="w-full py-1 px-2 rounded bg-[#9B2C2C] hover:bg-[#741B1B] text-white text-xs font-bold transition cursor-pointer">
-                        বিস্তারিত ইতিহাস পড়ুন →
+                        বিস্তারিত তথ্য ও ছবি দেখুন →
                     </button>
                 </div>
             `);
@@ -1331,6 +1516,30 @@
             });
 
             markersMap[item.id] = marker;
+        });
+
+        // Draw Color-Coded Kolkata Metro Lines on Map (Blue, Green, Purple, Orange, Yellow)
+        const metroCorridors = [
+            { line: 'Blue Line', color: '#0072CE', prefix: 'metro-', start: 1, end: 26 },
+            { line: 'Green Line', color: '#009A44', prefix: 'metro-', start: 27, end: 37 },
+            { line: 'Purple Line', color: '#6F2C91', prefix: 'metro-', start: 38, end: 44 },
+            { line: 'Orange Line', color: '#F37021', prefix: 'metro-', start: 45, end: 49 },
+            { line: 'Yellow Line', color: '#D97706', prefix: 'metro-', start: 50, end: 52 }
+        ];
+
+        metroCorridors.forEach(corridor => {
+            const pts = [];
+            for (let i = corridor.start; i <= corridor.end; i++) {
+                const st = kolkataHeritageData.find(d => d.id === `${corridor.prefix}${i}`);
+                if (st) pts.push([st.lat, st.lng]);
+            }
+            if (pts.length > 1) {
+                L.polyline(pts, {
+                    color: corridor.color,
+                    weight: 3.5,
+                    opacity: 0.72
+                }).addTo(map);
+            }
         });
 
         // ============================================================================
@@ -1437,10 +1646,24 @@
 
             listContainer.innerHTML = filteredItems.map(item => {
                 const isSelected = item.id === selectedItemId;
-                const isStreet = item.type === 'street';
-                const badgeBg = isStreet ? 'bg-[#FED7D7] text-[#9B2C2C]' : 'bg-[#BEE3F8] text-[#2B6CB0]';
-                const badgeIcon = isStreet ? 'fa-road' : 'fa-landmark';
-                const badgeLabel = isStreet ? 'রাস্তা' : 'দর্শনীয় স্থান';
+                let badgeStyle = 'background-color: #BEE3F8; color: #2B6CB0;';
+                let badgeIcon = 'fa-landmark';
+                let badgeLabel = 'স্থান';
+
+                if (item.type === 'street') {
+                    badgeStyle = 'background-color: #FED7D7; color: #9B2C2C;';
+                    badgeIcon = 'fa-road';
+                    badgeLabel = 'রাস্তা';
+                } else if (item.type === 'metro') {
+                    badgeStyle = `background-color: ${item.metroColor || '#0072CE'}; color: #FFFFFF;`;
+                    badgeIcon = 'fa-train-subway';
+                    badgeLabel = item.metroLine || 'মেট্রো';
+                } else if (item.type === 'rail') {
+                    badgeStyle = 'background-color: #C6F6D5; color: #22543D;';
+                    badgeIcon = 'fa-train';
+                    badgeLabel = 'রেল স্টেশন';
+                }
+
                 const borderClass = isSelected 
                     ? 'border-2 border-[#9B2C2C] bg-[#FFFDF9] shadow-md ring-2 ring-[#9B2C2C]/15' 
                     : 'border border-[#E2D5C1] bg-white hover:border-[#B7791F] hover:shadow';
@@ -1453,7 +1676,7 @@
                                 <h3 class="font-bold text-[15px] text-[#1A202C] leading-snug">${item.nameBn}</h3>
                                 <p class="text-xs text-gray-500 font-medium">${item.nameEn}</p>
                             </div>
-                            <span class="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 ${badgeBg}">
+                            <span class="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1" style="${badgeStyle}">
                                 <i class="fa-solid ${badgeIcon} text-[10px]"></i> ${badgeLabel}
                             </span>
                         </div>
@@ -1512,7 +1735,12 @@
             const imgEl = document.getElementById('drawer-image');
             const captionEl = document.getElementById('drawer-img-caption');
             const cleanEnTitle = item.nameEn.split('/')[0].split('(')[0].trim();
-            const fallbackUrl = `https://placehold.co/600x320/${item.type === 'street' ? '741B1B' : '1A365D'}/FAF6F0?text=${encodeURIComponent(cleanEnTitle)}`;
+            let fallbackBg = '1A365D';
+            if (item.type === 'street') fallbackBg = '741B1B';
+            else if (item.type === 'metro' && item.metroColor) fallbackBg = item.metroColor.replace('#', '');
+            else if (item.type === 'rail') fallbackBg = '22543D';
+
+            const fallbackUrl = `https://placehold.co/600x320/${fallbackBg}/FAF6F0?text=${encodeURIComponent(cleanEnTitle)}`;
 
             imgEl.onerror = () => {
                 imgEl.src = fallbackUrl;
@@ -1557,12 +1785,12 @@
             // Reset previous selected marker icon
             if (selectedItemId && markersMap[selectedItemId]) {
                 const prevItem = kolkataHeritageData.find(d => d.id === selectedItemId);
-                markersMap[selectedItemId].setIcon(createCustomIcon(prevItem.type, false));
+                markersMap[selectedItemId].setIcon(createCustomIcon(prevItem, false));
             }
 
             selectedItemId = id;
             const marker = markersMap[id];
-            marker.setIcon(createCustomIcon(item.type, true));
+            marker.setIcon(createCustomIcon(item, true));
 
             if (shouldFly) {
                 map.flyTo([item.lat, item.lng], 15, {
@@ -1577,10 +1805,20 @@
             const header = document.getElementById('drawer-header');
             const badge = document.getElementById('drawer-badge');
 
+            header.style.backgroundColor = '';
             if (item.type === 'street') {
                 header.className = 'bg-[#9B2C2C] text-white px-4 py-3 flex items-start justify-between gap-2 shrink-0';
                 badge.innerText = 'ঐতিহাসিক রাস্তা • Historic Street';
                 badge.className = 'inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#FBD38D] text-[#741B1B] mb-1';
+            } else if (item.type === 'metro') {
+                header.className = 'text-white px-4 py-3 flex items-start justify-between gap-2 shrink-0';
+                header.style.backgroundColor = item.metroColor || '#0072CE';
+                badge.innerText = `কলকাতা মেট্রো • ${item.metroLine || 'Metro Station'}`;
+                badge.className = 'inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-white text-gray-900 mb-1';
+            } else if (item.type === 'rail') {
+                header.className = 'bg-[#2F855A] text-white px-4 py-3 flex items-start justify-between gap-2 shrink-0';
+                badge.innerText = 'রেলওয়ে স্টেশন • Railway Station';
+                badge.className = 'inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#C6F6D5] text-[#22543D] mb-1';
             } else {
                 header.className = 'bg-[#2B6CB0] text-white px-4 py-3 flex items-start justify-between gap-2 shrink-0';
                 badge.innerText = 'ঐতিহাসিক স্থান • Historic Landmark';
@@ -1626,7 +1864,7 @@
             document.getElementById('detail-drawer').classList.add('hidden');
             if (selectedItemId && markersMap[selectedItemId]) {
                 const prevItem = kolkataHeritageData.find(d => d.id === selectedItemId);
-                markersMap[selectedItemId].setIcon(createCustomIcon(prevItem.type, false));
+                markersMap[selectedItemId].setIcon(createCustomIcon(prevItem, false));
                 markersMap[selectedItemId].closePopup();
             }
             selectedItemId = null;
