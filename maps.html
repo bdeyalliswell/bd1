@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GeoPulse Maps — Free Interactive Navigation & Explorer</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Base Styling & Font */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            background-color: #e5e3df;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Pure CSS Dark Mode Tile Filter (No API Key Needed) */
+        .dark-map-tiles {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+
+        /* Hide default Leaflet controls to replace with Google Maps style UI */
+        .leaflet-control-zoom,
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+
+        /* Custom Scrollbar for Drawers */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.8);
+        }
+
+        /* Hide scrollbar for category chips */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Custom Pulsing User Location Marker */
+        .user-location-pulse {
+            width: 18px;
+            height: 18px;
+            background-color: #1a73e8;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+            position: relative;
+        }
+        .user-location-pulse::after {
+            content: '';
+            position: absolute;
+            top: -9px;
+            left: -9px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: rgba(26, 115, 232, 0.35);
+            animation: pulseRing 2s infinite ease-out;
+        }
+        @keyframes pulseRing {
+            0% { transform: scale(0.6); opacity: 1; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+
+        /* Custom Drop Pin Animation */
+        @keyframes dropBounce {
+            0% { transform: translateY(-30px) scale(0.8); opacity: 0; }
+            60% { transform: translateY(4px) scale(1.05); opacity: 1; }
+            80% { transform: translateY(-2px) scale(0.98); }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .pin-drop-anim {
+            animation: dropBounce 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        /* Google-style Elevation Shadows */
+        .g-shadow {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .g-shadow-lg {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+    </style>
+</head>
+<body class="text-slate-800 select-none">
+
+    <!-- Main Map Container -->
+    <div id="map"></div>
+
+    <!-- Top-Left Floating Search Bar & Quick Categories -->
+    <div class="fixed top-3 left-3 right-3 md:right-auto z-30 flex flex-col md:flex-row items-start md:items-center gap-2.5 pointer-events-none">
+        
+        <!-- Search Box Container -->
+        <div class="w-full md:w-[392px] pointer-events-auto relative">
+            <div class="bg-white rounded-full g-shadow flex items-center px-3.5 py-2.5 border border-slate-100 transition-all focus-within:ring-2 focus-within:ring-blue-500/30">
+                <!-- Saved Places / Menu Button -->
+                <button id="btnSavedDrawer" title="Saved Places" class="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-full transition">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Search Input -->
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Search GeoPulse Maps" 
+                    autocomplete="off"
+                    class="w-full px-3 text-[15px] text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent"
+                />
+
+                <!-- Loading Spinner (hidden by default) -->
+                <div id="searchSpinner" class="hidden mr-2">
+                    <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+
+                <!-- Clear Search Button -->
+                <button id="btnClearSearch" title="Clear search" class="hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Search Submit Icon -->
+                <button id="btnSearchSubmit" title="Search" class="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-full transition">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Vertical Divider -->
+                <div class="h-6 w-[1px] bg-slate-200 mx-1.5"></div>
+
+                <!-- Directions Trigger Button -->
+                <button id="btnOpenDirections" title="Directions" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition flex items-center justify-center">
+                    <i data-lucide="corner-up-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Live Search Autocomplete Dropdown -->
+            <div id="searchResultsDropdown" class="hidden absolute top-14 left-0 w-full bg-white rounded-2xl g-shadow-lg border border-slate-100 overflow-hidden z-40 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                <!-- Results populated via JS -->
+            </div>
+        </div>
+
+        <!-- Category Filter Chips (Horizontal Scroll) -->
+        <div class="w-full md:w-auto max-w-full overflow-x-auto no-scrollbar flex items-center gap-2 py-1 pointer-events-auto">
+            <button data-category="restaurant" class="category-chip bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-full g-shadow flex items-center gap-1.5 whitespace-nowrap transition active:scale-95">
+                <i data-lucide="utensils" class="w-3.5 h-3.5 text-orange-500"></i> Restaurants
+            </button>
+            <button data-category="hospital" class="category-chip bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-full g-shadow flex items-center gap-1.5 whitespace-nowrap transition active:scale-95">
+                <i data-lucide="heart-pulse" class="w-3.5 h-3.5 text-red-500"></i> Hospitals
+            </button>
+            <button data-category="fuel" class="category-chip bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-full g-shadow flex items-center gap-1.5 whitespace-nowrap transition active:scale-95">
+                <i data-lucide="fuel" class="w-3.5 h-3.5 text-blue-500"></i> Fuel
+            </button>
+            <button data-category="atm" class="category-chip bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-full g-shadow flex items-center gap-1.5 whitespace-nowrap transition active:scale-95">
+                <i data-lucide="banknote" class="w-3.5 h-3.5 text-emerald-600"></i> ATMs
+            </button>
+            <button data-category="hotel" class="category-chip bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-full g-shadow flex items-center gap-1.5 whitespace-nowrap transition active:scale-95">
+                <i data-lucide="bed" class="w-3.5 h-3.5 text-purple-600"></i> Hotels
+            </button>
+            <button data-category="train_station" class="category-chip bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-full g-shadow flex items-center gap-1.5 whitespace-nowrap transition active:scale-95">
+                <i data-lucide="train-front" class="w-3.5 h-3.5 text-indigo-600"></i> Transit
+            </button>
+        </div>
+    </div>
+
+    <!-- Directions Drawer (Left Slide-Over) -->
+    <aside id="directionsDrawer" class="fixed top-0 left-0 h-full w-full sm:w-[400px] bg-white z-40 g-shadow-lg transform -translate-x-full transition-transform duration-300 ease-out flex flex-col">
+        <!-- Header & Travel Modes -->
+        <div class="bg-blue-600 text-white p-4 pt-3 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="font-semibold text-base tracking-tight">Directions</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <!-- Travel Mode Buttons -->
+                    <button data-mode="driving" class="travel-mode-btn bg-white/20 text-white p-2 rounded-full transition" title="Driving">
+                        <i data-lucide="car" class="w-4 h-4"></i>
+                    </button>
+                    <button data-mode="walking" class="travel-mode-btn hover:bg-white/10 text-blue-100 p-2 rounded-full transition" title="Walking">
+                        <i data-lucide="footprints" class="w-4 h-4"></i>
+                    </button>
+                    <button data-mode="cycling" class="travel-mode-btn hover:bg-white/10 text-blue-100 p-2 rounded-full transition" title="Cycling">
+                        <i data-lucide="bike" class="w-4 h-4"></i>
+                    </button>
+                    <div class="w-[1px] h-5 bg-blue-400/50 mx-1"></div>
+                    <button id="btnCloseDirections" class="hover:bg-white/10 p-2 rounded-full transition" title="Close directions">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Origin & Destination Inputs -->
+            <div class="flex items-center gap-2">
+                <!-- Route Dots Icon -->
+                <div class="flex flex-col items-center justify-between py-2 gap-1">
+                    <div class="w-3 h-3 rounded-full border-2 border-white bg-blue-600"></div>
+                    <div class="w-0.5 h-6 bg-blue-300/70 rounded-full"></div>
+                    <i data-lucide="map-pin" class="w-4 h-4 text-red-300 fill-red-400"></i>
+                </div>
+
+                <!-- Input Fields -->
+                <div class="flex-1 flex flex-col gap-2 relative">
+                    <div class="relative">
+                        <input type="text" id="dirOriginInput" placeholder="Choose starting point..." autocomplete="off"
+                            class="w-full bg-blue-700/60 text-white placeholder-blue-200 text-sm rounded-xl px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-white/60" />
+                        <button id="btnUseMyLocationOrigin" title="Use Your Location" class="absolute right-2 top-1/2 -translate-y-1/2 text-blue-200 hover:text-white">
+                            <i data-lucide="crosshair" class="w-4 h-4"></i>
+                        </button>
+                        <!-- Origin Autocomplete Dropdown -->
+                        <div id="originSuggestions" class="hidden absolute top-10 left-0 w-full bg-white text-slate-800 rounded-xl g-shadow-lg z-50 max-h-48 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+
+                    <div class="relative">
+                        <input type="text" id="dirDestInput" placeholder="Choose destination..." autocomplete="off"
+                            class="w-full bg-blue-700/60 text-white placeholder-blue-200 text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/60" />
+                        <!-- Destination Autocomplete Dropdown -->
+                        <div id="destSuggestions" class="hidden absolute top-10 left-0 w-full bg-white text-slate-800 rounded-xl g-shadow-lg z-50 max-h-48 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+                </div>
+
+                <!-- Swap Button -->
+                <button id="btnSwapDirections" title="Swap starting point and destination" class="p-2 hover:bg-white/10 rounded-full transition">
+                    <i data-lucide="arrow-up-down" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Route Summary & Turn-by-Turn Instructions -->
+        <div id="routeContent" class="flex-1 overflow-y-auto custom-scrollbar p-4 bg-slate-50">
+            <div class="text-center text-slate-400 mt-12 flex flex-col items-center">
+                <div class="w-14 h-14 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-3">
+                    <i data-lucide="navigation" class="w-7 h-7"></i>
+                </div>
+                <p class="text-sm font-medium text-slate-600">Plan your route</p>
+                <p class="text-xs text-slate-400 mt-1 max-w-[240px]">Enter a starting point and destination, or right-click anywhere on the map.</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Place Details Card / Drawer (Bottom on Mobile, Left on Desktop) -->
+    <aside id="placeDetailsDrawer" class="fixed bottom-0 left-0 sm:top-20 sm:left-3 sm:bottom-auto w-full sm:w-[392px] bg-white rounded-t-3xl sm:rounded-2xl z-30 g-shadow-lg transform translate-y-full sm:translate-y-0 sm:-translate-x-[120%] transition-transform duration-300 ease-out overflow-hidden border border-slate-100">
+        <!-- Decorative Top Banner -->
+        <div class="h-24 bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 relative p-4 flex items-start justify-between">
+            <span id="placeCategoryBadge" class="bg-white/20 backdrop-blur-md text-white text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full">
+                Location
+            </span>
+            <button id="btnClosePlaceDetails" class="bg-black/25 hover:bg-black/40 text-white p-1.5 rounded-full transition">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div class="p-4 pt-3">
+            <!-- Place Title & Address -->
+            <h2 id="placeTitle" class="text-lg font-bold text-slate-900 leading-snug">Place Name</h2>
+            <p id="placeAddress" class="text-xs text-slate-500 mt-1 leading-relaxed">Full address details appear here</p>
+
+            <!-- Coordinates Pill -->
+            <div class="mt-3 flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2">
+                <div class="flex items-center gap-2 text-xs text-slate-600 font-mono">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-600"></i>
+                    <span id="placeCoords">0.00000, 0.00000</span>
+                </div>
+                <button id="btnCopyPlaceCoords" class="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+                </button>
+            </div>
+
+            <!-- Action Buttons Row -->
+            <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-100">
+                <button id="btnPlaceDirections" class="flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm">
+                    <i data-lucide="corner-up-right" class="w-4 h-4"></i>
+                    <span class="text-xs font-medium">Directions</span>
+                </button>
+                <button id="btnPlaceSave" class="flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 transition">
+                    <i data-lucide="bookmark" class="w-4 h-4 text-blue-600"></i>
+                    <span id="btnPlaceSaveText" class="text-xs font-medium">Save</span>
+                </button>
+                <button id="btnPlaceShare" class="flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 transition">
+                    <i data-lucide="share-2" class="w-4 h-4 text-slate-600"></i>
+                    <span class="text-xs font-medium">Share</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Saved Places Drawer (Left Slide-Over) -->
+    <aside id="savedDrawer" class="fixed top-0 left-0 h-full w-full sm:w-[360px] bg-white z-40 g-shadow-lg transform -translate-x-full transition-transform duration-300 ease-out flex flex-col">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
+                    <i data-lucide="compass" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-base leading-none">GeoPulse Maps</h1>
+                    <span class="text-[11px] text-slate-400">Your Saved Places & Tools</span>
+                </div>
+            </div>
+            <button id="btnCloseSavedDrawer" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Quick Tools inside Menu -->
+        <div class="p-3 border-b border-slate-100 grid grid-cols-2 gap-2">
+            <button id="btnToggleMeasureMenu" class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-medium transition border border-slate-200/60">
+                <i data-lucide="ruler" class="w-4 h-4 text-blue-600"></i> Measure Distance
+            </button>
+            <button id="btnClearMapMenu" class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 hover:bg-red-50 text-slate-700 hover:text-red-600 text-xs font-medium transition border border-slate-200/60">
+                <i data-lucide="trash-2" class="w-4 h-4 text-red-500"></i> Clear Map Pins
+            </button>
+        </div>
+
+        <div class="px-4 pt-3 pb-1 flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Saved Locations</span>
+            <span id="savedCountBadge" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">0</span>
+        </div>
+
+        <div id="savedPlacesList" class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+            <!-- Populated via localStorage -->
+        </div>
+    </aside>
+
+    <!-- Save Place Custom Modal (Replaces prompt/alert) -->
+    <div id="saveModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-5 g-shadow-lg">
+            <h3 class="text-base font-bold text-slate-900">Save Location</h3>
+            <p id="saveModalPlaceName" class="text-xs text-slate-500 mt-1 truncate">Location name</p>
+            
+            <div class="mt-4">
+                <label class="block text-xs font-medium text-slate-700 mb-1.5">Choose a label</label>
+                <div class="flex gap-2 mb-3">
+                    <button type="button" data-label="Home" class="label-preset-btn flex-1 py-1.5 px-2 rounded-xl border border-slate-200 text-xs font-medium hover:border-blue-500 hover:bg-blue-50 flex items-center justify-center gap-1">
+                        <i data-lucide="home" class="w-3.5 h-3.5 text-blue-600"></i> Home
+                    </button>
+                    <button type="button" data-label="Work" class="label-preset-btn flex-1 py-1.5 px-2 rounded-xl border border-slate-200 text-xs font-medium hover:border-blue-500 hover:bg-blue-50 flex items-center justify-center gap-1">
+                        <i data-lucide="briefcase" class="w-3.5 h-3.5 text-amber-600"></i> Work
+                    </button>
+                    <button type="button" data-label="Favorite" class="label-preset-btn flex-1 py-1.5 px-2 rounded-xl border border-blue-500 bg-blue-50 text-xs font-medium flex items-center justify-center gap-1">
+                        <i data-lucide="star" class="w-3.5 h-3.5 text-yellow-500"></i> Favorite
+                    </button>
+                </div>
+                <input type="text" id="saveCustomLabelInput" value="Favorite" placeholder="Custom label..."
+                    class="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            <div class="mt-5 flex justify-end gap-2">
+                <button id="btnCancelSave" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100">Cancel</button>
+                <button id="btnConfirmSave" class="px-4 py-2 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Save Place</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distance Measurement Floating Banner -->
+    <div id="measureBanner" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-30 bg-white rounded-2xl g-shadow-lg border border-slate-200 px-4 py-3 flex items-center gap-4">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                <i data-lucide="ruler" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Measure Distance</div>
+                <div id="measureTotalText" class="text-sm font-bold text-slate-900">Click map to add points</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5 border-l border-slate-200 pl-3">
+            <button id="btnMeasureUndo" title="Undo last point" class="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg text-xs font-medium">Undo</button>
+            <button id="btnMeasureClose" title="Exit measurement" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom-Left Map Layer Switcher -->
+    <div class="fixed bottom-6 left-3 z-20 flex items-end gap-2">
+        <div class="relative">
+            <!-- Layer Options Popover -->
+            <div id="layersPopover" class="hidden mb-2 bg-white rounded-2xl g-shadow-lg p-2.5 border border-slate-100 grid grid-cols-2 gap-2 w-60">
+                <button data-layer="street" class="layer-option-btn ring-2 ring-blue-600 rounded-xl p-1.5 text-left hover:bg-slate-50 transition">
+                    <div class="h-12 rounded-lg bg-gradient-to-br from-emerald-100 via-amber-50 to-sky-100 border border-slate-200 mb-1 flex items-center justify-center">
+                        <i data-lucide="map" class="w-5 h-5 text-emerald-700"></i>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-800 block text-center">Default</span>
+                </button>
+                <button data-layer="satellite" class="layer-option-btn rounded-xl p-1.5 text-left hover:bg-slate-50 transition">
+                    <div class="h-12 rounded-lg bg-gradient-to-br from-slate-800 via-emerald-950 to-slate-900 border border-slate-700 mb-1 flex items-center justify-center">
+                        <i data-lucide="globe" class="w-5 h-5 text-sky-300"></i>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-800 block text-center">Satellite</span>
+                </button>
+                <button data-layer="dark" class="layer-option-btn rounded-xl p-1.5 text-left hover:bg-slate-50 transition">
+                    <div class="h-12 rounded-lg bg-slate-900 border border-slate-700 mb-1 flex items-center justify-center">
+                        <i data-lucide="moon" class="w-5 h-5 text-indigo-400"></i>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-800 block text-center">Dark Mode</span>
+                </button>
+                <button data-layer="terrain" class="layer-option-btn rounded-xl p-1.5 text-left hover:bg-slate-50 transition">
+                    <div class="h-12 rounded-lg bg-gradient-to-br from-amber-100 via-lime-100 to-stone-200 border border-slate-200 mb-1 flex items-center justify-center">
+                        <i data-lucide="mountain" class="w-5 h-5 text-amber-800"></i>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-800 block text-center">Terrain</span>
+                </button>
+            </div>
+
+            <!-- Layers Trigger Thumbnail Button -->
+            <button id="btnToggleLayers" class="bg-white rounded-2xl p-1.5 g-shadow border border-slate-200/80 flex items-center gap-2 pr-3 hover:bg-slate-50 transition group">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-100 via-sky-100 to-amber-50 flex items-center justify-center border border-slate-200">
+                    <i data-lucide="layers" class="w-5 h-5 text-slate-700 group-hover:text-blue-600 transition"></i>
+                </div>
+                <div class="text-left">
+                    <div class="text-[11px] font-semibold text-slate-800">Layers</div>
+                    <div id="currentLayerName" class="text-[10px] text-slate-500">Default</div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom-Right Navigation Controls (My Location, Ruler, Zoom +/-) -->
+    <div class="fixed bottom-6 right-3 z-20 flex flex-col items-center gap-2.5">
+        
+        <!-- Measure Ruler Quick Button -->
+        <button id="btnQuickMeasure" title="Measure distance" class="w-10 h-10 bg-white hover:bg-slate-50 text-slate-700 rounded-full g-shadow flex items-center justify-center transition active:scale-95">
+            <i data-lucide="ruler" class="w-5 h-5"></i>
+        </button>
+
+        <!-- My Location Button -->
+        <button id="btnMyLocation" title="Show Your Location" class="w-10 h-10 bg-white hover:bg-slate-50 text-slate-700 rounded-full g-shadow flex items-center justify-center transition active:scale-95">
+            <i data-lucide="locate-fixed" class="w-5 h-5 text-blue-600"></i>
+        </button>
+
+        <!-- Reset View / Default Center Button -->
+        <button id="btnResetView" title="Reset Map View" class="w-10 h-10 bg-white hover:bg-slate-50 text-slate-700 rounded-full g-shadow flex items-center justify-center transition active:scale-95">
+            <i data-lucide="compass" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Zoom In / Zoom Out Pill -->
+        <div class="bg-white rounded-full g-shadow flex flex-col overflow-hidden border border-slate-100">
+            <button id="btnZoomIn" title="Zoom in" class="w-10 h-10 hover:bg-slate-50 text-slate-700 flex items-center justify-center transition border-b border-slate-100 active:bg-slate-100">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+            </button>
+            <button id="btnZoomOut" title="Zoom out" class="w-10 h-10 hover:bg-slate-50 text-slate-700 flex items-center justify-center transition active:bg-slate-100">
+                <i data-lucide="minus" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Right-Click / Long-Press Context Menu -->
+    <div id="mapContextMenu" class="hidden fixed z-50 bg-white rounded-2xl g-shadow-lg border border-slate-100 py-1.5 w-56 text-sm overflow-hidden">
+        <button id="ctxCoords" class="w-full px-3.5 py-2 text-left text-xs font-mono text-slate-500 hover:bg-slate-50 flex items-center justify-between border-b border-slate-100">
+            <span id="ctxCoordsText">0.00000, 0.00000</span>
+            <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i>
+        </button>
+        <button id="ctxWhatsHere" class="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 text-xs font-medium">
+            <i data-lucide="help-circle" class="w-4 h-4 text-blue-600"></i> What's here?
+        </button>
+        <button id="ctxDirFrom" class="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 text-xs font-medium">
+            <i data-lucide="navigation" class="w-4 h-4 text-emerald-600"></i> Directions from here
+        </button>
+        <button id="ctxDirTo" class="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 text-xs font-medium">
+            <i data-lucide="map-pin" class="w-4 h-4 text-red-500"></i> Directions to here
+        </button>
+        <button id="ctxMeasure" class="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 text-xs font-medium border-t border-slate-100">
+            <i data-lucide="ruler" class="w-4 h-4 text-slate-600"></i> Measure distance
+        </button>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastNotification" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white text-xs font-medium px-4 py-2.5 rounded-full g-shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 flex items-center gap-2">
+        <span id="toastMessage">Notification</span>
+    </div>
+
+    <script>
+        /**
+         * GeoPulse Maps - Complete Interactive Web Mapping Application
+         * Uses Leaflet.js, OpenStreetMap Nominatim API, and OSRM Routing API (100% Free, Zero API Keys)
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Lucide Icons
+            lucide.createIcons();
+
+            // ==========================================
+            // 1. DEFAULT CONFIGURATION & STATE
+            // ==========================================
+            const DEFAULT_COORDS = [22.5726, 88.3639]; // Default center (Kolkata / Howrah)
+            const DEFAULT_ZOOM = 13;
+
+            const state = {
+                currentLayer: 'street',
+                selectedPlace: null,
+                userLocation: null,
+                routeOrigin: null,
+                routeDestination: null,
+                travelMode: 'driving',
+                contextCoords: null,
+                isMeasuring: false,
+                measurePoints: [],
+                savedPlaces: JSON.parse(localStorage.getItem('geopulse_saved_places') || '[]')
+            };
+
+            // ==========================================
+            // 2. INITIALIZE MAP & TILE LAYERS (100% FREE, NO API KEY, WORKS ON file://)
+            // ==========================================
+            const tileLayers = {
+                street: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    crossOrigin: true,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }),
+                satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    crossOrigin: true,
+                    attribution: '&copy; Esri'
+                }),
+                dark: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    className: 'dark-map-tiles',
+                    crossOrigin: true,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }),
+                terrain: L.tileLayer('https://a.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 17,
+                    crossOrigin: true,
+                    attribution: '&copy; OpenTopoMap'
+                })
+            };
+
+            const map = L.map('map', {
+                center: DEFAULT_COORDS,
+                zoom: DEFAULT_ZOOM,
+                zoomControl: false,
+                layers: [tileLayers.street]
+            });
+
+            // Layer Groups for Markers, Routes, Categories, and Measurements
+            const activeMarkerGroup = L.layerGroup().addTo(map);
+            const categoryMarkersGroup = L.layerGroup().addTo(map);
+            const routeLayerGroup = L.layerGroup().addTo(map);
+            const userLocationGroup = L.layerGroup().addTo(map);
+            const measureLayerGroup = L.layerGroup().addTo(map);
+
+            // ==========================================
+            // 3. CUSTOM SVG ICONS FOR LEAFLET MARKERS
+            // ==========================================
+            function createPinIcon(color = '#EA4335') {
+                return L.divIcon({
+                    className: 'custom-pin-icon',
+                    html: `
+                        <div class="pin-drop-anim" style="transform-origin: bottom center;">
+                            <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 0C8.05887 0 0 8.05887 0 18C0 31.5 18 44 18 44C18 44 36 31.5 36 18C36 8.05887 27.9411 0 18 0Z" fill="${color}"/>
+                                <circle cx="18" cy="17" r="6.5" fill="white"/>
+                            </svg>
+                        </div>
+                    `,
+                    iconSize: [36, 44],
+                    iconAnchor: [18, 44],
+                    popupAnchor: [0, -40]
+                });
+            }
+
+            function createCategoryIcon(color = '#F97316') {
+                return L.divIcon({
+                    className: 'category-pin-icon',
+                    html: `
+                        <div style="background:${color}; width:26px; height:26px; border-radius:50%; border:2.5px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center;">
+                            <div style="width:7px; height:7px; background:white; border-radius:50%;"></div>
+                        </div>
+                    `,
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                });
+            }
+
+            // ==========================================
+            // 4. HELPER UTILITIES (TOAST, CLIPBOARD, FORMAT)
+            // ==========================================
+            let toastTimer;
+            function showToast(msg) {
+                const toast = document.getElementById('toastNotification');
+                document.getElementById('toastMessage').textContent = msg;
+                toast.classList.remove('opacity-0');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => {
+                    toast.classList.add('opacity-0');
+                }, 2600);
+            }
+
+            function copyToClipboard(text, successMsg = 'Copied to clipboard') {
+                const tempInput = document.createElement('textarea');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                try {
+                    document.execCommand('copy');
+                    showToast(successMsg);
+                } catch (err) {
+                    showToast('Unable to copy');
+                }
+                document.body.removeChild(tempInput);
+            }
+
+            function formatDistance(meters) {
+                if (meters < 1000) return `${Math.round(meters)} m`;
+                return `${(meters / 1000).toFixed(1)} km`;
+            }
+
+            function formatDuration(seconds) {
+                const mins = Math.round(seconds / 60);
+                if (mins < 60) return `${mins} min`;
+                const hrs = Math.floor(mins / 60);
+                const remMins = mins % 60;
+                return remMins > 0 ? `${hrs} hr ${remMins} min` : `${hrs} hr`;
+            }
+
+            // ==========================================
+            // 5. SEARCH & AUTOCOMPLETE (NOMINATIM API)
+            // ==========================================
+            const searchInput = document.getElementById('searchInput');
+            const searchDropdown = document.getElementById('searchResultsDropdown');
+            const btnClearSearch = document.getElementById('btnClearSearch');
+            const searchSpinner = document.getElementById('searchSpinner');
+            let searchDebounceTimer;
+
+            async function searchNominatim(query, limit = 6, viewbox = null) {
+                let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=${limit}`;
+                if (viewbox) {
+                    url += `&viewbox=${viewbox}&bounded=1`;
+                }
+                const response = await fetch(url, {
+                    headers: { 'Accept-Language': 'en' }
+                });
+                if (!response.ok) throw new Error('Search request failed');
+                return await response.json();
+            }
+
+            async function reverseGeocode(lat, lng) {
+                try {
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
+                    const response = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+                    const data = await response.json();
+                    return {
+                        name: data.name || data.address?.road || data.address?.suburb || 'Dropped Pin',
+                        address: data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+                        category: data.type ? data.type.replace(/_/g, ' ') : 'Location',
+                        lat: parseFloat(lat),
+                        lng: parseFloat(lng)
+                    };
+                } catch (e) {
+                    return {
+                        name: 'Dropped Pin',
+                        address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+                        category: 'Coordinates',
+                        lat: parseFloat(lat),
+                        lng: parseFloat(lng)
+                    };
+                }
+            }
+
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.trim();
+                btnClearSearch.classList.toggle('hidden', query.length === 0);
+
+                clearTimeout(searchDebounceTimer);
+                if (query.length < 2) {
+                    searchDropdown.classList.add('hidden');
+                    return;
+                }
+
+                searchDebounceTimer = setTimeout(async () => {
+                    searchSpinner.classList.remove('hidden');
+                    try {
+                        const results = await searchNominatim(query, 6);
+                        renderSearchDropdown(results);
+                    } catch (err) {
+                        console.error(err);
+                    } finally {
+                        searchSpinner.classList.add('hidden');
+                    }
+                }, 350);
+            });
+
+            function renderSearchDropdown(results) {
+                searchDropdown.innerHTML = '';
+                if (!results || results.length === 0) {
+                    searchDropdown.innerHTML = `<div class="p-4 text-xs text-slate-500 text-center">No matching places found</div>`;
+                    searchDropdown.classList.remove('hidden');
+                    return;
+                }
+
+                results.forEach(item => {
+                    const mainName = item.name || item.display_name.split(',')[0];
+                    const subText = item.display_name;
+                    const row = document.createElement('button');
+                    row.className = 'w-full text-left px-4 py-3 hover:bg-slate-50 flex items-start gap-3 border-b border-slate-100/80 last:border-none transition';
+                    row.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                            <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-medium text-slate-900 truncate">${mainName}</div>
+                            <div class="text-xs text-slate-500 truncate">${subText}</div>
+                        </div>
+                    `;
+                    row.addEventListener('click', () => {
+                        const place = {
+                            name: mainName,
+                            address: subText,
+                            category: item.type ? item.type.replace(/_/g, ' ') : 'Place',
+                            lat: parseFloat(item.lat),
+                            lng: parseFloat(item.lon)
+                        };
+                        searchInput.value = mainName;
+                        searchDropdown.classList.add('hidden');
+                        selectAndShowPlace(place, true);
+                    });
+                    searchDropdown.appendChild(row);
+                });
+
+                lucide.createIcons();
+                searchDropdown.classList.remove('hidden');
+            }
+
+            btnClearSearch.addEventListener('click', () => {
+                searchInput.value = '';
+                btnClearSearch.classList.add('hidden');
+                searchDropdown.classList.add('hidden');
+                activeMarkerGroup.clearLayers();
+                categoryMarkersGroup.clearLayers();
+                closePlaceDetails();
+            });
+
+            document.getElementById('btnSearchSubmit').addEventListener('click', () => {
+                searchInput.dispatchEvent(new Event('input'));
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+                    searchDropdown.classList.add('hidden');
+                }
+                if (!e.target.closest('#mapContextMenu')) {
+                    document.getElementById('mapContextMenu').classList.add('hidden');
+                }
+            });
+
+            // ==========================================
+            // 6. PLACE SELECTION & DETAILS CARD
+            // ==========================================
+            const placeDetailsDrawer = document.getElementById('placeDetailsDrawer');
+
+            function selectAndShowPlace(place, flyTo = true) {
+                state.selectedPlace = place;
+                activeMarkerGroup.clearLayers();
+
+                const marker = L.marker([place.lat, place.lng], {
+                    icon: createPinIcon('#EA4335')
+                }).addTo(activeMarkerGroup);
+
+                if (flyTo) {
+                    map.flyTo([place.lat, place.lng], Math.max(map.getZoom(), 15), {
+                        duration: 1.1
+                    });
+                }
+
+                // Update Place Details Card UI
+                document.getElementById('placeCategoryBadge').textContent = place.category || 'Location';
+                document.getElementById('placeTitle').textContent = place.name;
+                document.getElementById('placeAddress').textContent = place.address;
+                document.getElementById('placeCoords').textContent = `${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}`;
+
+                // Check if already saved
+                const isSaved = state.savedPlaces.some(p => Math.abs(p.lat - place.lat) < 0.0001 && Math.abs(p.lng - place.lng) < 0.0001);
+                document.getElementById('btnPlaceSaveText').textContent = isSaved ? 'Saved' : 'Save';
+
+                // Slide in card
+                placeDetailsDrawer.classList.remove('translate-y-full', 'sm:-translate-x-[120%]');
+            }
+
+            function closePlaceDetails() {
+                placeDetailsDrawer.classList.add('translate-y-full', 'sm:-translate-x-[120%]');
+            }
+
+            document.getElementById('btnClosePlaceDetails').addEventListener('click', closePlaceDetails);
+
+            document.getElementById('btnCopyPlaceCoords').addEventListener('click', () => {
+                if (!state.selectedPlace) return;
+                const coordsStr = `${state.selectedPlace.lat.toFixed(6)}, ${state.selectedPlace.lng.toFixed(6)}`;
+                copyToClipboard(coordsStr, 'Coordinates copied!');
+            });
+
+            document.getElementById('btnPlaceShare').addEventListener('click', () => {
+                if (!state.selectedPlace) return;
+                const url = `${window.location.origin}${window.location.pathname}?lat=${state.selectedPlace.lat.toFixed(5)}&lng=${state.selectedPlace.lng.toFixed(5)}`;
+                copyToClipboard(url, 'Location link copied!');
+            });
+
+            document.getElementById('btnPlaceDirections').addEventListener('click', () => {
+                if (!state.selectedPlace) return;
+                openDirectionsWithDestination(state.selectedPlace);
+            });
+
+            // ==========================================
+            // 7. QUICK CATEGORY SEARCH CHIPS
+            // ==========================================
+            const categoryColors = {
+                restaurant: '#F97316',
+                hospital: '#EF4444',
+                fuel: '#3B82F6',
+                atm: '#10B981',
+                hotel: '#8B5CF6',
+                train_station: '#4F46E5'
+            };
+
+            document.querySelectorAll('.category-chip').forEach(chip => {
+                chip.addEventListener('click', async () => {
+                    const cat = chip.dataset.category;
+                    const bounds = map.getBounds();
+                    const viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
+
+                    showToast(`Searching nearby ${cat.replace('_', ' ')}s...`);
+                    categoryMarkersGroup.clearLayers();
+
+                    try {
+                        const results = await searchNominatim(cat.replace('_', ' '), 15, viewbox);
+                        if (!results || results.length === 0) {
+                            showToast(`No ${cat.replace('_', ' ')}s found in this area`);
+                            return;
+                        }
+
+                        results.forEach(item => {
+                            const lat = parseFloat(item.lat);
+                            const lng = parseFloat(item.lon);
+                            const name = item.name || item.display_name.split(',')[0];
+
+                            const marker = L.marker([lat, lng], {
+                                icon: createCategoryIcon(categoryColors[cat] || '#3B82F6')
+                            }).addTo(categoryMarkersGroup);
+
+                            marker.on('click', () => {
+                                selectAndShowPlace({
+                                    name,
+                                    address: item.display_name,
+                                    category: cat.replace('_', ' '),
+                                    lat,
+                                    lng
+                                }, false);
+                            });
+                        });
+
+                        showToast(`Found ${results.length} places nearby`);
+                    } catch (err) {
+                        showToast('Error searching nearby places');
+                    }
+                });
+            });
+
+            // ==========================================
+            // 8. DIRECTIONS & OSRM ROUTING ENGINE
+            // ==========================================
+            const directionsDrawer = document.getElementById('directionsDrawer');
+            const dirOriginInput = document.getElementById('dirOriginInput');
+            const dirDestInput = document.getElementById('dirDestInput');
+            const originSuggestions = document.getElementById('originSuggestions');
+            const destSuggestions = document.getElementById('destSuggestions');
+
+            document.getElementById('btnOpenDirections').addEventListener('click', () => {
+                closePlaceDetails();
+                directionsDrawer.classList.remove('-translate-x-full');
+            });
+
+            document.getElementById('btnCloseDirections').addEventListener('click', () => {
+                directionsDrawer.classList.add('-translate-x-full');
+                routeLayerGroup.clearLayers();
+            });
+
+            function openDirectionsWithDestination(place) {
+                closePlaceDetails();
+                directionsDrawer.classList.remove('-translate-x-full');
+                state.routeDestination = place;
+                dirDestInput.value = place.name;
+
+                // Automatically set origin to user location if available and origin is empty
+                if (!state.routeOrigin && state.userLocation) {
+                    state.routeOrigin = {
+                        name: 'Your Location',
+                        lat: state.userLocation.lat,
+                        lng: state.userLocation.lng
+                    };
+                    dirOriginInput.value = 'Your Location';
+                }
+
+                if (state.routeOrigin && state.routeDestination) {
+                    calculateAndDrawRoute();
+                }
+            }
+
+            // Travel Mode Selection
+            document.querySelectorAll('.travel-mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.travel-mode-btn').forEach(b => {
+                        b.classList.remove('bg-white/20', 'text-white');
+                        b.classList.add('text-blue-100');
+                    });
+                    btn.classList.add('bg-white/20', 'text-white');
+                    btn.classList.remove('text-blue-100');
+
+                    state.travelMode = btn.dataset.mode;
+                    if (state.routeOrigin && state.routeDestination) {
+                        calculateAndDrawRoute();
+                    }
+                });
+            });
+
+            // Use Current Location as Origin
+            document.getElementById('btnUseMyLocationOrigin').addEventListener('click', () => {
+                locateUser((coords) => {
+                    state.routeOrigin = { name: 'Your Location', lat: coords.lat, lng: coords.lng };
+                    dirOriginInput.value = 'Your Location';
+                    if (state.routeDestination) calculateAndDrawRoute();
+                });
+            });
+
+            // Swap Origin and Destination
+            document.getElementById('btnSwapDirections').addEventListener('click', () => {
+                const tempPlace = state.routeOrigin;
+                state.routeOrigin = state.routeDestination;
+                state.routeDestination = tempPlace;
+
+                const tempVal = dirOriginInput.value;
+                dirOriginInput.value = dirDestInput.value;
+                dirDestInput.value = tempVal;
+
+                if (state.routeOrigin && state.routeDestination) {
+                    calculateAndDrawRoute();
+                }
+            });
+
+            // Autocomplete setup for Origin and Destination inputs
+            function setupDirectionAutocomplete(inputEl, dropdownEl, isOrigin) {
+                let timer;
+                inputEl.addEventListener('input', () => {
+                    const q = inputEl.value.trim();
+                    clearTimeout(timer);
+                    if (q.length < 2) {
+                        dropdownEl.classList.add('hidden');
+                        return;
+                    }
+                    timer = setTimeout(async () => {
+                        const results = await searchNominatim(q, 5);
+                        dropdownEl.innerHTML = '';
+                        results.forEach(item => {
+                            const name = item.name || item.display_name.split(',')[0];
+                            const btn = document.createElement('button');
+                            btn.className = 'w-full text-left px-3 py-2 text-xs hover:bg-slate-100 border-b border-slate-100 last:border-none truncate';
+                            btn.textContent = item.display_name;
+                            btn.addEventListener('click', () => {
+                                const placeObj = {
+                                    name,
+                                    lat: parseFloat(item.lat),
+                                    lng: parseFloat(item.lon)
+                                };
+                                inputEl.value = name;
+                                dropdownEl.classList.add('hidden');
+                                if (isOrigin) state.routeOrigin = placeObj;
+                                else state.routeDestination = placeObj;
+
+                                if (state.routeOrigin && state.routeDestination) {
+                                    calculateAndDrawRoute();
+                                }
+                            });
+                            dropdownEl.appendChild(btn);
+                        });
+                        dropdownEl.classList.remove('hidden');
+                    }, 350);
+                });
+            }
+
+            setupDirectionAutocomplete(dirOriginInput, originSuggestions, true);
+            setupDirectionAutocomplete(dirDestInput, destSuggestions, false);
+
+            // Fetch Route from OSRM Public API and Render
+            async function calculateAndDrawRoute() {
+                const routeContent = document.getElementById('routeContent');
+                routeContent.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12 text-slate-500">
+                        <div class="w-7 h-7 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                        <span class="text-xs font-medium">Calculating best route...</span>
+                    </div>
+                `;
+
+                const profileMap = {
+                    driving: 'car',
+                    walking: 'foot',
+                    cycling: 'bike'
+                };
+                const profile = profileMap[state.travelMode] || 'car';
+                const { lat: lat1, lng: lng1 } = state.routeOrigin;
+                const { lat: lat2, lng: lng2 } = state.routeDestination;
+
+                try {
+                    const url = `https://router.project-osrm.org/route/v1/${profile}/${lng1},${lat1};${lng2},${lat2}?overview=full&geometries=geojson&steps=true`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (!data.routes || data.routes.length === 0) {
+                        routeContent.innerHTML = `<div class="p-4 text-center text-xs text-red-500">No route found between these locations.</div>`;
+                        return;
+                    }
+
+                    const route = data.routes[0];
+                    routeLayerGroup.clearLayers();
+                    activeMarkerGroup.clearLayers();
+
+                    // Convert GeoJSON [lng, lat] to Leaflet [lat, lng]
+                    const latLngs = route.geometry.coordinates.map(c => [c[1], c[0]]);
+
+                    // Outer casing line + Inner blue route line (Google Maps style)
+                    L.polyline(latLngs, { color: '#1d4ed8', weight: 8, opacity: 0.35 }).addTo(routeLayerGroup);
+                    const mainLine = L.polyline(latLngs, { color: '#2563eb', weight: 5, opacity: 0.95 }).addTo(routeLayerGroup);
+
+                    // Start & End Markers
+                    L.circleMarker([lat1, lng1], {
+                        radius: 7, fillColor: '#ffffff', color: '#2563eb', weight: 3, fillOpacity: 1
+                    }).addTo(routeLayerGroup);
+
+                    L.marker([lat2, lng2], {
+                        icon: createPinIcon('#EA4335')
+                    }).addTo(routeLayerGroup);
+
+                    map.fitBounds(mainLine.getBounds(), { padding: [60, 60] });
+
+                    // Render Turn-by-Turn Instructions
+                    const steps = route.legs[0].steps;
+                    let stepsHtml = `
+                        <div class="bg-white rounded-2xl p-4 g-shadow border border-slate-100 mb-3 flex items-center justify-between">
+                            <div>
+                                <div class="text-xl font-bold text-emerald-600">${formatDuration(route.duration)}</div>
+                                <div class="text-xs text-slate-500 mt-0.5">Total distance: <span class="font-semibold text-slate-700">${formatDistance(route.distance)}</span></div>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                                <i data-lucide="navigation-2" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100 overflow-hidden">
+                    `;
+
+                    steps.forEach((step, idx) => {
+                        const instruction = formatOsrmStep(step);
+                        const dist = formatDistance(step.distance);
+                        stepsHtml += `
+                            <div class="p-3 flex items-start gap-3 hover:bg-slate-50 transition">
+                                <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                                    ${idx + 1}
+                                </div>
+                                <div class="flex-1 text-xs text-slate-700 leading-relaxed">${instruction}</div>
+                                <div class="text-[11px] font-medium text-slate-400 whitespace-nowrap">${dist}</div>
+                            </div>
+                        `;
+                    });
+
+                    stepsHtml += `</div>`;
+                    routeContent.innerHTML = stepsHtml;
+                    lucide.createIcons();
+
+                } catch (err) {
+                    routeContent.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Failed to fetch route. Please try again.</div>`;
+                }
+            }
+
+            function formatOsrmStep(step) {
+                const type = step.maneuver.type;
+                const modifier = step.maneuver.modifier ? step.maneuver.modifier.replace(/_/g, ' ') : '';
+                const road = step.name ? `onto <b>${step.name}</b>` : '';
+
+                if (type === 'depart') return `Head ${modifier} ${road}`;
+                if (type === 'arrive') return `<b>Arrive at your destination</b>`;
+                if (type === 'turn') return `Turn ${modifier} ${road}`;
+                if (type === 'roundabout') return `Enter roundabout and exit ${road}`;
+                return `Continue ${modifier} ${road}`;
+            }
+
+            // ==========================================
+            // 9. GEOLOCATION ("MY LOCATION")
+            // ==========================================
+            function locateUser(callback) {
+                if (!navigator.geolocation) {
+                    showToast('Geolocation is not supported by your browser');
+                    return;
+                }
+
+                showToast('Finding your location...');
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+                        state.userLocation = { lat, lng };
+
+                        userLocationGroup.clearLayers();
+
+                        // Accuracy Circle
+                        L.circle([lat, lng], {
+                            radius: Math.min(accuracy, 300),
+                            color: '#1a73e8',
+                            fillColor: '#1a73e8',
+                            fillOpacity: 0.12,
+                            weight: 1
+                        }).addTo(userLocationGroup);
+
+                        // Pulsing Blue Dot
+                        const pulseIcon = L.divIcon({
+                            className: '',
+                            html: `<div class="user-location-pulse"></div>`,
+                            iconSize: [18, 18],
+                            iconAnchor: [9, 9]
+                        });
+                        L.marker([lat, lng], { icon: pulseIcon }).addTo(userLocationGroup);
+
+                        map.flyTo([lat, lng], 16, { duration: 1.2 });
+                        if (callback) callback({ lat, lng });
+                    },
+                    () => {
+                        showToast('Location permission denied or unavailable');
+                    },
+                    { enableHighAccuracy: true, timeout: 8000 }
+                );
+            }
+
+            document.getElementById('btnMyLocation').addEventListener('click', () => locateUser());
+
+            // ==========================================
+            // 10. MAP LAYER SWITCHER & ZOOM CONTROLS
+            // ==========================================
+            const layersPopover = document.getElementById('layersPopover');
+            document.getElementById('btnToggleLayers').addEventListener('click', () => {
+                layersPopover.classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('.layer-option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const layerKey = btn.dataset.layer;
+                    if (layerKey === state.currentLayer) return;
+
+                    map.removeLayer(tileLayers[state.currentLayer]);
+                    tileLayers[layerKey].addTo(map);
+                    state.currentLayer = layerKey;
+
+                    document.querySelectorAll('.layer-option-btn').forEach(b => b.classList.remove('ring-2', 'ring-blue-600'));
+                    btn.classList.add('ring-2', 'ring-blue-600');
+
+                    const names = { street: 'Default', satellite: 'Satellite', dark: 'Dark Mode', terrain: 'Terrain' };
+                    document.getElementById('currentLayerName').textContent = names[layerKey];
+                    layersPopover.classList.add('hidden');
+                });
+            });
+
+            document.getElementById('btnZoomIn').addEventListener('click', () => map.zoomIn());
+            document.getElementById('btnZoomOut').addEventListener('click', () => map.zoomOut());
+            document.getElementById('btnResetView').addEventListener('click', () => {
+                map.flyTo(DEFAULT_COORDS, DEFAULT_ZOOM);
+            });
+
+            // ==========================================
+            // 11. CONTEXT MENU (RIGHT-CLICK & MAP CLICK)
+            // ==========================================
+            const contextMenu = document.getElementById('mapContextMenu');
+
+            map.on('contextmenu', (e) => {
+                const { lat, lng } = e.latlng;
+                state.contextCoords = { lat, lng };
+                document.getElementById('ctxCoordsText').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+                // Position context menu safely within viewport
+                const menuWidth = 224;
+                const menuHeight = 190;
+                let x = e.originalEvent.clientX;
+                let y = e.originalEvent.clientY;
+
+                if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 12;
+                if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 12;
+
+                contextMenu.style.left = `${x}px`;
+                contextMenu.style.top = `${y}px`;
+                contextMenu.classList.remove('hidden');
+            });
+
+            document.getElementById('ctxCoords').addEventListener('click', () => {
+                if (!state.contextCoords) return;
+                copyToClipboard(`${state.contextCoords.lat.toFixed(6)}, ${state.contextCoords.lng.toFixed(6)}`);
+                contextMenu.classList.add('hidden');
+            });
+
+            document.getElementById('ctxWhatsHere').addEventListener('click', async () => {
+                if (!state.contextCoords) return;
+                contextMenu.classList.add('hidden');
+                const place = await reverseGeocode(state.contextCoords.lat, state.contextCoords.lng);
+                selectAndShowPlace(place, false);
+            });
+
+            document.getElementById('ctxDirFrom').addEventListener('click', async () => {
+                if (!state.contextCoords) return;
+                contextMenu.classList.add('hidden');
+                const place = await reverseGeocode(state.contextCoords.lat, state.contextCoords.lng);
+                directionsDrawer.classList.remove('-translate-x-full');
+                state.routeOrigin = place;
+                dirOriginInput.value = place.name;
+                if (state.routeDestination) calculateAndDrawRoute();
+            });
+
+            document.getElementById('ctxDirTo').addEventListener('click', async () => {
+                if (!state.contextCoords) return;
+                contextMenu.classList.add('hidden');
+                const place = await reverseGeocode(state.contextCoords.lat, state.contextCoords.lng);
+                openDirectionsWithDestination(place);
+            });
+
+            document.getElementById('ctxMeasure').addEventListener('click', () => {
+                contextMenu.classList.add('hidden');
+                startMeasurement(state.contextCoords);
+            });
+
+            // ==========================================
+            // 12. DISTANCE MEASUREMENT TOOL
+            // ==========================================
+            const measureBanner = document.getElementById('measureBanner');
+            const measureTotalText = document.getElementById('measureTotalText');
+
+            function startMeasurement(initialPoint = null) {
+                state.isMeasuring = true;
+                state.measurePoints = [];
+                measureLayerGroup.clearLayers();
+                measureBanner.classList.remove('hidden');
+                map.getContainer().style.cursor = 'crosshair';
+
+                if (initialPoint) {
+                    addMeasurePoint(L.latLng(initialPoint.lat, initialPoint.lng));
+                } else {
+                    measureTotalText.textContent = 'Click map to add points';
+                }
+            }
+
+            function addMeasurePoint(latlng) {
+                state.measurePoints.push(latlng);
+                redrawMeasurement();
+            }
+
+            function redrawMeasurement() {
+                measureLayerGroup.clearLayers();
+                if (state.measurePoints.length === 0) {
+                    measureTotalText.textContent = 'Click map to add points';
+                    return;
+                }
+
+                let totalMeters = 0;
+                for (let i = 1; i < state.measurePoints.length; i++) {
+                    totalMeters += state.measurePoints[i - 1].distanceTo(state.measurePoints[i]);
+                }
+
+                // Draw dashed measurement polyline
+                L.polyline(state.measurePoints, {
+                    color: '#1e293b',
+                    weight: 3,
+                    dashArray: '6, 8'
+                }).addTo(measureLayerGroup);
+
+                // Draw vertex dots
+                state.measurePoints.forEach((pt, index) => {
+                    L.circleMarker(pt, {
+                        radius: 5,
+                        fillColor: index === 0 ? '#10b981' : '#ffffff',
+                        color: '#1e293b',
+                        weight: 2.5,
+                        fillOpacity: 1
+                    }).addTo(measureLayerGroup);
+                });
+
+                measureTotalText.textContent = `Total: ${formatDistance(totalMeters)}`;
+            }
+
+            function stopMeasurement() {
+                state.isMeasuring = false;
+                state.measurePoints = [];
+                measureLayerGroup.clearLayers();
+                measureBanner.classList.add('hidden');
+                map.getContainer().style.cursor = '';
+            }
+
+            map.on('click', async (e) => {
+                if (state.isMeasuring) {
+                    addMeasurePoint(e.latlng);
+                    return;
+                }
+                // Normal map click: drop pin & show place info
+                const place = await reverseGeocode(e.latlng.lat, e.latlng.lng);
+                selectAndShowPlace(place, false);
+            });
+
+            document.getElementById('btnQuickMeasure').addEventListener('click', () => {
+                if (state.isMeasuring) stopMeasurement();
+                else startMeasurement();
+            });
+            document.getElementById('btnToggleMeasureMenu').addEventListener('click', () => {
+                document.getElementById('savedDrawer').classList.add('-translate-x-full');
+                startMeasurement();
+            });
+            document.getElementById('btnMeasureUndo').addEventListener('click', () => {
+                state.measurePoints.pop();
+                redrawMeasurement();
+            });
+            document.getElementById('btnMeasureClose').addEventListener('click', stopMeasurement);
+
+            // ==========================================
+            // 13. SAVED / BOOKMARKED PLACES (LOCALSTORAGE)
+            // ==========================================
+            const savedDrawer = document.getElementById('savedDrawer');
+            const saveModal = document.getElementById('saveModal');
+            const saveCustomLabelInput = document.getElementById('saveCustomLabelInput');
+
+            document.getElementById('btnSavedDrawer').addEventListener('click', () => {
+                renderSavedPlacesList();
+                savedDrawer.classList.remove('-translate-x-full');
+            });
+
+            document.getElementById('btnCloseSavedDrawer').addEventListener('click', () => {
+                savedDrawer.classList.add('-translate-x-full');
+            });
+
+            document.getElementById('btnClearMapMenu').addEventListener('click', () => {
+                activeMarkerGroup.clearLayers();
+                categoryMarkersGroup.clearLayers();
+                routeLayerGroup.clearLayers();
+                stopMeasurement();
+                closePlaceDetails();
+                savedDrawer.classList.add('-translate-x-full');
+                showToast('Map cleared');
+            });
+
+            document.getElementById('btnPlaceSave').addEventListener('click', () => {
+                if (!state.selectedPlace) return;
+                document.getElementById('saveModalPlaceName').textContent = state.selectedPlace.name;
+                saveCustomLabelInput.value = 'Favorite';
+                saveModal.classList.remove('hidden');
+            });
+
+            document.querySelectorAll('.label-preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.label-preset-btn').forEach(b => b.classList.remove('border-blue-500', 'bg-blue-50'));
+                    btn.classList.add('border-blue-500', 'bg-blue-50');
+                    saveCustomLabelInput.value = btn.dataset.label;
+                });
+            });
+
+            document.getElementById('btnCancelSave').addEventListener('click', () => {
+                saveModal.classList.add('hidden');
+            });
+
+            document.getElementById('btnConfirmSave').addEventListener('click', () => {
+                if (!state.selectedPlace) return;
+                const label = saveCustomLabelInput.value.trim() || 'Favorite';
+                const newEntry = {
+                    id: Date.now(),
+                    label,
+                    ...state.selectedPlace
+                };
+
+                state.savedPlaces.unshift(newEntry);
+                localStorage.setItem('geopulse_saved_places', JSON.stringify(state.savedPlaces));
+                saveModal.classList.add('hidden');
+                document.getElementById('btnPlaceSaveText').textContent = 'Saved';
+                showToast(`Saved as "${label}"`);
+            });
+
+            function renderSavedPlacesList() {
+                const container = document.getElementById('savedPlacesList');
+                document.getElementById('savedCountBadge').textContent = state.savedPlaces.length;
+
+                if (state.savedPlaces.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-10 text-slate-400">
+                            <i data-lucide="bookmark" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                            <p class="text-xs">No saved places yet.</p>
+                            <p class="text-[11px] mt-1">Click any location on the map and tap "Save".</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                container.innerHTML = '';
+                state.savedPlaces.forEach(place => {
+                    const card = document.createElement('div');
+                    card.className = 'p-3 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100/80 transition flex items-start justify-between gap-2 group';
+                    card.innerHTML = `
+                        <button class="flex-1 text-left min-w-0">
+                            <span class="inline-block text-[10px] font-semibold uppercase tracking-wider bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full mb-1">${place.label}</span>
+                            <div class="text-xs font-bold text-slate-800 truncate">${place.name}</div>
+                            <div class="text-[11px] text-slate-500 truncate">${place.address}</div>
+                        </button>
+                        <button class="delete-saved-btn p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition" title="Remove">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    `;
+
+                    card.querySelector('button').addEventListener('click', () => {
+                        savedDrawer.classList.add('-translate-x-full');
+                        selectAndShowPlace(place, true);
+                    });
+
+                    card.querySelector('.delete-saved-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        state.savedPlaces = state.savedPlaces.filter(p => p.id !== place.id);
+                        localStorage.setItem('geopulse_saved_places', JSON.stringify(state.savedPlaces));
+                        renderSavedPlacesList();
+                        showToast('Removed from saved places');
+                    });
+
+                    container.appendChild(card);
+                });
+                lucide.createIcons();
+            }
+
+            // ==========================================
+            // 14. CHECK URL PARAMETERS FOR SHARED LINKS
+            // ==========================================
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedLat = parseFloat(urlParams.get('lat'));
+            const sharedLng = parseFloat(urlParams.get('lng'));
+            if (!isNaN(sharedLat) && !isNaN(sharedLng)) {
+                reverseGeocode(sharedLat, sharedLng).then(place => {
+                    selectAndShowPlace(place, true);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
