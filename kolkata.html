@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>কলকাতার ঐতিহাসিক রাস্তা ও দর্শনীয় স্থান | Kolkata Heritage Map</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS & JS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Google Fonts: Hind Siliguri & Noto Serif Bengali for rich Bengali typography + Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Heritage Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Hind Siliguri', 'Inter', sans-serif;
+            background-color: #FAF6F0;
+            color: #1A202C;
+        }
+        .font-serif-bn {
+            font-family: 'Noto Serif Bengali', serif;
+        }
+        /* Custom Scrollbar for Heritage Theme */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F2ECE1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #C5A880;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9B2C2C;
+        }
+        /* Custom Leaflet Popup Styling */
+        .leaflet-popup-content-wrapper {
+            background-color: #FAF6F0;
+            border: 2px solid #9B2C2C;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+            padding: 2px;
+        }
+        .leaflet-popup-tip {
+            background-color: #9B2C2C;
+        }
+        .leaflet-popup-content {
+            margin: 12px 14px;
+            font-family: 'Hind Siliguri', 'Inter', sans-serif;
+        }
+        /* Marker Pulse Animation */
+        @keyframes pulseRing {
+            0% { transform: scale(0.85); opacity: 0.9; }
+            70% { transform: scale(1.6); opacity: 0; }
+            100% { transform: scale(0.85); opacity: 0; }
+        }
+        .marker-pulse {
+            animation: pulseRing 2s infinite;
+        }
+        /* Hide map attribution clutter slightly while keeping it accessible */
+        .leaflet-control-attribution {
+            font-size: 10px;
+            background: rgba(250, 246, 240, 0.85) !important;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-[#FAF6F0]">
+
+    <!-- Top Heritage Header -->
+    <header class="bg-gradient-to-r from-[#741B1B] via-[#9B2C2C] to-[#741B1B] text-[#FAF6F0] shadow-lg z-20 border-b-4 border-[#D69E2E] shrink-0">
+        <div class="max-w-full mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-full bg-[#FAF6F0] text-[#9B2C2C] flex items-center justify-center shadow-md border-2 border-[#D69E2E] shrink-0">
+                    <i class="fa-solid fa-landmark text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl md:text-2xl font-bold font-serif-bn tracking-wide leading-tight">
+                        কলকাতার ঐতিহাসিক রাস্তা ও দর্শনীয় স্থান
+                    </h1>
+                    <p class="text-xs sm:text-sm text-[#FBD38D] font-medium">
+                        Kolkata Heritage Streets & Iconic Landmarks Interactive Map
+                    </p>
+                </div>
+            </div>
+
+            <!-- Stats & Heritage Route Toggle -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <span class="hidden sm:inline-flex items-center gap-1 bg-emerald-900/60 text-emerald-200 border border-emerald-400/40 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
+                    <i class="fa-solid fa-check-circle text-emerald-400"></i> 100% Free OSM & Esri Map (No Watermark)
+                </span>
+                <div class="hidden md:flex items-center gap-2 bg-black/25 px-3 py-1.5 rounded-xl border border-[#D69E2E]/40 text-xs">
+                    <span class="flex items-center gap-1.5 text-[#FBD38D] font-semibold">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#E53E3E] inline-block"></span>
+                        রাস্তা: <span id="street-count" class="text-white text-sm">205</span>
+                    </span>
+                    <span class="text-white/40">|</span>
+                    <span class="flex items-center gap-1.5 text-[#9AE6B4] font-semibold">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#2B6CB0] inline-block"></span>
+                        দর্শনীয় স্থান: <span id="place-count" class="text-white text-sm">40</span>
+                    </span>
+                </div>
+
+                <button id="toggle-route-btn" onclick="toggleHeritageRoute()" class="px-3 py-2 rounded-xl bg-[#D69E2E] hover:bg-[#B7791F] text-[#1A202C] font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-route"></i>
+                    <span id="route-btn-text">ঐতিহ্য ভ্রমণ রুট দেখুন</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Split Workspace -->
+    <main class="flex-1 flex flex-col-reverse lg:flex-row overflow-hidden relative">
+        
+        <!-- Left Sidebar: Search, Filters & Directory List -->
+        <aside class="w-full lg:w-[440px] xl:w-[480px] h-[48%] lg:h-full bg-[#FAF6F0] border-t-2 lg:border-t-0 lg:border-r-2 border-[#E2D5C1] flex flex-col z-10 shadow-xl">
+            
+            <!-- Search & Category Filter Controls -->
+            <div class="p-3 sm:p-4 bg-[#F3ECE0] border-b border-[#E2D5C1] space-y-2.5 shrink-0">
+                <!-- Search Input -->
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9B2C2C]"></i>
+                    <input type="text" id="search-input" placeholder="রাস্তা বা স্থানের নাম খুঁজুন (যেমন: College Street, ভিক্টোরিয়া)..." 
+                        class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white border border-[#D4C3A8] focus:outline-none focus:border-[#9B2C2C] focus:ring-2 focus:ring-[#9B2C2C]/20 text-sm text-gray-800 placeholder-gray-400 shadow-sm">
+                    <button id="clear-search" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Category Filter Pills -->
+                <div class="grid grid-cols-3 gap-1.5 bg-[#E6DAC6] p-1 rounded-xl">
+                    <button onclick="setFilter('all')" id="tab-all" class="filter-tab py-1.5 px-2 rounded-lg text-xs sm:text-sm font-bold transition bg-[#9B2C2C] text-white shadow">
+                        সব (<span id="count-all">245</span>)
+                    </button>
+                    <button onclick="setFilter('street')" id="tab-street" class="filter-tab py-1.5 px-2 rounded-lg text-xs sm:text-sm font-semibold text-[#5C4938] hover:bg-white/60 transition flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-[#C53030]"></span> রাস্তা (<span id="count-street">205</span>)
+                    </button>
+                    <button onclick="setFilter('place')" id="tab-place" class="filter-tab py-1.5 px-2 rounded-lg text-xs sm:text-sm font-semibold text-[#5C4938] hover:bg-white/60 transition flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-[#2B6CB0]"></span> স্থান (<span id="count-place">40</span>)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable List of Streets & Landmarks -->
+            <div id="directory-list" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+                <!-- Cards injected dynamically by JS -->
+            </div>
+        </aside>
+
+        <!-- Right Panel: Interactive Map + Floating Details Drawer -->
+        <section class="w-full lg:flex-1 h-[52%] lg:h-full relative">
+            <div id="kolkata-map" class="w-full h-full z-0"></div>
+
+            <!-- Floating Map Controls (Top Right) -->
+            <div class="absolute top-3 right-3 z-[500] flex flex-col gap-2">
+                <button onclick="resetMapView()" title="Reset Map to Full Kolkata" class="bg-[#FAF6F0] hover:bg-white text-[#9B2C2C] border-2 border-[#9B2C2C] px-3 py-2 rounded-xl shadow-lg font-bold text-xs flex items-center gap-1.5 transition cursor-pointer">
+                    <i class="fa-solid fa-compass text-sm"></i>
+                    <span>পুরো কলকাতা</span>
+                </button>
+            </div>
+
+            <!-- Floating Legend (Bottom Left on Desktop) -->
+            <div class="hidden sm:flex absolute bottom-5 left-3 z-[500] bg-[#FAF6F0]/95 backdrop-blur-sm border border-[#D4C3A8] px-3.5 py-2 rounded-xl shadow-lg items-center gap-4 text-xs font-semibold text-gray-800">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#C53030] border-2 border-white shadow inline-block"></span>
+                    <span>ঐতিহাসিক রাস্তা (Streets)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#2B6CB0] border-2 border-white shadow inline-block"></span>
+                    <span>দর্শনীয় স্থান (Landmarks)</span>
+                </div>
+            </div>
+
+            <!-- Detailed History Slide-Over Card (Appears when an item is selected) -->
+            <div id="detail-drawer" class="hidden absolute inset-x-2 bottom-2 sm:inset-auto sm:top-3 sm:left-3 sm:w-[390px] md:w-[430px] max-h-[85%] bg-[#FAF6F0] border-2 border-[#9B2C2C] rounded-2xl shadow-2xl z-[600] flex flex-col overflow-hidden transition-all">
+                <!-- Drawer Header -->
+                <div id="drawer-header" class="bg-[#9B2C2C] text-white px-4 py-3 flex items-start justify-between gap-2 shrink-0">
+                    <div>
+                        <span id="drawer-badge" class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-[#D69E2E] text-[#1A202C] mb-1">
+                            ঐতিহাসিক রাস্তা
+                        </span>
+                        <h2 id="drawer-title-bn" class="text-lg sm:text-xl font-bold font-serif-bn leading-snug"></h2>
+                        <p id="drawer-title-en" class="text-xs text-[#FBD38D] font-medium"></p>
+                    </div>
+                    <button onclick="closeDetailDrawer()" class="w-8 h-8 rounded-full bg-black/25 hover:bg-black/40 text-white flex items-center justify-center shrink-0 transition cursor-pointer" title="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Drawer Body -->
+                <div class="p-4 overflow-y-auto space-y-3 text-sm leading-relaxed text-gray-800">
+                    <!-- Old Name / Era Info Box -->
+                    <div class="bg-[#F2ECE1] border border-[#DFD1BA] rounded-xl p-3 space-y-1.5 text-xs">
+                        <div class="flex items-start gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-[#9B2C2C] mt-0.5"></i>
+                            <div>
+                                <span class="font-bold text-gray-700">পূর্বনাম / সময়কাল (Old Name / Era):</span>
+                                <span id="drawer-oldname" class="text-gray-900 font-medium block sm:inline"></span>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <i class="fa-solid fa-location-dot text-[#9B2C2C] mt-0.5"></i>
+                            <div>
+                                <span class="font-bold text-gray-700">অবস্থান (Coordinates):</span>
+                                <span id="drawer-coords" class="font-mono text-gray-700"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Full History Description -->
+                    <div>
+                        <h3 class="font-bold text-[#9B2C2C] text-base mb-1 flex items-center gap-1.5 border-b border-[#E2D5C1] pb-1">
+                            <i class="fa-solid fa-book-open"></i>
+                            <span>ইতিহাস ও তাৎপর্য (History & Significance)</span>
+                        </h3>
+                        <p id="drawer-history" class="text-gray-800 text-[14.5px] leading-7 text-justify"></p>
+                    </div>
+
+                    <!-- Key Highlights Tags -->
+                    <div>
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-gray-500 mb-1.5">বিশেষ আকর্ষণ (Key Highlights):</h4>
+                        <div id="drawer-highlights" class="flex flex-wrap gap-1.5"></div>
+                    </div>
+                </div>
+
+                <!-- Drawer Footer Navigation -->
+                <div class="bg-[#F3ECE0] px-4 py-2.5 border-t border-[#E2D5C1] flex items-center justify-between text-xs shrink-0">
+                    <button onclick="navigateItem(-1)" class="px-3 py-1.5 rounded-lg bg-white border border-[#D4C3A8] hover:border-[#9B2C2C] text-gray-800 font-semibold flex items-center gap-1 transition cursor-pointer">
+                        <i class="fa-solid fa-chevron-left"></i> পূর্ববর্তী
+                    </button>
+                    <span id="drawer-counter" class="font-semibold text-gray-600">1 / 33</span>
+                    <button onclick="navigateItem(1)" class="px-3 py-1.5 rounded-lg bg-white border border-[#D4C3A8] hover:border-[#9B2C2C] text-gray-800 font-semibold flex items-center gap-1 transition cursor-pointer">
+                        পরবর্তী <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // ============================================================================
+        // 1. COMPREHENSIVE DATASET: KOLKATA HERITAGE STREETS & LANDMARKS
+        // ============================================================================
+        const kolkataHeritageData = [
+            // --- 18 HISTORIC STREETS OF KOLKATA (কলকাতার ঐতিহাসিক রাস্তা সমূহ) ---
+            {
+                id: 'st-1',
+                type: 'street',
+                nameBn: 'কলেজ স্ট্রিট (বইপাড়া)',
+                nameEn: 'College Street (Boi Para)',
+                oldName: '১৮১৭ সালে প্রতিষ্ঠিত; হিন্দু কলেজের নামানুসারে নামকরণ',
+                lat: 22.5763,
+                lng: 88.3638,
+                summaryBn: 'বিশ্বের বৃহত্তম পুরনো বইয়ের বাজার ও বাংলার নবজাগরণের প্রাণকেন্দ্র।',
+                historyBn: '১৮১৭ সালে হিন্দু কলেজ (বর্তমান প্রেসিডেন্সি বিশ্ববিদ্যালয়) প্রতিষ্ঠার পর এই রাস্তার নাম হয় কলেজ স্ট্রিট। এটি ভারতের বৃহত্তম বইয়ের বাজার এবং বিশ্বের দ্বিতীয় বৃহত্তম পুরনো বইয়ের বাজার হিসেবে \'বইপাড়া\' নামে পরিচিত। কলকাতা বিশ্ববিদ্যালয়, সংস্কৃত কলেজ, মেডিকেল কলেজ এবং ঐতিহাসিক ইন্ডিয়ান কফি হাউস এই রাস্তাতেই অবস্থিত। উনিশ শতকের বাংলার নবজাগরণ ও স্বাধীনতা আন্দোলনের বহু ইতিহাসের সাক্ষী এই রাজপথ।',
+                highlights: ['ইন্ডিয়ান কফি হাউস', 'প্রেসিডেন্সি বিশ্ববিদ্যালয়', 'বইপাড়া', 'কলকাতা বিশ্ববিদ্যালয়']
+            },
+            {
+                id: 'st-2',
+                type: 'street',
+                nameBn: 'পার্ক স্ট্রিট (মাদার টেরেসা সরণি)',
+                nameEn: 'Park Street / Mother Teresa Sarani',
+                oldName: 'বেরিয়াল গ্রাউন্ড রোড (Burial Ground Road)',
+                lat: 22.5535,
+                lng: 88.3532,
+                summaryBn: 'ব্রিটিশ আমলের ডিয়ার পার্ক থেকে কলকাতার বিখ্যাত ফুড ও নাইটলাইফ স্ট্রিট।',
+                historyBn: 'অষ্টাদশ শতকে সুপ্রিম কোর্টের প্রথম প্রধান বিচারপতি স্যার এলিজা ইম্পের বিশাল হরিণ উদ্যান বা \'ডিয়ার পার্ক\'-এর পাশ দিয়ে এই রাস্তাটি তৈরি হয়েছিল বলে এর নাম হয় পার্ক স্ট্রিট। তারও আগে সাউথ পার্ক স্ট্রিট সিমেট্রির দিকে যাওয়ার পথ হওয়ায় একে \'বেরিয়াল গ্রাউন্ড রোড\' বলা হতো। পরে মাদার টেরেসার সম্মানে এর নামকরণ হয় মাদার টেরেসা সরণি। ফ্লুরিজ, পিটার ক্যাট, মকাম্বো এবং এশিয়াটিক সোসাইটি এই রাস্তার গর্ব।',
+                highlights: ['এশিয়াটিক সোসাইটি', 'ফ্লুরিজ (Flurys)', 'সাউথ পার্ক স্ট্রিট সিমেট্রি', 'সেন্ট জেভিয়ার্স কলেজ']
+            },
+            {
+                id: 'st-3',
+                type: 'street',
+                nameBn: 'চিৎপুর রোড (রবীন্দ্র সরণি)',
+                nameEn: 'Chitpur Road / Rabindra Sarani',
+                oldName: 'পিলগ্রিম পাথ (Pilgrim Path to Kalighat)',
+                lat: 22.5855,
+                lng: 88.3592,
+                summaryBn: 'কলকাতার প্রাচীনতম রাস্তা; কুখ্যাত চিতে ডাকাত ও চিত্তেশ্বরী মন্দিরের ইতিহাস।',
+                historyBn: 'কলকাতা শহর পত্তনেরও আগে থেকে এই রাস্তাটির অস্তিত্ব ছিল। প্রাচীনকালে তীর্থযাত্রীরা উত্তরবঙ্গ ও হালিশহর থেকে কালীঘাট মন্দিরে যাওয়ার জন্য এই পথ ব্যবহার করতেন। কথিত আছে, কুখ্যাত দস্যু চিতে ডাকাত এখানে দেবী চিত্তেশ্বরীর মন্দির প্রতিষ্ঠা করেছিলেন, যা থেকে \'চিৎপুর\' নামের উৎপত্তি। জোড়াসাঁকো ঠাকুরবাড়ি, নাখোদা মসজিদ ও বটতলার ছাপাখানা এই রাস্তার ঐতিহ্য বহন করে। পরবর্তীকালে রবীন্দ্রনাথ ঠাকুরের নামে এর নাম হয় রবীন্দ্র সরণি।',
+                highlights: ['কলকাতার প্রাচীনতম পথ', 'জোড়াসাঁকো ঠাকুরবাড়ি', 'আদি চিত্তেশ্বরী মন্দির', 'নাখোদা মসজিদ']
+            },
+            {
+                id: 'st-4',
+                type: 'street',
+                nameBn: 'চৌরঙ্গী রোড (জওহরলাল নেহরু রোড)',
+                nameEn: 'Chowringhee Road / J.L. Nehru Road',
+                oldName: 'প্রাচীন জঙ্গল ও গ্রাম \'চৌরঙ্গী\' (নাথ যোগী চৌরঙ্গীনাথের নামানুসারে)',
+                lat: 22.5582,
+                lng: 88.3512,
+                summaryBn: 'ব্রিটিশ প্রাসাদোপম অট্টালিকার সারি ও কলকাতার প্রধান বাণিজ্যিক রাজপথ।',
+                historyBn: 'সপ্তদশ শতকে এটি ছিল ঘন জঙ্গল ও বাঘ-ডাকাতের আস্তানা। কথিত আছে, দশনাগ সাধু চৌরঙ্গীনাথ এখানে কালীমূর্তি প্রতিষ্ঠা করেছিলেন, তা থেকেই \'চৌরঙ্গী\' নাম। ব্রিটিশ আমলে ময়দানের পূর্ব প্রান্তে এই রাস্তার ধারে ইউরোপীয়দের প্রাসাদোপম বাগানবাড়ি গড়ে ওঠে, যে কারণে কলকাতাকে \'সিটি অফ প্যালেসেস\' বলা হতো। ভারতীয় জাদুঘর ও গ্র্যান্ড হোটেল এখানে অবস্থিত।',
+                highlights: ['ভারতীয় জাদুঘর', 'ওবেরয় গ্র্যান্ড হোটেল', 'কলকাতা ময়দান', 'সিটি অফ প্যালেসেস']
+            },
+            {
+                id: 'st-5',
+                type: 'street',
+                nameBn: 'স্ট্র্যান্ড রোড',
+                nameEn: 'Strand Road',
+                oldName: '১৮২৮ সালে লটারি কমিটির উদ্যোগে হুগলি নদীর তীরে নির্মিত',
+                lat: 22.5695,
+                lng: 88.3422,
+                summaryBn: 'গঙ্গার তীর বরাবর নির্মিত ঐতিহাসিক সড়ক ও বাবুঘাট-প্রিন্সেপ ঘাটের সংযোগস্থল।',
+                historyBn: '১৮২০ থেকে ১৮২৮ সালের মধ্যে কলকাতা লটারি কমিটির অর্থানুকূল্যে হুগলি নদীর পলিমাটি ভরাট করে স্ট্র্যান্ড রোড নির্মাণ করা হয়। এই রাস্তা তৈরির ফলে কলকাতার গঙ্গার তীরবর্তী ঘাটগুলোর সাথে শহরের বাণিজ্যিক যোগাযোগ সুগম হয়। প্রিন্সেপ ঘাট, বাবুঘাট, ইডেন গার্ডেনস, হাইকোর্ট ও আউটরাম ঘাট এই রাস্তার গা ঘেঁষে অবস্থিত।',
+                highlights: ['বাবুঘাট', 'প্রিন্সেপ ঘাট', 'ইডেন গার্ডেনস', 'কলকাতা হাইকোর্ট']
+            },
+            {
+                id: 'st-6',
+                type: 'street',
+                nameBn: 'রেড রোড (ইন্দিরা গান্ধী সরণি)',
+                nameEn: 'Red Road / Indira Gandhi Sarani',
+                oldName: '১৮২০ সালে নির্মিত; লাল সুরকি বা ল্যাটেরাইট ধুলোর কারণে নাম',
+                lat: 22.5562,
+                lng: 88.3468,
+                summaryBn: 'দ্বিতীয় বিশ্বযুদ্ধের রানওয়ে এবং প্রজাতন্ত্র দিবসের কুচকাওয়াজের ঐতিহাসিক রাজপথ।',
+                historyBn: '১৮২০ সালে ময়দানের বুক চিরে এই প্রশস্ত রাস্তাটি তৈরি হয়। রাস্তার ওপর লাল সুরকি বা মোরামের আস্তরণ থাকায় এর নাম হয় \'রেড রোড\'। দ্বিতীয় বিশ্বযুদ্ধের সময় মিত্রবাহিনীর যুদ্ধবিমান ওঠানামার জন্য এই রাস্তাটিকে রানওয়ে হিসেবে ব্যবহার করা হতো। বর্তমানে প্রতি বছর স্বাধীনতা দিবস ও প্রজাতন্ত্র দিবসে এখানে বর্ণাঢ্য কুচকাওয়াজ এবং দুর্গাপূজার কার্নিভাল অনুষ্ঠিত হয়।',
+                highlights: ['দ্বিতীয় বিশ্বযুদ্ধের রানওয়ে', 'দুর্গাপূজা কার্নিভাল', 'প্রজাতন্ত্র দিবস প্যারেড']
+            },
+            {
+                id: 'st-7',
+                type: 'street',
+                nameBn: 'বি.বা.দী. বাগ (ডালহৌসি স্কোয়ার)',
+                nameEn: 'B.B.D. Bagh / Dalhousie Square',
+                oldName: 'ট্যাঙ্ক স্কোয়ার (Tank Square) ও ডালহৌসি স্কোয়ার',
+                lat: 22.5714,
+                lng: 88.3485,
+                summaryBn: 'বিনয়-বাদল-দীনেশের অলিন্দ যুদ্ধের অমর স্মৃতি বিজড়িত প্রশাসনিক কেন্দ্র।',
+                historyBn: 'ব্রিটিশ গভর্নর জেনারেল লর্ড ডালহৌসির নামানুসারে এর নাম ছিল ডালহৌসি স্কোয়ার, এবং তার আগে লালদিঘির কারণে \'ট্যাঙ্ক স্কোয়ার\'। ১৯৩০ সালের ৮ ডিসেম্বর বিপ্লবী বিনয় বসু, বাদল গুপ্ত ও দীনেশ গুপ্ত রাইটার্স বিল্ডিং আক্রমণ করে অত্যাচারী কারা-অধিকর্তা সিম্পসনকে হত্যা করেন। সেই তিন অমর শহীদের নামের আদ্যক্ষর নিয়ে স্বাধীনতার পর এর নামকরণ হয় বিনয়-বাদল-দীনেশ বাগ (বি.বা.দী. বাগ)।',
+                highlights: ['মহাকরণ (Writers Building)', 'লালদিঘি', 'জি.পি.ও (GPO)', 'সেন্ট অ্যান্ড্রুজ চার্চ']
+            },
+            {
+                id: 'st-8',
+                type: 'street',
+                nameBn: 'শেক্সপিয়র সরণি (থিয়েটার রোড)',
+                nameEn: 'Shakespeare Sarani / Theatre Road',
+                oldName: 'থিয়েটার রোড (Theatre Road)',
+                lat: 22.5458,
+                lng: 88.3545,
+                summaryBn: 'ঐতিহাসিক চৌরঙ্গী থিয়েটার ও শেক্সপিয়রের ৪০০তম জন্মবার্ষিকীর স্মৃতি।',
+                historyBn: '১৮১৩ সালে এই রাস্তার ওপরেই \'চৌরঙ্গী থিয়েটার\' স্থাপিত হয়েছিল, যেখানে প্রিন্স দ্বারকানাথ ঠাকুরও অংশীদার ছিলেন। সেই থিয়েটারের নামানুসারে রাস্তাটির নাম ছিল থিয়েটার রোড। পরবর্তীতে ১৯৬৪ সালে মহাকবি উইলিয়াম শেক্সপিয়রের ৪০০তম জন্মবার্ষিকী উপলক্ষে কলকাতা পৌরসংস্থা রাস্তাটির নাম পরিবর্তন করে \'শেক্সপিয়র সরণি\' রাখে।',
+                highlights: ['চৌরঙ্গী থিয়েটারের ইতিহাস', 'অরবিন্দ ভবন', 'কলামন্দির']
+            },
+            {
+                id: 'st-9',
+                type: 'street',
+                nameBn: 'ক্যামাক স্ট্রিট (অবনীন্দ্রনাথ ঠাকুর সরণি)',
+                nameEn: 'Camac Street / Abanindranath Thakur Sarani',
+                oldName: 'উইলিয়াম ক্যামাকের নামানুসারে ক্যামাক স্ট্রিট',
+                lat: 22.5492,
+                lng: 88.3538,
+                summaryBn: 'ইস্ট ইন্ডিয়া কোম্পানির আমলের অভিজাত আবাসিক ও বাণিজ্যিক সড়ক।',
+                historyBn: 'অষ্টাদশ শতকের শেষভাগে ইস্ট ইন্ডিয়া কোম্পানির ঊর্ধ্বতন কর্মকর্তা উইলিয়াম ক্যামাকের বিশাল বাগানবাড়ি ও সম্পত্তির নামানুসারে এই রাস্তার নাম হয় ক্যামাক স্ট্রিট। পরবর্তীকালে বঙ্গীয় শিল্পকলার পথিকৃৎ শিল্পাচার্য অবনীন্দ্রনাথ ঠাকুরের স্মৃতির উদ্দেশ্যে এই রাস্তার নামকরণ করা হয় অবনীন্দ্রনাথ ঠাকুর সরণি।',
+                highlights: ['অবনীন্দ্রনাথ ঠাকুরের স্মৃতি', 'আধুনিক শপিং ও ক্যাফে হাব']
+            },
+            {
+                id: 'st-10',
+                type: 'street',
+                nameBn: 'হো চি মিন সরণি (হ্যারিংটন স্ট্রিট)',
+                nameEn: 'Ho Chi Minh Sarani / Harrington Street',
+                oldName: 'হ্যারিংটন স্ট্রিট (Harrington Street)',
+                lat: 22.5476,
+                lng: 88.3515,
+                summaryBn: 'ভিয়েতনাম যুদ্ধের প্রতিবাদে মার্কিন কনস্যুলেটের সামনের রাস্তার ঐতিহাসিক নামবদল।',
+                historyBn: 'সদর দেওয়ানি আদালতের বিচারক জন হার্বার্ট হ্যারিংটনের নামে রাস্তাটির নাম ছিল হ্যারিংটন স্ট্রিট। ১৯৬০-এর দশকের শেষে ভিয়েতনাম যুদ্ধের বিরুদ্ধে কলকাতার ছাত্র-যুবদের উত্তাল প্রতিবাদের প্রতীক হিসেবে, এই রাস্তায় অবস্থিত মার্কিন যুক্তরাষ্ট্রের কনস্যুলেটের ঠিক সামনেই রাস্তাটির নাম বদলে ভিয়েতনামের বিপ্লবী নেতা \'হো চি মিন সরণি\' রাখা হয়।',
+                highlights: ['মার্কিন কনস্যুলেট', 'ভিয়েতনাম যুদ্ধবিরোধী আন্দোলনের স্মৃতি']
+            },
+            {
+                id: 'st-11',
+                type: 'street',
+                nameBn: 'সদর স্ট্রিট',
+                nameEn: 'Sudder Street',
+                oldName: 'সদর দেওয়ানি আদালতের নামানুসারে',
+                lat: 22.5565,
+                lng: 88.3528,
+                summaryBn: 'যেখানে বসে রবীন্দ্রনাথ ঠাকুর \'নির্ঝরের স্বপ্নভঙ্গ\' কবিতাটি রচনা করেছিলেন।',
+                historyBn: '১৭৭২ সালে ওয়ারেন হেস্টিংস এখানে \'সদর দেওয়ানি আদালত\' স্থাপন করেছিলেন, যা থেকে এর নাম হয় সদর স্ট্রিট। এই রাস্তার ১০ নম্বর বাড়িতে (বর্তমানে জাদুঘরের অংশ) থাকাকালীন ১৮৮২ সালে সূর্যোদয় দেখে রবীন্দ্রনাথ ঠাকুর তাঁর কালজয়ী কবিতা \'নির্ঝরের স্বপ্নভঙ্গ\' রচনা করেছিলেন। বর্তমানে এটি বিদেশি পর্যটকদের প্রিয় ঠিকানা।',
+                highlights: ['রবীন্দ্রনাথের নির্ঝরের স্বপ্নভঙ্গ', 'সদর দেওয়ানি আদালত', 'ব্যাকপ্যাকার্স হাব']
+            },
+            {
+                id: 'st-12',
+                type: 'street',
+                nameBn: 'এজরা স্ট্রিট',
+                nameEn: 'Ezra Street',
+                oldName: 'বাগদাদি ইহুদি ব্যবসায়ী ডেভিড ও এলিয়া এজরা-র নামানুসারে',
+                lat: 22.5738,
+                lng: 88.3545,
+                summaryBn: 'কলকাতার ইহুদি সম্প্রদায়ের ঐতিহ্য ও আলোকসজ্জার বাজার।',
+                historyBn: 'উনিশ শতকে কলকাতার বিশিষ্ট বাগদাদি ইহুদি ব্যবসায়ী ও সমাজসেবী ডেভিড জোসেফ এজরা এবং তাঁর পুত্র এলিয়া এজরার নামানুসারে এই রাস্তার নাম হয় এজরা স্ট্রিট। কলকাতার বহু ঐতিহ্যবাহী অট্টালিকা (যেমন এসপ্ল্যানেড ম্যানশন, চৌরঙ্গী ম্যানশন) এজরা পরিবারের নির্মিত। এর কাছেই অবস্থিত বিখ্যাত মাগেন ডেভিড সিনাগগ। বর্তমানে এটি বৈদ্যুতিক ও আলোকসজ্জার বৃহত্তম বাজার।',
+                highlights: ['ইহুদি ঐতিহ্য', 'মাগেন ডেভিড সিনাগগ (নিকটবর্তী)', 'ইলেকট্রিক্যাল মার্কেট']
+            },
+            {
+                id: 'st-13',
+                type: 'street',
+                nameBn: 'ডেকার্স লেন (জেমস হিকি সরণি)',
+                nameEn: 'Dacres Lane / James Hickey Sarani',
+                oldName: 'ফিলিপ মিলনার ডেকার্স-এর নামে; পরে প্রথম সংবাদপত্রের সম্পাদক জেমস হিকির নামে',
+                lat: 22.5682,
+                lng: 88.3502,
+                summaryBn: 'ভারতের প্রথম সংবাদপত্রের স্মৃতি ও কলকাতার বিখ্যাত স্ট্রিট ফুড গলি।',
+                historyBn: 'ইস্ট ইন্ডিয়া কোম্পানির কালেক্টর ফিলিপ মিলনার ডেকার্সের নামে এই গলির নাম ছিল ডেকার্স লেন। পরে ১৭৮০ সালে ভারতের প্রথম মুদ্রিত সংবাদপত্র \'বেঙ্গল গেজেট\'-এর সম্পাদক জেমস অগাস্টাস হিকির নামে এর নাম হয় জেমস হিকি সরণি। অফিসপাড়ার প্রাণকেন্দ্রে অবস্থিত এই গলিটি সস্তায় সুস্বাদু স্ট্রিট ফুড ও \'চিত্তবাবুর দোকান\'-এর জন্য বিশ্ববিখ্যাত।',
+                highlights: ['চিত্তবাবুর দোকান', 'বেঙ্গল গেজেটের ইতিহাস', 'কলকাতা স্ট্রিট ফুড হাব']
+            },
+            {
+                id: 'st-14',
+                type: 'street',
+                nameBn: 'বউবাজার (বিপিন বিহারী গাঙ্গুলী স্ট্রিট)',
+                nameEn: 'Bowbazar / B.B. Ganguly Street',
+                oldName: 'বউবাজার স্ট্রিট (বহু বাজার বা বধূ বাজার)',
+                lat: 22.5698,
+                lng: 88.3615,
+                summaryBn: 'বিশ্বনাথ মতিলালের পুত্রবধূর যৌতুকের বাজার ও সোনার গয়নার ঐতিহ্য।',
+                historyBn: 'কথিত আছে, উনিশ শতকের ধনাঢ্য ব্যবসায়ী বিশ্বনাথ মতিলাল তাঁর পুত্রবধূকে যৌতুক হিসেবে এই বাজারটি উপহার দিয়েছিলেন, তাই \'বউ-এর বাজার\' থেকে নাম হয় বউবাজার। আরেক মতে, শিয়ালদহ-বৈঠকখানা অঞ্চলে বহু বাজার থাকায় \'বহু বাজার\' থেকে বউবাজার নামের উৎপত্তি। পরে স্বাধীনতা সংগ্রামী বিপিন বিহারী গাঙ্গুলীর নামে এর নামকরণ হয়। এটি কলকাতার ঐতিহ্যবাহী স্বর্ণকারদের পীঠস্থান।',
+                highlights: ['ঐতিহ্যবাহী স্বর্ণশিল্প ও গয়নার বাজার', 'ফিরিঙ্গি কালীবাড়ি', 'গোয়েঙ্কা কলেজ']
+            },
+            {
+                id: 'st-15',
+                type: 'street',
+                nameBn: 'হাতিবাগান (বিধান সরণি)',
+                nameEn: 'Hatibagan / Bidhan Sarani',
+                oldName: 'নবাব সিরাজ-উদ-দৌলার হাতিশালা ও রাজা নবকৃষ্ণ দেবের হাতিবাগান',
+                lat: 22.5965,
+                lng: 88.3668,
+                summaryBn: 'নবাব সিরাজের হাতির শিবির ও বাংলা থিয়েটারের পীঠস্থান।',
+                historyBn: '১৭৫৬ সালে কলকাতা আক্রমণের সময় নবাব সিরাজ-উদ-দৌলার বিশাল হস্তীবাহিনী এই অঞ্চলের বাগানে শিবির স্থাপন করেছিল। অন্য মতে, শোভাবাজারের মহারাজা নবকৃষ্ণ দেবের হাতিশালা এখানে থাকায় এর নাম হয় \'হাতিবাগান\'। ঐতিহাসিক স্টার থিয়েটার, মিনার্ভা থিয়েটার ও উত্তর কলকাতার প্রাণবন্ত বাজার এই অঞ্চলের প্রধান আকর্ষণ।',
+                highlights: ['ঐতিহাসিক স্টার থিয়েটার', 'সিরাজ-উদ-দৌলার স্মৃতি', 'উত্তর কলকাতার ঐতিহ্যবাহী বাজার']
+            },
+            {
+                id: 'st-16',
+                type: 'street',
+                nameBn: 'শ্যামবাজার পাঁচমাথার মোড়',
+                nameEn: 'Shyambazar Five-Point Crossing',
+                oldName: 'শোভারাম বসাকের কুলদেবতা \'শ্যামরায়\'-এর নামানুসারে বাজার',
+                lat: 22.6015,
+                lng: 88.3732,
+                summaryBn: 'উত্তর কলকাতার প্রবেশদ্বার ও নেতাজি সুভাষচন্দ্র বসুর ঐতিহাসিক মূর্তি।',
+                historyBn: 'অষ্টাদশ শতকে সুতানুটির ধনী ব্যবসায়ী শোভারাম বসাক তাঁর গৃহদেবতা \'শ্যামরায়\' (শ্রীকৃষ্ণ)-এর নামে এখানে একটি বাজার প্রতিষ্ঠা করেন, যা থেকে \'শ্যামবাজার\' নামের উৎপত্তি। শ্যামবাজার পাঁচমাথার মোড় উত্তর কলকাতার সাংস্কৃতিক ও রাজনৈতিক ইতিহাসের কেন্দ্রবিন্দু, যেখানে নেতাজি সুভাষচন্দ্র বসুর অশ্বারোহী ব্রোঞ্জ মূর্তি সগর্বে দণ্ডায়মান।',
+                highlights: ['নেতাজির অশ্বারোহী মূর্তি', 'পাঁচমাথার মোড়', 'শোভারাম বসাকের ইতিহাস']
+            },
+            {
+                id: 'st-17',
+                type: 'street',
+                nameBn: 'ধর্মতলা (লেনিন সরণি)',
+                nameEn: 'Dharmatala / Lenin Sarani',
+                oldName: 'ধর্মঠাকুরের মন্দির ও আশ্রমের নামানুসারে ধর্মতলা',
+                lat: 22.5648,
+                lng: 88.3535,
+                summaryBn: 'প্রাচীন ধর্মঠাকুরের উপাসনাস্থল ও মধ্য কলকাতার ব্যস্ততম সংযোগস্থল।',
+                historyBn: 'প্রাচীনকালে এই অঞ্চলে লৌকিক দেবতা \'ধর্মঠাকুর\'-এর একটি প্রসিদ্ধ মন্দির ও বৌদ্ধ আশ্রম ছিল, যার নামানুসারে এলাকাটির নাম হয় ধর্মতলা। ১৯৭০ সালে রুশ বিপ্লবের নেতা ভ্লাদিমির লেনিনের জন্মশতবর্ষে ধর্মতলা স্ট্রিটের নাম বদলে রাখা হয় \'লেনিন সরণি\'। ঐতিহাসিক টিপু সুলতান মসজিদ ও কার্জন পার্ক এখানে অবস্থিত।',
+                highlights: ['টিপু সুলতান মসজিদ', 'ধর্মঠাকুরের ইতিহাস', 'এসপ্ল্যানেড সংযোগস্থল']
+            },
+            {
+                id: 'st-18',
+                type: 'street',
+                nameBn: 'বেন্টিঙ্ক স্ট্রিট',
+                nameEn: 'Bentinck Street',
+                oldName: 'গভর্নর জেনারেল লর্ড উইলিয়াম বেন্টিঙ্কের নামানুসারে; পূর্বে কসাইটোলা',
+                lat: 22.5692,
+                lng: 88.3538,
+                summaryBn: 'পুরনো চায়না টাউনের জুতো কারিগর ও বাদ্যযন্ত্রের ঐতিহ্যবাহী সড়ক।',
+                historyBn: 'সতীদাহ প্রথা রদকারী গভর্নর জেনারেল লর্ড উইলিয়াম বেন্টিঙ্কের নামে এই রাস্তার নামকরণ হয়। উনিশ শতকে এটি ছিল কলকাতার আদি \'চায়না টাউন\'-এর অংশ, যেখানে অসংখ্য চীনা জুতো নির্মাতা ও কাঠমিস্ত্রি বসবাস করতেন। আজও এই রাস্তা হাতে তৈরি চামড়ার জুতো এবং বাদ্যযন্ত্রের দোকানের জন্য বিখ্যাত।',
+                highlights: ['চীনা জুতো কারিগরদের ঐতিহ্য', 'বাদ্যযন্ত্রের দোকান', 'লর্ড বেন্টিঙ্কের নামাঙ্কিত']
+            },
+            {
+                id: 'st-19',
+                type: 'street',
+                nameBn: 'আচার্য জগদীশ চন্দ্র বসু রোড (লোয়ার সার্কুলার রোড)',
+                nameEn: 'A.J.C. Bose Road / Lower Circular Road',
+                oldName: 'মারাঠা ডিচ (Maratha Ditch) ভরাট করে নির্মিত লোয়ার সার্কুলার রোড',
+                lat: 22.5430,
+                lng: 88.3610,
+                summaryBn: '১৭৪২ সালের মারাঠা খাত ভরাট করে তৈরি কলকাতার অন্যতম দীর্ঘ ধমনী সড়ক।',
+                historyBn: '১৭৪২ সালে বর্গী বা মারাঠা আক্রমণ থেকে কলকাতাকে রক্ষা করতে যে গভীর খাত বা \'মারাঠা ডিচ\' খনন করা হয়েছিল, ১৭৯৯ সালে গভর্নর জেনারেল লর্ড ওয়েলেসলির নির্দেশে তা ভরাট করে সার্কুলার রোড নির্মাণ করা হয়। পরে বিজ্ঞানী আচার্য জগদীশচন্দ্র বসুর নামে এর দক্ষিণ অংশের নামকরণ হয়। মাদার হাউস, নন্দন ও রবীন্দ্র সদন এই রাস্তার ধারেই অবস্থিত।',
+                highlights: ['মারাঠা ডিচের ইতিহাস', 'মাদার হাউস', 'রবীন্দ্র সদন ও নন্দন']
+            },
+            {
+                id: 'st-20',
+                type: 'street',
+                nameBn: 'আচার্য প্রফুল্ল চন্দ্র রোড (আপার সার্কুলার রোড)',
+                nameEn: 'A.P.C. Road / Upper Circular Road',
+                oldName: 'আপার সার্কুলার রোড (মারাঠা ডিচের উত্তর অংশ)',
+                lat: 22.5835,
+                lng: 88.3725,
+                summaryBn: 'বিজ্ঞানী আচার্য প্রফুল্ল চন্দ্র রায়ের স্মৃতিবিজড়িত উত্তর কলকাতার প্রধান রাজপথ।',
+                historyBn: 'মারাঠা ডিচ ভরাট করে নির্মিত সার্কুলার রোডের উত্তর অংশ এটি। ভারতীয় রসায়নশাস্ত্রের জনক ও বেঙ্গল কেমিক্যালের প্রতিষ্ঠাতা আচার্য প্রফুল্ল চন্দ্র রায়ের নামে এর নামকরণ করা হয়। ঐতিহাসিক রাজাবাজার সায়েন্স কলেজ, বসু বিজ্ঞান মন্দির ও শিয়ালদহ স্টেশন এই রাস্তার ওপর অবস্থিত।',
+                highlights: ['রাজাবাজার সায়েন্স কলেজ', 'বসু বিজ্ঞান মন্দির', 'শিয়ালদহ স্টেশন']
+            },
+            {
+                id: 'st-21',
+                type: 'street',
+                nameBn: 'আমহার্স্ট স্ট্রিট (রাজা রামমোহন সরণি)',
+                nameEn: 'Amherst Street / Raja Rammohan Sarani',
+                oldName: 'গভর্নর জেনারেল লর্ড আমহার্স্টের নামানুসারে',
+                lat: 22.5812,
+                lng: 88.3665,
+                summaryBn: 'রাজা রামমোহন রায়ের আবাসস্থল ও উত্তর কলকাতার বনেদি শিক্ষাপ্রতিষ্ঠানের সড়ক।',
+                historyBn: '১৮২৩-১৮২৮ সাল পর্যন্ত ভারতের গভর্নর জেনারেল থাকা লর্ড উইলিয়াম পিট আমহার্স্টের নামে এই রাস্তার নাম হয়। পরবর্তীতে ভারতের নবজাগরণের অগ্রদূত রাজা রামমোহন রায়ের নামে এর নামকরণ করা হয় রাজা রামমোহন সরণি। রাজা রামমোহন রায়ের ঐতিহাসিক বাসভবন (বর্তমানে রামমোহন মেমোরিয়াল মিউজিয়াম) এবং সেন্ট পলস কলেজ এখানে অবস্থিত।',
+                highlights: ['রামমোহন রায় মেমোরিয়াল মিউজিয়াম', 'সিটি কলেজ', 'বনেদি দুর্গাপূজা']
+            },
+            {
+                id: 'st-22',
+                type: 'street',
+                nameBn: 'কর্ণওয়ালিস স্ট্রিট (বিধান সরণি)',
+                nameEn: 'Cornwallis Street / Bidhan Sarani',
+                oldName: 'চিরস্থায়ী বন্দোবস্তের প্রবর্তক লর্ড কর্ণওয়ালিসের নামানুসারে',
+                lat: 22.5895,
+                lng: 88.3672,
+                summaryBn: 'বিবেকানন্দের পৈতৃক ভিটে, স্কটিশ চার্চ কলেজ ও সাধারণ ব্রাহ্মসমাজের রাজপথ।',
+                historyBn: 'গভর্নর জেনারেল লর্ড কর্ণওয়ালিসের নামে নির্মিত এই ঐতিহাসিক রাস্তাটির নাম পরবর্তীকালে পশ্চিমবঙ্গের রূপকার ড. বিধানচন্দ্র রায়ের নামে রাখা হয় বিধান সরণি। স্বামী বিবেকানন্দের পৈতৃক বাসভবন (সিমলা স্ট্রিট সংলগ্ন), স্কটিশ চার্চ কলেজ, বেথুন কলেজ ও সাধারণ ব্রাহ্মসমাজ মন্দির এই রাস্তার ঐতিহ্য বহন করে।',
+                highlights: ['স্কটিশ চার্চ কলেজ', 'সাধারণ ব্রাহ্মসমাজ মন্দির', 'স্বামী বিবেকানন্দের বাসভবন']
+            },
+            {
+                id: 'st-23',
+                type: 'street',
+                nameBn: 'ফ্রি স্কুল স্ট্রিট (মির্জা গালিব স্ট্রিট)',
+                nameEn: 'Free School Street / Mirza Ghalib Street',
+                oldName: '১৭৮৯ সালে প্রতিষ্ঠিত ক্যালকাটা ফ্রি স্কুলের নামানুসারে',
+                lat: 22.5588,
+                lng: 88.3545,
+                summaryBn: 'মহাকবি মির্জা গালিবের কলকাতা বাস ও পুরনো বই-রেকর্ডের ঐতিহাসিক গলি।',
+                historyBn: '১৭৮৯ সালে প্রতিষ্ঠিত ক্যালকাটা ফ্রি স্কুলের নামানুসারে এই রাস্তার নাম হয়েছিল ফ্রি স্কুল স্ট্রিট। উর্দু ও ফারসি সাহিত্যের অমর কবি মির্জা গালিব ১৮২৮ সালে কলকাতায় এসে এই রাস্তার কাছেই বসবাস করেছিলেন, তাই তাঁর স্মৃতিতে এর নামকরণ হয় মির্জা গালিব স্ট্রিট। নিউ মার্কেটের গা ঘেঁষে অবস্থিত এই রাস্তা অ্যান্টিক সামগ্রী ও পুরনো বইয়ের জন্য বিখ্যাত।',
+                highlights: ['মির্জা গালিবের স্মৃতি', 'নিউ মার্কেট সংলগ্ন', 'অ্যান্টিক ও বইয়ের দোকান']
+            },
+            {
+                id: 'st-24',
+                type: 'street',
+                nameBn: 'লিন্ডসে স্ট্রিট (নেলি সেনগুপ্ত সরণি)',
+                nameEn: 'Lindsay Street / Nellie Sengupta Sarani',
+                oldName: 'ইস্ট ইন্ডিয়া কোম্পানির কর্মকর্তা রবার্ট লিন্ডসের নামানুসারে',
+                lat: 22.5602,
+                lng: 88.3522,
+                summaryBn: 'ঐতিহাসিক নিউ মার্কেট (হগ মার্কেট) ও গ্লোব সিনেমার প্রাণকেন্দ্র।',
+                historyBn: 'রবার্ট লিন্ডসের নামে নামাঙ্কিত এই রাস্তাটি পরবর্তীকালে স্বাধীনতা সংগ্রামী দেশপ্রিয় যতীন্দ্রমোহন সেনগুপ্তের সহধর্মিণী ও কংগ্রেস সভানেত্রী নেলি সেনগুপ্তের নামে নামকরণ করা হয়। ১৮৭৪ সালে নির্মিত ভিক্টোরিয়ান গথিক স্থাপত্যের \'স্যার স্টুয়ার্ট হগ মার্কেট\' বা নিউ মার্কেট এই রাস্তার প্রধান আকর্ষণ।',
+                highlights: ['নিউ মার্কেট (হগ মার্কেট)', 'নেলি সেনগুপ্তের স্মৃতি', 'কলকাতার প্রধান শপিং হাব']
+            },
+            {
+                id: 'st-25',
+                type: 'street',
+                nameBn: 'হারিসন রোড (মহাত্মা গান্ধী রোড)',
+                nameEn: 'Harrison Road / Mahatma Gandhi Road',
+                oldName: 'কলকাতা মিউনিসিপ্যালিটির চেয়ারম্যান স্যার হেনরি লেল্যান্ড হারিসনের নামে',
+                lat: 22.5785,
+                lng: 88.3620,
+                summaryBn: 'শিয়ালদহ ও হাওড়া সেতুকে যুক্তকারী কলকাতার প্রথম বৈদ্যুতিক আলোকিত রাজপথ।',
+                historyBn: '১৮৯২ সালে কলকাতা পৌরসভার চেয়ারম্যান স্যার হেনরি হারিসনের উদ্যোগে শিয়ালদহ স্টেশন থেকে হাওড়া সেতু পর্যন্ত সরাসরি যোগাযোগের জন্য এই রাস্তাটি তৈরি হয়। এটিই ছিল কলকাতার প্রথম রাস্তা যেখানে বৈদ্যুতিক বাতির আলো জ্বলেছিল। স্বাধীনতার পর মহাত্মা গান্ধীর নামে এর নামকরণ হয় এম.জি. রোড।',
+                highlights: ['প্রথম বৈদ্যুতিক আলোকিত সড়ক', 'শিয়ালদহ-হাওড়া সংযোগ', 'পাইকারি বাজার']
+            },
+            {
+                id: 'st-26',
+                type: 'street',
+                nameBn: 'হাজরা রোড',
+                nameEn: 'Hazra Road',
+                oldName: 'উনিশ শতকের ভূস্বামী বাবু রামতনু হাজরার নামানুসারে',
+                lat: 22.5245,
+                lng: 88.3515,
+                summaryBn: 'দক্ষিণ কলকাতার প্রাচীন সংযোগকারী সড়ক ও হাজরা পার্কের ঐতিহ্য।',
+                historyBn: 'ভবানীপুর ও কালীঘাট অঞ্চলের বিশিষ্ট ভূস্বামী রামতনু হাজরার নামানুসারে এই রাস্তার নাম হয় হাজরা রোড। এটি পূর্ব-পশ্চিমে বিস্তৃত হয়ে কালীঘাট, ভবানীপুর, বালিগঞ্জ ও গড়িয়াহাট অঞ্চলকে যুক্ত করেছে। ঐতিহাসিক যতীন দাস পার্ক (হাজরা পার্ক) এবং চিত্তরঞ্জন সেবাসদন এই রাস্তার ওপর অবস্থিত।',
+                highlights: ['যতীন দাস পার্ক (হাজরা পার্ক)', 'চিত্তরঞ্জন সেবাসদন', 'ভবানীপুর-বালিগঞ্জ সংযোগ']
+            },
+            {
+                id: 'st-27',
+                type: 'street',
+                nameBn: 'রাসবিহারী অ্যাভিনিউ',
+                nameEn: 'Rashbehari Avenue',
+                oldName: 'বালিগঞ্জ অ্যাভিনিউ (বিপ্লবী রাসবিহারী বসুর নামানুসারে পুনঃনামকরণ)',
+                lat: 22.5175,
+                lng: 88.3585,
+                summaryBn: 'মহান বিপ্লবী রাসবিহারী বসুর নামে নামাঙ্কিত দক্ষিণ কলকাতার হৃদস্পন্দন।',
+                historyBn: 'বিংশ শতাব্দীর শুরুতে ক্যালকাটা ইমপ্রুভমেন্ট ট্রাস্ট (CIT) দক্ষিণ কলকাতার পরিকল্পিত উন্নয়নের অংশ হিসেবে এই প্রশস্ত অ্যাভিনিউ তৈরি করে। ভারতের স্বাধীনতা সংগ্রামের মহান বিপ্লবী ও আজাদ হিন্দ ফৌজের অন্যতম রূপকার রাসবিহারী বসুর নামে এর নামকরণ হয়। কালীঘাট থেকে গড়িয়াহাট পর্যন্ত বিস্তৃত এই রাস্তা দক্ষিণ কলকাতার প্রধান বাণিজ্যিক কেন্দ্র।',
+                highlights: ['বিপ্লবী রাসবিহারী বসুর স্মৃতি', 'গড়িয়াহাট মার্কেট', 'দক্ষিণ কলকাতার বাণিজ্যিক কেন্দ্র']
+            },
+            {
+                id: 'st-28',
+                type: 'street',
+                nameBn: 'শ্যামাপ্রসাদ মুখার্জি রোড (রসা রোড)',
+                nameEn: 'S.P. Mukherjee Road / Russa Road',
+                oldName: 'রসা রোড (Russa Road - প্রাচীন গ্রাম \'রসা পাগলা\'-র নামানুসারে)',
+                lat: 22.5210,
+                lng: 88.3462,
+                summaryBn: 'আশুতোষ কলেজ, কালীঘাট ও টালিগঞ্জকে যুক্তকারী ঐতিহাসিক রাজপথ।',
+                historyBn: 'অষ্টাদশ শতকে দক্ষিণ কলকাতার প্রাচীন গ্রাম \'রসা\' বা \'রসা পাগলা\'-র দিকে যাওয়ার পথ হওয়ায় এর নাম ছিল রসা রোড। পরবর্তীকালে শিক্ষাবিদ ও রাজনীতিবিদ ড. শ্যামাপ্রসাদ মুখোপাধ্যায়ের নামে এর নামকরণ করা হয়। ঐতিহাসিক আশুতোষ কলেজ, ভবানীপুর ও কালীঘাট মেট্রো স্টেশন এই রাস্তার ওপর অবস্থিত।',
+                highlights: ['আশুতোষ কলেজ', 'রসা পাগলার ইতিহাস', 'ভবানীপুর-টালিগঞ্জ সংযোগ']
+            },
+            {
+                id: 'st-29',
+                type: 'street',
+                nameBn: 'গড়িয়াহাট রোড',
+                nameEn: 'Gariahat Road',
+                oldName: 'গড়িয়া গ্রামের হাটে যাওয়ার প্রাচীন পথ',
+                lat: 22.5142,
+                lng: 88.3665,
+                summaryBn: 'বাংলার তাঁত ও জামদানি শাড়ির স্বর্গরাজ্য এবং দক্ষিণ কলকাতার ব্যস্ততম বাজার।',
+                historyBn: 'দক্ষিণ শহরতলির গড়িয়া গ্রামের প্রাচীন হাটে যাওয়ার রাস্তা হিসেবে এর নাম হয়েছিল গড়িয়াহাট রোড। ক্যালকাটা ইমপ্রুভমেন্ট ট্রাস্টের পরিকল্পনায় এটি দক্ষিণ কলকাতার সবচেয়ে জমজমাট শপিং ও সাংস্কৃতিক কেন্দ্রে পরিণত হয়। গোলপার্ক, রামকৃষ্ণ মিশন ইনস্টিটিউট অফ কালচার ও ঢাকুরিয়া সেতু এই রাস্তার অন্যতম পরিচয়।',
+                highlights: ['গড়িয়াহাট শাড়ি মার্কেট', 'গোলপার্ক রামকৃষ্ণ মিশন', 'ঢাকুরিয়া ব্রিজ']
+            },
+            {
+                id: 'st-30',
+                type: 'street',
+                nameBn: 'বালিগঞ্জ সার্কুলার রোড (প্রমথেশ বড়ুয়া সরণি)',
+                nameEn: 'Ballygunge Circular Road / Pramathesh Barua Sarani',
+                oldName: 'বালিগঞ্জ সামরিক ছাউনির পাশ দিয়ে নির্মিত বৃত্তাকার সড়ক',
+                lat: 22.5315,
+                lng: 88.3625,
+                summaryBn: 'ব্রিটিশ আমলের বাগানবাড়ি ও বালিগঞ্জ সায়েন্স কলেজের অভিজাত সড়ক।',
+                historyBn: 'উনিশ শতকে বালিগঞ্জ অঞ্চলে ব্রিটিশ অফিসার ও বাঙালি অভিজাতদের বিশাল বাগানবাড়ি ও সামরিক ছাউনি গড়ে উঠেছিল। প্রখ্যাত চলচ্চিত্র নির্মাতা ও অভিনেতা প্রমথেশ বড়ুয়ার স্মৃতিতে এর নামকরণ করা হয়েছে। কলকাতা বিশ্ববিদ্যালয়ের বালিগঞ্জ সায়েন্স কলেজ এবং ডেভিড হেয়ার ট্রেনিং কলেজ এখানে অবস্থিত।',
+                highlights: ['বালিগঞ্জ সায়েন্স কলেজ', 'প্রমথেশ বড়ুয়ার স্মৃতি', 'ব্রিটিশ আমলের বাগানবাড়ি']
+            },
+
+            // --- 25 ICONIC HISTORICAL PLACES OF KOLKATA (কলকাতার ঐতিহাসিক দর্শনীয় স্থান সমূহ) ---
+            {
+                id: 'pl-1',
+                type: 'place',
+                nameBn: 'ভিক্টোরিয়া মেমোরিয়াল হল',
+                nameEn: 'Victoria Memorial Hall',
+                oldName: 'নির্মিত: ১৯০৬–১৯২১ | স্থপতি: স্যার উইলিয়াম এমারসন',
+                lat: 22.5448,
+                lng: 88.3426,
+                summaryBn: 'রানি ভিক্টোরিয়ার স্মৃতিতে মাকরানা শ্বেতপাথরে নির্মিত কলকাতার মুকুটমণি।',
+                historyBn: '১৯০১ সালে মহারানি ভিক্টোরিয়ার প্রয়াণের পর লর্ড কার্জনের পরিকল্পনায় এই বিশাল শ্বেতপাথরের স্মৃতিসৌধ নির্মিত হয়। তাজমহলের অনুপ্রেরণায় ইন্দো-সারাসেনিক ও মুঘল স্থাপত্যশৈলীতে রাজস্থানের মাকরানা মার্বেল দিয়ে এটি তৈরি। ১৯২১ সালে প্রিন্স অফ ওয়েলস এটি জনসাধারণের জন্য উন্মুক্ত করেন। এর চূড়ায় থাকা ১৬ ফুট উঁচু ব্রোঞ্জের \'অ্যাঞ্জেল অফ ভিক্টোরি\' মূর্তিটি বাতাসের সাথে ঘোরে।',
+                highlights: ['মাকরানা শ্বেতপাথর', 'অ্যাঞ্জেল অফ ভিক্টোরি', 'ব্রিটিশ-ভারতীয় ইতিহাস জাদুঘর']
+            },
+            {
+                id: 'pl-2',
+                type: 'place',
+                nameBn: 'হাওড়া ব্রিজ (রবীন্দ্র সেতু)',
+                nameEn: 'Howrah Bridge / Rabindra Setu',
+                oldName: '১৮৭৪ সালে পন্টুন সেতু; ১৯৪৩ সালে বর্তমান ক্যান্টিলিভার সেতু চালু',
+                lat: 22.5851,
+                lng: 88.3468,
+                summaryBn: 'একটিও নাট-বোল্ট ছাড়া তৈরি বিশ্বের ব্যস্ততম ক্যান্টিলিভার সেতু।',
+                historyBn: '১৮৭৪ সালে স্যার ব্র্যাডফোর্ড লেসলির তৈরি ভাসমান পন্টুন ব্রিজের পরিবর্তে ১৯৩৬ থেকে ১৯৪২ সালের মধ্যে টাটা স্টিলের ২৬,৫০০ টন ইস্পাত দিয়ে এই বিশাল ঝুলন্ত বা ক্যান্টিলিভার সেতুটি নির্মিত হয়। কোনো নাট-বোল্টের বদলে কেবল রিভেট দিয়ে জোড়া এই সেতুটি ১৯৪৩ সালের ৩ ফেব্রুয়ারি চালু হয়। ১৯৬৫ সালে রবীন্দ্রনাথ ঠাকুরের নামানুসারে এর নাম রাখা হয় \'রবীন্দ্র সেতু\'।',
+                highlights: ['নাট-বোল্টহীন ইস্পাত কাঠামো', 'রবীন্দ্র সেতু', 'বিশ্বের ব্যস্ততম সেতু']
+            },
+            {
+                id: 'pl-3',
+                type: 'place',
+                nameBn: 'ভারতীয় জাদুঘর (ইন্ডিয়ান মিউজিয়াম)',
+                nameEn: 'Indian Museum',
+                oldName: 'প্রতিষ্ঠা: ২ ফেব্রুয়ারি ১৮১৪ | প্রতিষ্ঠাতা: ড. নাথানিয়েল ওয়ালিচ',
+                lat: 22.5579,
+                lng: 88.3511,
+                summaryBn: 'ভারত ও এশিয়া-প্যাসিফিক অঞ্চলের প্রাচীনতম ও বৃহত্তম বহুমুখী জাদুঘর।',
+                historyBn: '১৮১৪ সালে এশিয়াটিক সোসাইটির উদ্যোগে ড্যানিশ উদ্ভিদবিজ্ঞানী ড. নাথানিয়েল ওয়ালিচের তত্ত্বাবধানে এটি প্রতিষ্ঠিত হয়। স্থানীয়ভাবে এটি \'জাদুঘর\' নামে পরিচিত। এখানে ৪,০০০ বছরের পুরনো মিশরীয় মমি, সম্রাট অশোকের সিংহস্তম্ভ, ভারহুত স্তূপের ধ্বংসাবশেষ, গন্ধার শিল্পকলা, বিরল জীবাশ্ম এবং মুঘল চিত্রকলার অমূল্য সংগ্রহ রয়েছে।',
+                highlights: ['মিশরীয় মমি', 'ভারহুত স্তূপ', 'এশিয়ার প্রাচীনতম জাদুঘর']
+            },
+            {
+                id: 'pl-4',
+                type: 'place',
+                nameBn: 'দক্ষিণেশ্বর কালীবাড়ি',
+                nameEn: 'Dakshineswar Kali Temple',
+                oldName: 'প্রতিষ্ঠা: ৩১ মে ১৮৫৫ | প্রতিষ্ঠাতা: রানি রাসমণি',
+                lat: 22.6548,
+                lng: 88.3575,
+                summaryBn: 'রানি রাসমণি প্রতিষ্ঠিত নবরত্ন মন্দির ও শ্রীরামকৃষ্ণ পরমহংসদেবের সাধনপীঠ।',
+                historyBn: 'জানবাজারের জমিদার রানি রাসমণি ১৮৪৭ সালে স্বপ্নাদেশ পেয়ে হুগলি নদীর পূর্ব তীরে এই মন্দির নির্মাণ শুরু করেন এবং ১৮৫৫ সালের ৩১ মে স্নানযাত্রার দিন দেবী ভবতারিণীর প্রাণপ্রতিষ্ঠা হয়। বাংলার নবরত্ন স্থাপত্যশৈলীতে নির্মিত এই মন্দিরের প্রধান পুরোহিত ছিলেন শ্রীরামকৃষ্ণ পরমহংসদেব, যিনি এখানে সাধনা করে সর্বধর্ম সমন্বয়ের বাণী প্রচার করেছিলেন।',
+                highlights: ['মা ভবতারিণী', 'নবরত্ন স্থাপত্য', 'শ্রীরামকৃষ্ণ পরমহংসদেবের সাধনস্থল']
+            },
+            {
+                id: 'pl-5',
+                type: 'place',
+                nameBn: 'কালীঘাট শক্তিপীঠ মন্দির',
+                nameEn: 'Kalighat Kali Temple',
+                oldName: 'বর্তমান মন্দির নির্মিত: ১৮০৯ (সাবর্ণ রায়চৌধুরী পরিবার)',
+                lat: 22.5203,
+                lng: 88.3420,
+                summaryBn: '৫১ সতীপীঠের অন্যতম প্রধান পীঠস্থান, যার নাম থেকে \'কলকাতা\' নামের উৎপত্তি।',
+                historyBn: 'হিন্দু পুরাণ অনুসারে, সতীর ডান পায়ের আঙুল এখানে পতিত হয়েছিল বলে এটি ৫১ শক্তিপীঠের অন্যতম। \'কালীক্ষেত্র\' নাম থেকেই পরবর্তীকালে \'কলকাতা\' নামের উৎপত্তি হয়েছে বলে মনে করা হয়। প্রাচীন মন্দিরটির সংস্কার করে ১৮০৯ সালে বড়িশার সাবর্ণ রায়চৌধুরী পরিবার বর্তমান আটচালা মন্দিরটি নির্মাণ করে দেন।',
+                highlights: ['৫১ শক্তিপীঠের অন্যতম', 'আটচালা স্থাপত্য', 'কলকাতা নামের উৎস']
+            },
+            {
+                id: 'pl-6',
+                type: 'place',
+                nameBn: 'জোড়াসাঁকো ঠাকুরবাড়ি',
+                nameEn: 'Jorasanko Thakur Bari',
+                oldName: 'নির্মিত: ১৭৮৪ | প্রতিষ্ঠাতা: নীলমণি ঠাকুর',
+                lat: 22.5850,
+                lng: 88.3590,
+                summaryBn: 'বিশ্বকবি রবীন্দ্রনাথ ঠাকুরের জন্মস্থান ও বাংলার নবজাগরণের সূতিকাগার।',
+                historyBn: '১৭৮৪ সালে নীলমণি ঠাকুর এই প্রাসাদোপম ভবনটি নির্মাণ করেন। ১৮৬১ সালের ৭ মে এখানেই জন্মগ্রহণ করেন বিশ্বকবি রবীন্দ্রনাথ ঠাকুর এবং ১৯৪১ সালের ৭ আগস্ট এখানেই তিনি শেষ নিঃশ্বাস ত্যাগ করেন। প্রিন্স দ্বারকানাথ ঠাকুর, মহর্ষি দেবেন্দ্রনাথ, অবনীন্দ্রনাথ ও গগনেন্দ্রনাথ ঠাকুরের স্মৃতিবিজড়িত এই বাড়িটি বর্তমানে রবীন্দ্রভারতী বিশ্ববিদ্যালয় ও জাদুঘর।',
+                highlights: ['রবীন্দ্রনাথ ঠাকুরের জন্ম ও প্রয়াণস্থল', 'বাংলার নবজাগরণের কেন্দ্র', 'রবীন্দ্রভারতী জাদুঘর']
+            },
+            {
+                id: 'pl-7',
+                type: 'place',
+                nameBn: 'মহাকরণ (রাইটার্স বিল্ডিং)',
+                nameEn: 'Writers\' Building',
+                oldName: 'নির্মিত: ১৭৭৭ | স্থপতি: থমাস লায়ন',
+                lat: 22.5736,
+                lng: 88.3481,
+                summaryBn: 'ইস্ট ইন্ডিয়া কোম্পানির কেরানিদের দপ্তর থেকে বাংলার ঐতিহাসিক প্রশাসনিক ভবন।',
+                historyBn: '১৭৭৭ সালে ইস্ট ইন্ডিয়া কোম্পানির জুনিয়র ক্লার্ক বা \'রাইটার\'-দের দপ্তর ও আবাসনের জন্য থমাস লায়ন এটি নির্মাণ করেন। ১৮৭৭ সালে এর সামনে গ্রিকো-রোমান স্থাপত্যের লাল ইটের সম্মুখভাগ যুক্ত হয়। ১৯৩০ সালের ৮ ডিসেম্বর বিপ্লবী বিনয়-বাদল-দীনেশের ঐতিহাসিক অলিন্দ যুদ্ধ এই ভবনের বারান্দাতেই সংঘটিত হয়েছিল।',
+                highlights: ['অলিন্দ যুদ্ধের স্মৃতি', 'থমাস লায়নের নকশা', 'গ্রিকো-রোমান স্থাপত্য']
+            },
+            {
+                id: 'pl-8',
+                type: 'place',
+                nameBn: 'ফোর্ট উইলিয়াম (বিজয় দুর্গ)',
+                nameEn: 'Fort William (Vijay Durg)',
+                oldName: 'নির্মিত: ১৭৫৮–১৭৮১ | রাজা তৃতীয় উইলিয়ামের নামানুসারে',
+                lat: 22.5540,
+                lng: 88.3375,
+                summaryBn: 'পলাশীর যুদ্ধের পর নির্মিত অষ্টভুজাকৃতি দুর্গ, যা কখনোই শত্রুর দ্বারা আক্রান্ত হয়নি।',
+                historyBn: '১৭৫৬ সালে নবাব সিরাজ-উদ-দৌলা পুরনো ফোর্ট উইলিয়াম দখল করার পর, পলাশীর যুদ্ধের শেষে রবার্ট ক্লাইভ বর্তমান ময়দানের মাঝে এই নতুন দুর্গ নির্মাণ শুরু করেন। অষ্টভুজাকৃতি এই দুর্গটি নির্মাণের পর থেকে আজ পর্যন্ত একটিও গুলি চলেনি বা কোনো যুদ্ধে আক্রান্ত হয়নি। বর্তমানে এটি ভারতীয় সেনাবাহিনীর ইস্টার্ন কমান্ডের সদর দপ্তর।',
+                highlights: ['অষ্টভুজাকৃতি দুর্গ', 'ইস্টার্ন কমান্ড সদর দপ্তর', 'কলকাতা ময়দানের ইতিহাস']
+            },
+            {
+                id: 'pl-9',
+                type: 'place',
+                nameBn: 'মার্বেল প্যালেস (রাজেন্দ্র মল্লিক বাটী)',
+                nameEn: 'Marble Palace',
+                oldName: 'নির্মিত: ১৮৩৫ | নির্মাতা: রাজা রাজেন্দ্র মল্লিক',
+                lat: 22.5822,
+                lng: 88.3602,
+                summaryBn: '১২৬ রকমের ইতালীয় মার্বেল ও পিটার পল রুবেন্সের চিত্রকলায় সমৃদ্ধ রাজপ্রাসাদ।',
+                historyBn: '১৮৩৫ সালে শিল্পানুরাগী রাজা রাজেন্দ্র মল্লিক উত্তর কলকাতার মুক্তারাম বাবু স্ট্রিটে এই নিও-ক্ল্যাসিক্যাল প্রাসাদটি নির্মাণ করেন। সারা বিশ্ব থেকে আনা ১২৬ রকমের বিরল মার্বেল পাথর দিয়ে এটি তৈরি বলে এর নাম মার্বেল প্যালেস। এর ভেতরে বিখ্যাত ডাচ চিত্রশিল্পী পিটার পল রুবেন্সের দুটি মূল তৈলচিত্র, ভিক্টোরিয়ান ভাস্কর্য ও বেলজিয়ান কাঁচের ঝাড়বাতি রয়েছে।',
+                highlights: ['১২৬ রকমের মার্বেল পাথর', 'রুবেন্সের মূল চিত্রকর্ম', 'নিও-ক্ল্যাসিক্যাল স্থাপত্য']
+            },
+            {
+                id: 'pl-10',
+                type: 'place',
+                nameBn: 'সেন্ট পলস ক্যাথেড্রাল',
+                nameEn: 'St. Paul\'s Cathedral',
+                oldName: 'নির্মিত: ১৮৩৯–১৮৪৭ | স্থপতি: মেজর উইলিয়াম নায়ার্ন ফোর্বস',
+                lat: 22.5442,
+                lng: 88.3465,
+                summaryBn: 'ইন্দো-গথিক স্থাপত্যশৈলীতে নির্মিত ভারতের প্রথম এপিস্কোপাল ক্যাথেড্রাল গির্জা।',
+                historyBn: 'বিশপ ড্যানিয়েল উইলসনের উদ্যোগে ১৮৩৯ সালে এর ভিত্তিপ্রস্তর স্থাপিত হয় এবং ১৮৪৭ সালে নির্মাণ সম্পন্ন হয়। গ্রীষ্মমণ্ডলীয় জলবায়ুর কথা মাথায় রেখে তৈরি এই গির্জাটি ইন্দো-গথিক স্থাপত্যের অনন্য নিদর্শন। এর ভেতরের রঙিন কাঁচের জানালা (Stained Glass), ফ্লোরেনটাইন ফ্রেস্কো চিত্রকর্ম এবং বিশাল পাইপ অর্গান দর্শকদের মুগ্ধ করে।',
+                highlights: ['ইন্দো-গথিক স্থাপত্য', 'রঙিন কাঁচের কারুকাজ', 'ঐতিহাসিক পাইপ অর্গান']
+            },
+            {
+                id: 'pl-11',
+                type: 'place',
+                nameBn: 'প্রিন্সেপ ঘাট',
+                nameEn: 'Prinsep Ghat',
+                oldName: 'নির্মিত: ১৮৪১ | জেমস প্রিন্সেপের স্মৃতিতে নির্মিত',
+                lat: 22.5582,
+                lng: 88.3315,
+                summaryBn: 'ব্রাহ্মী লিপির পাঠোদ্ধারকারী জেমস প্রিন্সেপের স্মৃতিতে নির্মিত গ্রিকো-প্যালাডিয়ান সৌধ।',
+                historyBn: 'সম্রাট অশোকের প্রাচীন ব্রাহ্মী ও খরোষ্ঠী শিলালিপির পাঠোদ্ধারকারী প্রখ্যাত প্রাচ্যবিদ জেমস প্রিন্সেপের অকাল প্রয়াণের পর কলকাতার নাগরিকদের উদ্যোগে ১৮৪১ সালে হুগলি নদীর তীরে এই প্যালাডিয়ান পোর্চ বা স্মৃতিসৌধ নির্মিত হয়। ব্রিটিশ আমলে রাজপরিবারের সদস্যরা জাহাজে করে কলকাতায় এলে এই ঘাটেই অবতরণ করতেন।',
+                highlights: ['জেমস প্রিন্সেপের স্মৃতি', 'প্যালাডিয়ান স্থাপত্য', 'হুগলি নদী ও দ্বিতীয় হুগলি সেতুর দৃশ্য']
+            },
+            {
+                id: 'pl-12',
+                type: 'place',
+                nameBn: 'শহীদ মিনার (অক্টারলোনি মনুমেন্ট)',
+                nameEn: 'Shaheed Minar (Ochterlony Monument)',
+                oldName: 'নির্মিত: ১৮২৮ | স্যার ডেভিড অক্টারলোনির স্মৃতিতে; ১৯৬৯ সালে শহীদ মিনার নামকরণ',
+                lat: 22.5645,
+                lng: 88.3492,
+                summaryBn: 'মিশরীয়, সিরীয় ও তুর্কি স্থাপত্যের সংমিশ্রণে তৈরি ১৫৮ ফুট উঁচু ঐতিহাসিক স্তম্ভ।',
+                historyBn: '১৮২৮ সালে ইস্ট ইন্ডিয়া কোম্পানির সেনাপতি স্যার ডেভিড অক্টারলোনির স্মৃতিতে এই স্তম্ভটি নির্মিত হয়। এর ভিত্তি মিশরীয়, স্তম্ভ সিরীয় এবং গম্বুজ তুর্কি স্থাপত্যশৈলীতে তৈরি। ১৯৩১ সালে এই মিনারের পাদদেশেই প্রথমবার রবীন্দ্রনাথ ঠাকুর ব্রিটিশ গুলিতে নিহত রাজবন্দীদের স্মরণে সভার সভাপতিত্ব করেছিলেন। ১৯৬৯ সালে স্বাধীনতা সংগ্রামীদের শ্রদ্ধা জানাতে এর নাম রাখা হয় \'শহীদ মিনার\'।',
+                highlights: ['মিশরীয়-সিরীয়-তুর্কি স্থাপত্য', 'স্বাধীনতা সংগ্রামীদের জনসভার মঞ্চ', '১৫৮ ফুট উচ্চতা']
+            },
+            {
+                id: 'pl-13',
+                type: 'place',
+                nameBn: 'বেলুড় মঠ (রামকৃষ্ণ মঠ ও মিশন)',
+                nameEn: 'Belur Math',
+                oldName: 'প্রতিষ্ঠা: ১৮৯৭ | প্রতিষ্ঠাতা: স্বামী বিবেকানন্দ',
+                lat: 22.6325,
+                lng: 88.3562,
+                summaryBn: 'হিন্দু, ইসলাম, বৌদ্ধ ও খ্রিস্টীয় স্থাপত্যের সমন্বয়ে স্বামী বিবেকানন্দের বিশ্বভ্রাতৃত্বের প্রতীক।',
+                historyBn: '১৮৯৭ সালে স্বামী বিবেকানন্দ রামকৃষ্ণ মিশন প্রতিষ্ঠা করেন এবং হুগলি নদীর পশ্চিম তীরে বেলুড়ে মঠ স্থাপন করেন। স্বামী বিবেকানন্দের পরিকল্পনায় ও স্বামী বিজ্ঞানানন্দের নকশায় নির্মিত মূল মন্দিরটি বাইরে থেকে গির্জা, মসজিদ ও মন্দিরের এক অপূর্ব সমন্বয়—যা সকল ধর্মের ঐক্যের প্রতীক।',
+                highlights: ['সর্বধর্ম সমন্বয় স্থাপত্য', 'স্বামী বিবেকানন্দের সমাধি মন্দির', 'রামকৃষ্ণ মিশনের সদর দপ্তর']
+            },
+            {
+                id: 'pl-14',
+                type: 'place',
+                nameBn: 'কুমোরটুলি (মৃৎশিল্পী পাড়া)',
+                nameEn: 'Kumortuli',
+                oldName: 'সপ্তদশ শতকে কৃষ্ণনগর থেকে আসা মৃৎশিল্পীদের বসতি',
+                lat: 22.6002,
+                lng: 88.3612,
+                summaryBn: '৩০০ বছরের প্রাচীন ঐতিহ্যবাহী দুর্গাপ্রতিমা নির্মাণের বিশ্ববিখ্যাত শিল্পীপাড়া।',
+                historyBn: 'সপ্তদশ শতকের শেষে নদিয়া জেলার কৃষ্ণনগর থেকে মৃৎশিল্পীরা জীবিকার সন্ধানে গঙ্গার তীরবর্তী সুতানুটি গ্রামে এসে বসতি স্থাপন করেন। ব্রিটিশ ইস্ট ইন্ডিয়া কোম্পানি পেশাভিত্তিক অঞ্চল ভাগ করার সময় এই এলাকার নাম হয় \'কুমোরটুলি\'। এখানকার সরু গলিতে গঙ্গামাটি, খড় ও বাঁশ দিয়ে তৈরি দুর্গাপ্রতিমা আজ বিশ্বজুড়ে পাড়ি দেয়।',
+                highlights: ['৩০০ বছরের মৃৎশিল্প ঐতিহ্য', 'দুর্গাপ্রতিমা নির্মাণ', 'গঙ্গার তীরবর্তী শিল্পীপাড়া']
+            },
+            {
+                id: 'pl-15',
+                type: 'place',
+                nameBn: 'কলকাতা টাউন হল',
+                nameEn: 'Kolkata Town Hall',
+                oldName: 'নির্মিত: ১৮১৩ | স্থপতি: মেজর-জেনারেল জন গার্স্টিন',
+                lat: 22.5712,
+                lng: 88.3442,
+                summaryBn: 'ডোরিক স্থাপত্যের ঐতিহাসিক ভবন, যেখানে রবীন্দ্রনাথের ৫০তম জন্মজয়ন্তী পালিত হয়েছিল।',
+                historyBn: '১৮১৩ সালে লটারি কমিটির অর্থানুকূল্যে জন গার্স্টিন রোমান ডোরিক শৈলীতে টাউন হল নির্মাণ করেন। উনিশ শতকের বাংলার সমস্ত গুরুত্বপূর্ণ নাগরিক সভা এখানে অনুষ্ঠিত হতো। ১৮৯৪ সালে জগদীশচন্দ্র বসু এখানেই প্রথম বেতার তরঙ্গের (মাইক্রোওয়েভ) সফল পরীক্ষা প্রদর্শন করেন এবং ১৯১২ সালে রবীন্দ্রনাথ ঠাকুরকে এখানে ঐতিহাসিক নাগরিক সংবর্ধনা দেওয়া হয়।',
+                highlights: ['জগদীশচন্দ্র বসুর বেতার প্রদর্শনী', 'রবীন্দ্রনাথের নাগরিক সংবর্ধনা', 'রোমান ডোরিক স্থাপত্য']
+            },
+
+            // --- MORE ICONIC HISTORICAL PLACES OF KOLKATA (25 TOTAL) ---
+            {
+                id: 'pl-16',
+                type: 'place',
+                nameBn: 'ন্যাশনাল লাইব্রেরি (বেলভেডিয়ার হাউস)',
+                nameEn: 'National Library of India (Belvedere House)',
+                oldName: 'নির্মিত: ১৭৬০-এর দশক | ওয়ারেন হেস্টিংস ও ভারতের ভাইসরয়দের বাসভবন',
+                lat: 22.5332,
+                lng: 88.3338,
+                summaryBn: 'ভারতের বৃহত্তম গ্রন্থাগার ও ব্রিটিশ বাংলার ভাইসরয়দের ঐতিহাসিক প্রাসাদ।',
+                historyBn: 'আলিপুরে অবস্থিত বেলভেডিয়ার এস্টেট একসময় বাংলার গভর্নর ও ভারতের ভাইসরয়দের সরকারি বাসভবন ছিল। ১৮৩৬ সালে স্থাপিত ক্যালকাটা পাবলিক লাইব্রেরি এবং লর্ড কার্জন প্রতিষ্ঠিত ইম্পেরিয়াল লাইব্রেরিকে একত্রিত করে স্বাধীনতার পর ১৯৫৩ সালে মৌলানা আবুল কালাম আজাদ এখানে ভারতের জাতীয় গ্রন্থাগার উদ্বোধন করেন।',
+                highlights: ['ভারতের বৃহত্তম লাইব্রেরি', 'বেলভেডিয়ার প্রাসাদ', 'বিরল পাণ্ডুলিপি সংগ্রহ']
+            },
+            {
+                id: 'pl-17',
+                type: 'place',
+                nameBn: 'ইন্ডিয়ান কফি হাউস (অ্যালবার্ট হল)',
+                nameEn: 'Indian Coffee House (Albert Hall)',
+                oldName: 'প্রতিষ্ঠা: ১৮৭৬ (অ্যালবার্ট হল) | কফি হাউস হিসেবে যাত্রা শুরু: ১৯৪২',
+                lat: 22.5764,
+                lng: 88.3635,
+                summaryBn: 'মান্না দের অমর গান ও বাংলার বুদ্ধিজীবীদের ঐতিহাসিক আড্ডার পীঠস্থান।',
+                historyBn: '১৮৭৬ সালে প্রিন্স অ্যালবার্টের নামে নির্মিত অ্যালবার্ট হলে নেতাজি সুভাষচন্দ্র বসু, রবীন্দ্রনাথ ঠাকুর ও কেশবচন্দ্র সেনের মতো মনীষীরা সভা করেছেন। ১৯৪২ সালে এখানে কফি বোর্ডের কফি হাউস চালু হয়। সত্যজিৎ রায়, অমর্ত্য সেন, ঋত্বিক ঘটক, মৃণাল সেন ও সুনীল গঙ্গোপাধ্যায়ের মতো কিংবদন্তিদের আড্ডায় মুখরিত থাকত এই কফি হাউস।',
+                highlights: ['অ্যালবার্ট হল ঐতিহ্য', 'সত্যজিৎ-অমর্ত্য সেনের আড্ডা', 'কলেজ স্ট্রিটের প্রাণ']
+            },
+            {
+                id: 'pl-18',
+                type: 'place',
+                nameBn: 'এশিয়াটিক সোসাইটি',
+                nameEn: 'The Asiatic Society',
+                oldName: 'প্রতিষ্ঠা: ১৫ জানুয়ারি ১৭৮৪ | প্রতিষ্ঠাতা: স্যার উইলিয়াম জোন্স',
+                lat: 22.5553,
+                lng: 88.3508,
+                summaryBn: 'প্রাচ্যবিদ্যা চর্চার প্রাচীনতম প্রতিষ্ঠান ও সম্রাট অশোকের ভাব্রু শিলালিপির আধার।',
+                historyBn: '১৭৮৪ সালের ১৫ জানুয়ারি প্রাচ্যবিদ স্যার উইলিয়াম জোন্স এশিয়াটিক সোসাইটি প্রতিষ্ঠা করেন। এখান থেকেই ভারতীয় জাদুঘর ও ভারতীয় পুরাতত্ত্ব সর্বেক্ষণের (ASI) জন্ম হয়। এর জাদুঘরে সম্রাট অশোকের মূল ভাব্রু শিলালিপি, আকবরের আমলের বিরল মুঘল চিত্রকলা এবং প্রাচীন সংস্কৃত-আরবি-ফারসি পাণ্ডুলিপি সংরক্ষিত আছে।',
+                highlights: ['সম্রাট অশোকের ভাব্রু শিলালিপি', '১৭৮৪ সালে প্রতিষ্ঠিত', 'বিরল প্রাচ্য পাণ্ডুলিপি']
+            },
+            {
+                id: 'pl-19',
+                type: 'place',
+                nameBn: 'নাখোদা মসজিদ',
+                nameEn: 'Nakhoda Mosque',
+                oldName: 'নির্মাণ: ১৯২৬ | নির্মাতা: আবদুর রহিম ওসমান (কচ্ছি মেমন জামাত)',
+                lat: 22.5768,
+                lng: 88.3568,
+                summaryBn: 'আকবরের সমাধিসৌধের আদলে তৈরি কলকাতার বৃহত্তম ঐতিহাসিক মসজিদ।',
+                historyBn: 'চিৎপুর রোড ও জাকারিয়া স্ট্রিটের সংযোগস্থলে অবস্থিত নাখোদা মসজিদ কলকাতার বৃহত্তম মসজিদ। ১৯২৬ সালে গুজরাটের কচ্ছি মেমন সম্প্রদায়ের বিশিষ্ট জাহাজ ব্যবসায়ী (নাবিক বা \'নাখোদা\') আবদুর রহিম ওসমান এর নির্মাণকাজ শুরু করেন। আগ্রার সিকান্দ্রায় অবস্থিত সম্রাট আকবরের সমাধিসৌধের স্থাপত্যশৈলী অনুসরণে এটি নির্মিত।',
+                highlights: ['সিকান্দ্রা স্থাপত্যশৈলী', '১৫১ ফুট উঁচু দুটি মিনার', 'জাকারিয়া স্ট্রিটের ঐতিহ্য']
+            },
+            {
+                id: 'pl-20',
+                type: 'place',
+                nameBn: 'সাউথ পার্ক স্ট্রিট সিমেট্রি',
+                nameEn: 'South Park Street Cemetery',
+                oldName: 'প্রতিষ্ঠা: ১৭৬৭ | বিশ্বের প্রাচীনতম অ-গির্জা খ্রিস্টান সমাধিক্ষেত্রগুলোর অন্যতম',
+                lat: 22.5482,
+                lng: 88.3612,
+                summaryBn: 'হেনরি লুই ভিভিয়ান ডিরোজিও ও স্যার উইলিয়াম জোন্সের সমাধিস্থল।',
+                historyBn: '১৭৬৭ সালে প্রতিষ্ঠিত এই সমাধিক্ষেত্রটি অষ্টাদশ ও উনিশ শতকের কলকাতার ইউরোপীয় ইতিহাসের নীরব সাক্ষী। ইন্দো-গথিক ও মিশরীয় পিরামিড আকৃতির বিশাল সমাধিসৌধগুলোর মাঝে ইয়ং বেঙ্গল আন্দোলনের নেতা হেনরি লুই ভিভিয়ান ডিরোজিও, স্যার উইলিয়াম জোন্স এবং জেনারেল চার্লস স্টুয়ার্টের সমাধি রয়েছে।',
+                highlights: ['ডিরোজিওর সমাধি', 'স্যার উইলিয়াম জোন্সের সমাধি', 'ইন্দো-গথিক সমাধিসৌধ']
+            },
+            {
+                id: 'pl-21',
+                type: 'place',
+                nameBn: 'শোভাবাজার রাজবাড়ি',
+                nameEn: 'Shobhabazar Rajbari',
+                oldName: 'নির্মাণ: ১৭৫৭ | প্রতিষ্ঠাতা: মহারাজা নবকৃষ্ণ দেব',
+                lat: 22.5968,
+                lng: 88.3642,
+                summaryBn: 'পলাশীর যুদ্ধের পর ১৭৫৭ সালে শুরু হওয়া কলকাতার বনেদি দুর্গাপূজার সূতিকাগার।',
+                historyBn: 'পলাশীর যুদ্ধের পর ১৭৫৭ সালে রবার্ট ক্লাইভের সম্মানে মহারাজা নবকৃষ্ণ দেব শোভাবাজার রাজবাড়িতে ঐতিহাসিক দুর্গাপূজার সূচনা করেন। এখানেই স্বামী বিবেকানন্দ শিকাগো ধর্মমহাসভা থেকে ফেরার পর কলকাতাবাসীর পক্ষ থেকে প্রথম নাগরিক সংবর্ধনা পেয়েছিলেন। রাজবাড়ির নাটমন্দির আজও বাংলার বনেদি সংস্কৃতির জীবন্ত প্রতীক।',
+                highlights: ['১৭৫৭ সালের দুর্গাপূজা ঐতিহ্য', 'স্বামী বিবেকানন্দের নাগরিক সংবর্ধনা', 'ঐতিহাসিক নাটমন্দির']
+            },
+            {
+                id: 'pl-22',
+                type: 'place',
+                nameBn: 'সেন্ট জনস চার্চ (জব চার্নকের সমাধি)',
+                nameEn: 'St. John\'s Church',
+                oldName: 'নির্মাণ: ১৭৮৭ | কলকাতার তৃতীয় প্রাচীনতম গির্জা ও জব চার্নকের সমাধিস্থল',
+                lat: 22.5698,
+                lng: 88.3468,
+                summaryBn: 'জোফানির বিখ্যাত \'লাস্ট সাপার\' চিত্রকর্ম ও কলকাতার আদি ইতিহাসের পীঠস্থান।',
+                historyBn: '১৭৮৭ সালে নির্মিত সেন্ট জনস চার্চ ১৮৪৭ সাল পর্যন্ত কলকাতার প্রধান ক্যাথেড্রাল ছিল। এর প্রাঙ্গণেই কলকাতার অন্যতম রূপকার জব চার্নক, বেগম জনসন এবং রোহিলা যুদ্ধের স্মৃতিসৌধ রয়েছে। গির্জার ভেতরে জার্মান চিত্রশিল্পী জোহান জোফানির আঁকা বিখ্যাত \'দ্য লাস্ট সাপার\' তৈলচিত্রটি সংরক্ষিত আছে।',
+                highlights: ['জব চার্নকের সমাধিসৌধ', 'জোফানির লাস্ট সাপার চিত্র', '১৭৮৭ সালের স্থাপত্য']
+            },
+            {
+                id: 'pl-23',
+                type: 'place',
+                nameBn: 'নেতাজি ভবন (এলগিন রোড)',
+                nameEn: 'Netaji Bhawan',
+                oldName: 'নির্মাণ: ১৯০৯ | নির্মাতা: জানকীনাথ বসু',
+                lat: 22.5385,
+                lng: 88.3488,
+                summaryBn: 'নেতাজি সুভাষচন্দ্র বসুর বাসভবন এবং ১৯৪১ সালের ঐতিহাসিক \'মহানিষ্ক্রমণ\'-এর স্থান।',
+                historyBn: '১৯০৯ সালে নেতাজির পিতা জানকীনাথ বসু এই বাড়িটি নির্মাণ করেন। ১৯৪১ সালের ১৬ জানুয়ারি মধ্যরাতে ব্রিটিশ পুলিশের চোখে ধুলো দিয়ে নেতাজি সুভাষচন্দ্র বসু তাঁর ভাইপো শিশির কুমার বসুর চালানো \'ওয়ান্ডারার\' গাড়িতে চড়ে এই বাড়ি থেকেই ঐতিহাসিক \'মহানিষ্ক্রমণ\' করেছিলেন। বর্তমানে এটি নেতাজি রিসার্চ ব্যুরো ও জাদুঘর।',
+                highlights: ['মহানিষ্ক্রমণের ঐতিহাসিক গাড়ি', 'নেতাজির ব্যবহৃত সামগ্রী', 'নেতাজি রিসার্চ ব্যুরো']
+            },
+            {
+                id: 'pl-24',
+                type: 'place',
+                nameBn: 'আর্মেনিয়ান চার্চ অফ দ্য হোলি নাজারেথ',
+                nameEn: 'Armenian Church of the Holy Nazareth',
+                oldName: 'নির্মাণ: ১৭২৪ (বর্তমান ভবন) | কলকাতার প্রাচীনতম বিদ্যমান গির্জা',
+                lat: 22.5782,
+                lng: 88.3505,
+                summaryBn: '১৬৩০ সালের সমাধিফলক বহনকারী কলকাতার প্রাচীনতম খ্রিস্টান গির্জা।',
+                historyBn: 'ইংরেজদের কলকাতায় আসারও আগে আর্মেনীয় বণিকরা সুতানুটি ও কলকাতায় বসতি স্থাপন করেছিলেন। ১৭২৪ সালে নির্মিত এই গির্জাটি কলকাতার প্রাচীনতম বিদ্যমান গির্জা। এর সমাধিক্ষেত্রে ১৬৩০ সালের (জব চার্নকের আগমনের ৬০ বছর আগের) রেজাবিবির সমাধিফলক রয়েছে।',
+                highlights: ['কলকাতার প্রাচীনতম গির্জা', '১৬৩০ সালের সমাধিফলক', 'আর্মেনীয় বণিকদের ইতিহাস']
+            },
+            {
+                id: 'pl-25',
+                type: 'place',
+                nameBn: 'বিড়লা প্ল্যানেটোরিয়াম (তারামণ্ডল)',
+                nameEn: 'M.P. Birla Planetarium',
+                oldName: 'উদ্বোধন: ২ জুলাই ১৯৬৩ | উদ্বোধক: প্রধানমন্ত্রী জওহরলাল নেহরু',
+                lat: 22.5455,
+                lng: 88.3472,
+                summaryBn: 'বৌদ্ধ স্তূপ সাঁচীর আদলে নির্মিত এশিয়ার প্রথম ও বিশ্বের অন্যতম বৃহৎ তারামণ্ডল।',
+                historyBn: '১৯৬৩ সালে জওহরলাল নেহরু এই তারামণ্ডলটির উদ্বোধন করেন। এর গম্বুজাকৃতি স্থাপত্যটি মধ্যপ্রদেশের ঐতিহাসিক সাঁচী স্তূপের অনুকরণে তৈরি। জ্যোতির্বিজ্ঞান ও মহাকাশ চর্চার ক্ষেত্রে এটি কলকাতার অন্যতম শ্রেষ্ঠ শিক্ষামূলক কেন্দ্র।',
+                highlights: ['সাঁচী স্তূপের স্থাপত্যশৈলী', 'এশিয়ার প্রথম তারামণ্ডল', 'মহাকাশ বিজ্ঞান প্রদর্শনী']
+            }
+        ];
+
+        // ============================================================================
+        // 1B. EXTENDED DATABASE OF 175+ ADDITIONAL HISTORIC KOLKATA STREETS & LANES
+        // (কলকাতার উত্তর, মধ্য, দক্ষিণ, পূর্ব ও পশ্চিমের আরও ১৭৫+ ঐতিহাসিক রাস্তা ও লেন)
+        // ============================================================================
+        const extendedKolkataStreets = [
+            // North Kolkata Streets (উত্তর কলকাতার ঐতিহাসিক রাস্তা সমূহ)
+            ['বাগবাজার স্ট্রিট', 'Bagbazar Street', 'বাগবাজার ঘাট ও গিরিশ ঘোষের স্মৃতিবিজড়িত প্রাচীন সড়ক', 22.6042, 88.3665, 'উত্তর কলকাতার অন্যতম প্রাচীন পথ; সারদা মায়ের বাসভবন ও গিরিশ মঞ্চ সংলগ্ন।'],
+            ['গিরিশ অ্যাভিনিউ', 'Girish Avenue', 'নাট্যাচার্য গিরিশচন্দ্র ঘোষের নামানুসারে নির্মিত রাজপথ', 22.6025, 88.3675, 'বাংলা রঙ্গমঞ্চের জনক গিরিশচন্দ্র ঘোষের স্মৃতিতে বাগবাজার-শ্যামবাজার সংযোগকারী প্রশস্ত সড়ক।'],
+            ['ভূপেন বোস অ্যাভিনিউ', 'Bhupen Bose Avenue', 'স্বাধীনতা সংগ্রামী ও কংগ্রেস সভাপতি ভূপেন্দ্রনাথ বসুর নামে', 22.6008, 88.3695, 'শ্যামবাজার পাঁচমাথার মোড় থেকে গিরিশ অ্যাভিনিউ যুক্তকারী প্রধান রাজপথ।'],
+            ['রাজা নবকৃষ্ণ স্ট্রিট', 'Raja Nabakrishna Street', 'শোভাবাজার রাজবাড়ির প্রতিষ্ঠাতা মহারাজা নবকৃষ্ণ দেবের নামে', 22.5962, 88.3652, 'শোভাবাজার রাজবাড়ি ও ঐতিহাসিক দুর্গাপূজার স্মৃতি বিজড়িত রাস্তা।'],
+            ['বি.কে. পাল অ্যাভিনিউ (বটকৃষ্ণ পাল অ্যাভিনিউ)', 'B.K. Paul Avenue', 'বিশিষ্ট ওষুধ ব্যবসায়ী ও দানবীর বটকৃষ্ণ পালের নামানুসারে', 22.5955, 88.3622, 'শোভাবাজার ও আহিরীটোলাকে যুক্তকারী ঐতিহাসিক রাজপথ।'],
+            ['আহিরীটোলা স্ট্রিট', 'Ahiritola Street', 'অষ্টাদশ শতকে গোয়ালা বা \'আহির\' সম্প্রদায়ের বসতির নামানুসারে', 22.5948, 88.3565, 'গঙ্গার তীরবর্তী প্রাচীন ঘাট ও ঐতিহ্যবাহী দুর্গাপূজার জন্য পরিচিত।'],
+            ['নিমতলা ঘাট স্ট্রিট', 'Nimtala Ghat Street', 'প্রাচীন নিমতলা মহাশ্মশান ও ভূতনাথ মন্দিরের সংযোগকারী পথ', 22.5905, 88.3552, 'রবীন্দ্রনাথ ঠাকুরের অন্ত্যেষ্টিক্রিয়ার স্মৃতি বিজড়িত নিমতলা ঘাটের প্রধান রাস্তা।'],
+            ['বিডন স্ট্রিট (অভেদানন্দ রোড)', 'Beadon Street / Abhedananda Road', 'বাংলার লেফটেন্যান্ট গভর্নর স্যার সেসিল বিডনের নামানুসারে', 22.5872, 88.3645, 'মিনার্ভা থিয়েটার ও বিডন স্কোয়ারের ঐতিহ্যবাহী সড়ক; পরে স্বামী অভেদানন্দের নামে নামকরণ।'],
+            ['গ্রে স্ট্রিট (অরবিন্দ সরণি)', 'Grey Street / Aurobindo Sarani', 'বাংলার গভর্নর স্যার উইলিয়াম গ্রে-র নামে; পরে শ্রীঅরবিন্দের নামে', 22.5965, 88.3685, 'হাতিবাগান ও শোভাবাজারকে যুক্তকারী গুরুত্বপূর্ণ বাণিজ্যিক ও সাংস্কৃতিক রাজপথ।'],
+            ['মানিকতলা মেইন রোড', 'Maniktala Main Road', 'প্রাচীন মানিকপীরের দরগা ও মানিকতলা বাজারের সংযোগকারী সড়ক', 22.5865, 88.3785, 'উত্তর ও পূর্ব কলকাতার সংযোগকারী প্রাচীন বাণিজ্যিক রাস্তা।'],
+            ['উল্টোডাঙা মেইন রোড (বিধাননগর রোড)', 'Ultadanga Main Road', 'গঙ্গার খাঁড়িতে নৌকা উল্টে যাওয়ার লোককথা থেকে \'উল্টোডাঙা\' নাম', 22.5935, 88.3865, 'সল্টলেক ও উত্তর কলকাতার প্রধান প্রবেশদ্বার।'],
+            ['কাঁকুড়গাছি রোড', 'Kankurgachi Road', 'প্রাচীন কাঁকুড় চাষের ক্ষেত থেকে নামকরণ; যোগোদ্যানের স্মৃতি', 22.5795, 88.3895, 'শ্রীরামকৃষ্ণদেবের পবিত্র স্মৃতিধন্য কাঁকুড়গাছি যোগোদ্যান সংলগ্ন সড়ক।'],
+            ['নারকেলডাঙা মেইন রোড (মৌলানা আবুল কালাম আজাদ সরণি)', 'Narkeldanga Main Road', 'নারকেল বাগানের প্রাচীন জনপদ; পরে মৌলানা আজাদের নামে', 22.5755, 88.3815, 'শিয়ালদহ ও ফুলবাগান-বেলেঘাটা অঞ্চলকে যুক্তকারী প্রাচীন সড়ক।'],
+            ['বেলেঘাটা মেইন রোড', 'Beleghata Main Road', 'বালিয়া বা বালি ঘাটের প্রাচীন বাণিজ্যকেন্দ্রের পথ', 22.5675, 88.3885, '১৯৪৭ সালের আগস্টে মহাত্মা গান্ধীর ঐতিহাসিক অনশন ও শান্তি মিশনের হায়দারি মঞ্জিল এই রাস্তায় অবস্থিত।'],
+            ['সিমলা স্ট্রিট (স্বামী বিবেকানন্দ রোড)', 'Simla Street', 'প্রাচীন সিমলা গ্রাম; স্বামী বিবেকানন্দের জন্মস্থান', 22.5862, 88.3662, '১৮৬৩ সালের ১২ জানুয়ারি এখানেই নরেন্দ্রনাথ দত্ত (স্বামী বিবেকানন্দ) জন্মগ্রহণ করেন।'],
+            ['মুক্তারাম বাবু স্ট্রিট', 'Muktaram Babu Street', 'উনিশ শতকের দানবীর মুক্তারাম দে-র নামানুসারে', 22.5825, 88.3605, 'বিখ্যাত মার্বেল প্যালেস ও চোরবাগান অঞ্চলের ঐতিহ্যবাহী রাস্তা।'],
+            ['তারক প্রামাণিক রোড', 'Tarak Pramanik Road', 'উত্তর কলকাতার প্রাচীন ব্যবসায়ী তারকনাথ প্রামাণিকের নামে', 22.5842, 88.3618, 'জোড়াসাঁকো ও বিধান সরণির সংযোগকারী বনেদি পাড়ার রাস্তা।'],
+            ['দ্বারকানাথ ঠাকুর লেন', 'Dwarkanath Tagore Lane', 'প্রিন্স দ্বারকানাথ ঠাকুরের নামানুসারে জোড়াসাঁকোর ঐতিহাসিক গলি', 22.5850, 88.3595, 'জোড়াসাঁকো ঠাকুরবাড়ির মূল প্রবেশপথ ও বাংলার নবজাগরণের কেন্দ্র।'],
+            ['বড়তলা স্ট্রিট', 'Bartala Street', 'বটতলার ছাপাখানা ও উনিশ শতকের বাংলা বই প্রকাশনার কেন্দ্র', 22.5815, 88.3565, 'বাংলা মুদ্রণ ও \'বটতলার সাহিত্য\'-এর ঐতিহাসিক পীঠস্থান।'],
+            ['পাথুরিয়াঘাটা স্ট্রিট', 'Pathuriaghata Street', 'হুগলি নদীর পাথুরে ঘাট ও ঠাকুর পরিবারের অপর শাখার বাসস্থান', 22.5892, 88.3568, 'মহারাজা যতীন্দ্রমোহন ঠাকুরের প্রাসাদ ও সংগীত চর্চার ঐতিহ্যবাহী রাস্তা।'],
+            ['দর্পনারায়ণ ঠাকুর স্ট্রিট', 'Darpanarayan Tagore Street', 'পাথুরিয়াঘাটা ঠাকুর বংশের প্রতিষ্ঠাতা দর্পনারায়ণ ঠাকুরের নামে', 22.5885, 88.3562, 'উত্তর কলকাতার বনেদি সংস্কৃতি ও প্রাচীন অট্টালিকার সড়ক।'],
+            ['মসজিদবাড়ি স্ট্রিট', 'Masjidbari Street', 'অষ্টাদশ শতকের প্রাচীন মসজিদ সংলগ্ন উত্তর কলকাতার রাস্তা', 22.5925, 88.3645, 'শোভাবাজার ও চিৎপুর অঞ্চলের প্রাচীন জনপদের সড়ক।'],
+            ['দুর্গাচরণ মিত্র স্ট্রিট', 'Durgacharan Mitra Street', 'সোনাগাছি ও দর্জিপাড়া অঞ্চলের ঐতিহাসিক রাস্তা', 22.5912, 88.3638, 'উত্তর কলকাতার পুরনো স্থাপত্য ও বনেদি বাড়ির সারি।'],
+            ['নন্দনবাগান স্ট্রিট', 'Nandanbagan Street', 'গৌরীবাড়ি ও হাতিবাগান সংলগ্ন প্রাচীন বাগানবাড়ি অঞ্চল', 22.5938, 88.3712, 'উত্তর কলকাতার ঐতিহ্যবাহী আবাসিক রাস্তা।'],
+            ['গৌরীবাড়ি লেন', 'Gouribari Lane', 'হাতিবাগান-উল্টোডাঙা সংযোগকারী প্রাচীন জনপদ', 22.5918, 88.3745, 'উত্তর কলকাতার পুরনো বাগানবাড়ি ও পুকুরের স্মৃতিবাহী রাস্তা।'],
+            ['শ্যামপুকুর স্ট্রিট', 'Shyampukur Street', 'শ্রীরামকৃষ্ণদেবের শেষ জীবনের সাধন ও চিকিৎসা স্থল (শ্যামপুকুর বাটী)', 22.5992, 88.3688, '১৮৮৫ সালে শ্রীরামকৃষ্ণ এখানে অবস্থান করেছিলেন; উত্তর কলকাতার বনেদি পাড়া।'],
+            ['রামধন মিত্র লেন', 'Ramdhan Mitra Lane', 'শ্যামপুকুর অঞ্চলের ঐতিহাসিক আবাসিক গলি', 22.5998, 88.3695, 'উত্তর কলকাতার পুরনো স্থাপত্য ও দুর্গাপূজার ঐতিহ্য।'],
+            ['বলরাম বোস ঘাট রোড', 'Balaram Bose Ghat Road', 'রামকৃষ্ণ ভক্ত বলরাম বসুর নামানুসারে বাগবাজারের রাস্তা', 22.6035, 88.3652, 'বাগবাজারের বলরাম মন্দির সংলগ্ন ঐতিহাসিক পথ।'],
+            ['কাশীপুর রোড', 'Cossipore Road', 'কাশীপুর উদ্যানবাটী ও প্রাচীন গান অ্যান্ড শেল ফ্যাক্টরির সড়ক', 22.6185, 88.3715, '১৮৮৬ সালের ১ জানুয়ারি শ্রীরামকৃষ্ণ এখানেই \'কল্পতরু\' হয়েছিলেন।'],
+            ['দমদম রোড', 'Dum Dum Road', '১৭৮৩ সালে প্রতিষ্ঠিত ব্রিটিশ আর্টিলারি হেডকোয়ার্টার ও দমদম হাউসের পথ', 22.6215, 88.3925, 'রবার্ট ক্লাইভের ঐতিহাসিক দমদম হাউস ও প্রাচীন সেনানিবাসের সড়ক।'],
+            ['বি.টি. রোড (ব্যারাকপুর ট্রাঙ্ক রোড)', 'B.T. Road (Barrackpore Trunk Road)', '১৭৭৫ সালে কলকাতা ও ব্যারাকপুর সেনানিবাসকে যুক্ত করতে নির্মিত মহাসড়ক', 22.6250, 88.3765, 'ইন্ডিয়ান স্ট্যাটিস্টিক্যাল ইনস্টিটিউট (ISI) ও রবীন্দ্রভারতী বিশ্ববিদ্যালয় এই রাস্তায় অবস্থিত।'],
+            ['চিৎপুর লক গেট রোড', 'Chitpur Lock Gate Road', 'সার্কুলার ক্যানাল ও হুগলি নদীর সংযোগস্থলের লক গেট সড়ক', 22.6085, 88.3722, 'উত্তর কলকাতার খাল ও জলপথ বাণিজ্যের ঐতিহাসিক সাক্ষী।'],
+            ['বেলগাছিয়া রোড', 'Belgachia Road', 'প্রিন্স দ্বারকানাথ ঠাকুরের ঐতিহাসিক \'বেলগাছিয়া ভিলা\'-র সড়ক', 22.6065, 88.3825, 'উনিশ শতকে দ্বারকানাথ ঠাকুরের বাগানবাড়িতে ইউরোপীয় ও বাঙালি অভিজাতদের মিলনমেলা বসত।'],
+            ['পাইকপাড়া রাজা মণীন্দ্র রোড', 'Paikpara Raja Manindra Road', 'পাইকপাড়া রাজবাড়ির রাজা মণীন্দ্রচন্দ্র সিংহের নামানুসারে', 22.6125, 88.3785, 'পাইকপাড়া রাজবাড়ি ও উত্তর কলকাতার বনেদি সংস্কৃতির কেন্দ্র।'],
+            ['টালা ব্রিজ অ্যাপ্রোচ (ইন্দিরা গান্ধী সরণি উত্তর)', 'Tala Bridge Road', '১৯৬২ সালে নির্মিত ঐতিহাসিক টালা সেতু সংলগ্ন রাজপথ', 22.6095, 88.3768, 'উত্তর কলকাতা ও উত্তর শহরতলির প্রধান সংযোগপথ।'],
+
+            // Central Kolkata Streets (মধ্য কলকাতার ঐতিহাসিক রাস্তা সমূহ)
+            ['ব্রেবোর্ন রোড', 'Brabourne Road', 'বাংলার গভর্নর লর্ড ব্রেবোর্নের নামানুসারে নির্মিত বাণিজ্যিক সড়ক', 22.5758, 88.3488, 'হাওড়া ব্রিজ থেকে বি.বা.দী. বাগ যুক্তকারী ব্যস্ততম পাইকারি বাজারের রাস্তা।'],
+            ['ক্যানিং স্ট্রিট (বিপ্লবী রাসবিহারী বসু রোড)', 'Canning Street / Biplabi Rashbehari Basu Road', 'ভাইসরয় লর্ড ক্যানিংয়ের নামে; পরে বিপ্লবী রাসবিহারী বসুর নামে', 22.5765, 88.3512, 'কলকাতার বৃহত্তম পাইকারি বাজার এবং মাগেন ডেভিড সিনাগগ সংলগ্ন সড়ক।'],
+            ['পোস্তা (মহর্ষি দেবেন্দ্র রোড)', 'Posta / Maharshi Debendra Road', 'মুঘল আমলের শুল্কঘর বা \'পোস্তা\'; পরে মহর্ষি দেবেন্দ্রনাথ ঠাকুরের নামে', 22.5835, 88.3522, 'বড়বাজারের ঐতিহাসিক মশলা, খাদ্যশস্য ও পাইকারি বাণিজ্যের প্রাণকেন্দ্র।'],
+            ['কটন স্ট্রিট', 'Cotton Street', 'ব্রিটিশ আমলে তুলা ও বস্ত্র বাণিজ্যের প্রধান কেন্দ্র', 22.5798, 88.3535, 'বড়বাজারের শতাব্দীপ্রাচীন কাপড়ের বাজার।'],
+            ['হ্যারিসন-বড়বাজার ক্রসিং (কলাকার স্ট্রিট)', 'Kalakar Street', 'বড়বাজারের ঐতিহ্যবাহী মারোয়াড়ি ও বাঙালি ব্যবসায়ী পাড়া', 22.5812, 88.3538, 'সত্যনারায়ণ পার্ক ও বড়বাজারের প্রাচীন বাণিজ্যিক রাস্তা।'],
+            ['চাঁদনি চক স্ট্রিট', 'Chandni Chowk Street', 'দিল্লির চাঁদনি চকের আদলে তৈরি কলকাতার ইলেকট্রনিক্স ও হার্ডওয়্যার বাজার', 22.5665, 88.3532, 'মধ্য কলকাতার শতাব্দীপ্রাচীন বাজার ও মেট্রো স্টেশন সংলগ্ন রাস্তা।'],
+            ['গণেশ চন্দ্র অ্যাভিনিউ', 'Ganesh Chandra Avenue', 'বিশিষ্ট আইনজীবী ও রাজনীতিবিদ গণেশ চন্দ্র চন্দরের নামানুসারে', 22.5678, 88.3555, 'সেন্ট্রাল অ্যাভিনিউ থেকে মিশন রো যুক্তকারী বাণিজ্যিক সড়ক।'],
+            ['সেন্ট্রাল অ্যাভিনিউ (চিত্তরঞ্জন অ্যাভিনিউ)', 'Chittaranjan Avenue (Central Avenue)', 'দেশবন্ধু চিত্তরঞ্জন দাশের নামানুসারে নির্মিত উত্তর-দক্ষিণ ধমনী সড়ক', 22.5745, 88.3585, 'ক্যালকাটা ইমপ্রুভমেন্ট ট্রাস্ট (CIT) নির্মিত কলকাতার দীর্ঘতম ও প্রশস্ততম রাজপথগুলোর অন্যতম; প্রথম পাতাল রেল এই রাস্তার নিচ দিয়ে চলে।'],
+            ['মিশন রো (আর.এন. মুখার্জি রোড)', 'Mission Row / R.N. Mukherjee Road', '১৭৭০ সালে নির্মিত কলকাতার প্রাচীনতম প্রোটেস্ট্যান্ট \'ওল্ড মিশন চার্চ\'-এর নামে', 22.5702, 88.3508, 'পরবর্তীকালে শিল্পপতি স্যার রাজেন্দ্রনাথ মুখোপাধ্যায়ের নামে নামকরণ করা হয়।'],
+            ['লালবাজার স্ট্রিট', 'Lalbazar Street', 'লালদিঘির পূর্ব প্রান্তে অবস্থিত কলকাতা পুলিশ সদর দপ্তরের সড়ক', 22.5722, 88.3515, '১৮৬৮ সাল থেকে কলকাতা পুলিশের সদর দপ্তর লালবাজার এই রাস্তায় অবস্থিত।'],
+            ['রাধা বাজার স্ট্রিট', 'Radha Bazar Street', 'ব্রিটিশ আমলের ঘড়ি, চশমা ও বাদ্যযন্ত্রের ঐতিহাসিক বাজার', 22.5735, 88.3505, 'বি.বা.দী. বাগ সংলগ্ন প্রাচীন বাণিজ্যিক গলি।'],
+            ['চায়না বাজার স্ট্রিট', 'Old China Bazar Street', 'অষ্টাদশ শতকে চীনা বণিকদের চীনামাটি ও রেশম বাণিজ্যের কেন্দ্র', 22.5742, 88.3502, 'রাইটার্স বিল্ডিংয়ের উত্তরে অবস্থিত ঐতিহাসিক বাজার।'],
+            ['নেতাজি সুভাষ রোড (ক্লাইভ স্ট্রিট)', 'Netaji Subhas Road / Clive Street', 'রবার্ট ক্লাইভের নামানুসারে ক্লাইভ স্ট্রিট; স্বাধীনতার পর নেতাজি সুভাষ রোড', 22.5748, 88.3478, 'ব্রিটিশ ভারতের প্রধান ব্যাংকিং ও বাণিজ্যিক কেন্দ্র (রয়্যাল এক্সচেঞ্জ ও বেঙ্গল চেম্বার অফ কমার্স এখানে অবস্থিত)।'],
+            ['ফেয়ারলি প্লেস', 'Fairlie Place', 'উইলিয়াম ফেয়ারলির নামানুসারে; পূর্ব রেলওয়ের সদর দপ্তর', 22.5742, 88.3458, '১৮৫৪ সালে হাওড়া-হুগলি রেলপথ চালুর ইতিহাস ও পূর্ব রেলের ঐতিহ্যবাহী ভবন এখানে অবস্থিত।'],
+            ['কয়লাঘাট স্ট্রিট', 'Koilaghat Street', 'ইস্ট ইন্ডিয়া কোম্পানির কয়লা ও কাঠের ডিপোর ঘাট থেকে নামকরণ', 22.5715, 88.3452, 'জি.পি.ও ও পূর্ব রেলওয়ে দপ্তর সংলগ্ন ঐতিহাসিক রাস্তা।'],
+            ['হেয়ার স্ট্রিট', 'Hare Street', 'বাংলার আধুনিক শিক্ষার অগ্রদূত ডেভিড হেয়ারের নামানুসারে', 22.5708, 88.3462, 'মেটকাফ হল ও হেয়ার স্ট্রিট থানার ঐতিহ্যবাহী সড়ক।'],
+            ['ওল্ড পোস্ট অফিস স্ট্রিট', 'Old Post Office Street', '১৭৭৪ সালে কলকাতার প্রথম জেনারেল পোস্ট অফিসের অবস্থানের কারণে নাম', 22.5688, 88.3448, 'কলকাতা হাইকোর্টের পশ্চিম প্রান্তের ঐতিহাসিক আইনজীবী পাড়া।'],
+            ['এসপ্ল্যানেড রো ইস্ট', 'Esplanade Row East', 'ফোর্ট উইলিয়াম ও গভর্নমেন্ট হাউসের মধ্যবর্তী খোলা ময়দান বা এসপ্ল্যানেড', 22.5675, 88.3485, 'রাজভবন (গভর্নমেন্ট হাউস)-এর দক্ষিণ প্রান্তের রাজপথ।'],
+            ['এসপ্ল্যানেড রো ওয়েস্ট', 'Esplanade Row West', 'কলকাতা হাইকোর্ট ও টাউন হলের সামনের ঐতিহাসিক সড়ক', 22.5682, 88.3452, 'হাইকোর্ট, টাউন হল ও বিধানসভা ভবনের সংযোগকারী রাজপথ।'],
+            ['রানি রাসমণি অ্যাভিনিউ', 'Rani Rashmoni Avenue', 'জানবাজারের লোকমাতা রানি রাসমণির নামানুসারে নির্মিত রাজপথ', 22.5655, 88.3498, 'ধর্মতলা ও ময়দানের সংযোগস্থলে ঐতিহাসিক জনসভার মঞ্চ।'],
+            ['এস.এন. ব্যানার্জি রোড (কর্পোরেশন স্ট্রিট)', 'S.N. Banerjee Road / Corporation Street', 'রাষ্ট্রগুরু সুরেন্দ্রনাথ বন্দ্যোপাধ্যায়ের নামানুসারে নামাঙ্কিত', 22.5635, 88.3552, 'কলকাতা পৌরসংস্থার (KMC) সদর দপ্তর এই রাস্তার ওপর অবস্থিত।'],
+            ['রফি আহমেদ কিদওয়াই রোড (ওয়েলেসলি স্ট্রিট)', 'Rafi Ahmed Kidwai Road / Wellesley Street', 'গভর্নর জেনারেল লর্ড ওয়েলেসলির নামে; পরে স্বাধীনতা সংগ্রামী রফি আহমেদ কিদওয়াইয়ের নামে', 22.5605, 88.3575, 'কলকাতা মাদ্রাসা (আলিয়া বিশ্ববিদ্যালয়) ও ওয়েলেসলি স্কোয়ারের ঐতিহ্যবাহী রাস্তা।'],
+            ['মির্জাপুর স্ট্রিট (সূর্য সেন স্ট্রিট)', 'Mirzapur Street / Surya Sen Street', 'মাস্টারদা সূর্য সেনের নামে পুনঃনামকরণকৃত কলেজ স্ট্রিট সংলগ্ন সড়ক', 22.5742, 88.3645, 'শিয়ালদহ ও কলেজ স্ট্রিটকে যুক্তকারী ছাত্র আন্দোলনের ঐতিহাসিক পথ।'],
+            ['বৈঠকখানা রোড', 'Baithakkhana Road', 'জব চার্নকের বিশ্রাম নেওয়ার বিশাল বটগাছ বা \'বৈঠকখানা\'-র স্মৃতি', 22.5715, 88.3685, 'শিয়ালদহ সংলগ্ন প্রাচীন বাজার ও ঐতিহাসিক বটবৃক্ষের স্মৃতিবাহী সড়ক।'],
+            ['কলেজ স্কোয়ার (বঙ্কিম চ্যাটার্জি স্ট্রিট)', 'Bankim Chatterjee Street', 'সাহিত্যসম্রাট বঙ্কিমচন্দ্র চট্টোপাধ্যায়ের নামানুসারে', 22.5748, 88.3632, 'কলকাতা বিশ্ববিদ্যালয়ের আশুতোষ বিল্ডিং ও গোলদিঘির (কলেজ স্কোয়ার) পাশের রাস্তা।'],
+            ['হেয়ার স্ট্রিট-কলেজ স্ট্রিট সংযোগ (পটলডাঙা স্ট্রিট)', 'Pataldanga Street', 'ঠনঠনিয়া ও কলেজ স্ট্রিট সংলগ্ন প্রাচীন জনপদ', 22.5772, 88.3652, 'উনিশ শতকের বাংলা নাটক ও সাহিত্য চর্চার কেন্দ্র।'],
+            ['তালতলা লেন', 'Taltala Lane', 'প্রাচীন তালগাছের সারি ও কাজী নজরুল ইসলামের স্মৃতিবিজড়িত এলাকা', 22.5612, 88.3595, 'মধ্য কলকাতার মিশ্র সংস্কৃতি ও সাহিত্য চর্চার ঐতিহ্যবাহী পাড়া।'],
+            ['জানবাজার স্ট্রিট (রানি রাসমণি রোড)', 'Janbazar Street', 'রানি রাসমণির ঐতিহাসিক বাসভবন ও জানবাজার রাজবাড়ির সড়ক', 22.5618, 88.3542, 'নিউ মার্কেটের উত্তর-পূর্বে অবস্থিত রানি রাসমণির স্মৃতিধন্য রাস্তা।'],
+            ['মার্কুইস স্ট্রিট', 'Marquis Street', 'গভর্নর জেনারেল মার্কুইস অফ ওয়েলেসলির নামানুসারে', 22.5592, 88.3548, 'নিউ মার্কেট ও সদর স্ট্রিট সংলগ্ন ঐতিহাসিক আবাসিক সড়ক।'],
+            ['কাইড স্ট্রিট (ড. মহম্মদ ইশাক রোড)', 'Kyd Street', 'কলকাতা বোটানিক্যাল গার্ডেনের প্রতিষ্ঠাতা কর্নেল রবার্ট কাইডের নামে', 22.5562, 88.3525, 'পার্ক স্ট্রিট ও সদর স্ট্রিটের মধ্যবর্তী ঐতিহাসিক রাস্তা।'],
+            ['রাসেল স্ট্রিট (আনন্দীলাল পোদ্দার সরণি)', 'Russell Street', 'প্রধান বিচারপতি স্যার হেনরি রাসেলের নামানুসারে', 22.5512, 88.3515, 'পার্ক স্ট্রিট ও মিডলটন স্ট্রিটের সংযোগকারী অভিজাত সড়ক।'],
+            ['মিডলটন স্ট্রিট (স্যার উইলিয়াম জোন্স সরণি)', 'Middleton Street / Sir William Jones Sarani', 'স্যামুয়েল মিডলটনের নামে; পরে এশিয়াটিক সোসাইটির প্রতিষ্ঠাতা উইলিয়াম জোন্সের নামে', 22.5522, 88.3508, 'চৌরঙ্গী ও ক্যামাক স্ট্রিটের মধ্যবর্তী ঐতিহাসিক রাস্তা।'],
+            ['লিটল রাসেল স্ট্রিট', 'Little Russell Street', 'রাসেল স্ট্রিটের সমান্তরাল ব্রিটিশ আমলের অভিজাত সড়ক', 22.5498, 88.3512, 'শেক্সপিয়র সরণি ও মিডলটন স্ট্রিটের সংযোগপথ।'],
+            ['উড স্ট্রিট', 'Wood Street', 'ইস্ট ইন্ডিয়া কোম্পানির কর্মকর্তা হেনরি উডের নামানুসারে', 22.5505, 88.3542, 'পার্ক স্ট্রিট ও শেক্সপিয়র সরণিকে যুক্তকারী বনেদি রাস্তা।'],
+            ['লাউডন স্ট্রিট (ড. ইউ.এন. ব্রহ্মচারী স্ট্রিট)', 'Loudon Street / Dr. U.N. Brahmachari Street', 'কালাজ্বরের ওষুধ \'ইউরিয়া স্টিবামাইন\'-এর আবিষ্কারক ড. উপেন্দ্রনাথ ব্রহ্মচারীর নামে', 22.5485, 88.3562, 'পার্ক স্ট্রিট ও এ.জে.সি. বোস রোড সংযোগকারী অভিজাত সড়ক।'],
+            ['রডন স্ট্রিট (সুরেন্দ্র মোহন ঘোষ সরণি)', 'Rawdon Street', 'মার্কুইস অফ হেস্টিংস (আর্ল অফ রডন)-এর নামানুসারে', 22.5472, 88.3555, 'শেক্সপিয়র সরণি ও পার্ক স্ট্রিট সংলগ্ন শান্ত আবাসিক সড়ক।'],
+            ['হঙ্গারফোর্ড স্ট্রিট (পিকাসো বিথী)', 'Hungerford Street / Picasso Bithi', 'বিখ্যাত চিত্রশিল্পী পাবলো পিকাসোর নামে পুনঃনামকরণকৃত সড়ক', 22.5452, 88.3552, 'শেক্সপিয়র সরণি ও এ.জে.সি. বোস রোডের সংযোগকারী রাস্তা।'],
+            ['অ্যালবার্ট রোড (গগনেন্দ্রনাথ ঠাকুর সরণি)', 'Albert Road / Gaganendranath Tagore Sarani', 'প্রিন্স অ্যালবার্টের নামে; পরে ব্যঙ্গচিত্রশিল্পী গগনেন্দ্রনাথ ঠাকুরের নামে', 22.5462, 88.3538, 'ক্যামাক স্ট্রিট সংলগ্ন অভিজাত আবাসিক সড়ক।'],
+            ['লর্ড সিনহা রোড', 'Lord Sinha Road', 'ব্রিটিশ ভারতের প্রথম ভারতীয় গভর্নর লর্ড সত্যেন্দ্রপ্রসন্ন সিংহের নামে', 22.5445, 88.3522, 'শেক্সপিয়র সরণি ও এ.জে.সি. বোস রোড সংযোগকারী ঐতিহাসিক রাস্তা।'],
+            ['প্রিটোরিয়া স্ট্রিট', 'Pretoria Street', 'দক্ষিণ আফ্রিকার প্রিটোরিয়া শহরের নামানুসারে ব্রিটিশ আমলের রাস্তা', 22.5468, 88.3528, 'থিয়েটার রোড সংলগ্ন শান্ত আবাসিক গলি।'],
+            ['লিন্টন স্ট্রিট', 'Linton Street', 'এন্টালি ও বেনিয়াপুকুর অঞ্চলের ঐতিহাসিক সংযোগ সড়ক', 22.5495, 88.3685, 'মধ্য-পূর্ব কলকাতার পুরনো আবাসিক ও বাজার এলাকার রাস্তা।'],
+            ['কনভেন্ট রোড', 'Convent Road', 'এন্টালি কনভেন্ট স্কুলের নামানুসারে নির্মিত ঐতিহাসিক সড়ক', 22.5565, 88.3745, 'শিয়ালদহ-এন্টালি অঞ্চলের শতাব্দীপ্রাচীন শিক্ষা প্রতিষ্ঠানের রাস্তা।'],
+            ['ড. সুরেশ সরকার রোড', 'Dr. Suresh Sarkar Road', 'এন্টালি ও মৌলালি সংযোগকারী ঐতিহাসিক রাজপথ', 22.5615, 88.3695, 'মৌলালি মোড় ও এন্টালি মার্কেটকে যুক্তকারী ব্যস্ত সড়ক।'],
+            ['সি.আই.টি. রোড (সুন্দরী মোহন অ্যাভিনিউ)', 'C.I.T. Road (Entally / Park Circus)', 'ক্যালকাটা ইমপ্রুভমেন্ট ট্রাস্ট (CIT) নির্মিত পরিকল্পিত প্রশস্ত সড়ক', 22.5525, 88.3715, 'পার্ক সার্কাস ও মৌলালি-বেলেঘাটা অঞ্চলের প্রধান সংযোগকারী রাজপথ।'],
+            ['সৈয়দ আমির আলি অ্যাভিনিউ', 'Syed Amir Ali Avenue', 'বিশিষ্ট আইনজ্ঞ ও ইতিহাসবিদ সৈয়দ আমির আলির নামানুসারে', 22.5385, 88.3665, 'পার্ক সার্কাস সেভেন পয়েন্ট থেকে বালিগঞ্জ যুক্তকারী প্রধান রাজপথ।'],
+            ['দরগা রোড', 'Darga Road', 'পার্ক সার্কাস অঞ্চলের প্রাচীন পীরের দরগা সংলগ্ন রাস্তা', 22.5445, 88.3695, 'পার্ক সার্কাস ও এন্টালি অঞ্চলের ঐতিহাসিক সড়ক।'],
+            ['ব্রাইট স্ট্রিট', 'Bright Street', 'পার্ক সার্কাস ও তিলজলা সংযোগকারী ঐতিহাসিক রাস্তা', 22.5395, 88.3712, 'দক্ষিণ-পূর্ব কলকাতার পুরনো আবাসিক অঞ্চল।'],
+            ['রাইফেল রেঞ্জ রোড', 'Rifle Range Road', 'ব্রিটিশ সামরিক বাহিনীর রাইফেল অনুশীলন ক্ষেত্রের স্মৃতিবাহী সড়ক', 22.5365, 88.3695, 'পার্ক সার্কাস ও বালিগঞ্জ পার্ক সংযোগকারী রাস্তা।'],
+
+            // South & West Kolkata Streets (দক্ষিণ ও পশ্চিম কলকাতার ঐতিহাসিক রাস্তা সমূহ)
+            ['বালিগঞ্জ পার্ক রোড', 'Ballygunge Park Road', 'বালিগঞ্জের অভিজাত আবাসিক এলাকা ও বাগানবাড়ির সড়ক', 22.5345, 88.3662, 'উনিশ ও বিশ শতকের স্থাপত্যসমৃদ্ধ বনেদি পাড়ার রাস্তা।'],
+            ['গুরুসদয় দত্ত রোড (বালিগঞ্জ স্টোর রোড)', 'Gurusaday Dutta Road / Ballygunge Store Road', 'ব্রতচারী আন্দোলনের জনক গুরুসদয় দত্তের নামানুসারে', 22.5312, 88.3645, 'বিড়লা ইন্ডাস্ট্রিয়াল অ্যান্ড টেকনোলজিক্যাল মিউজিয়াম (BITM) এই রাস্তায় অবস্থিত।'],
+            ['ওল্ড বালিগঞ্জ রোড', 'Old Ballygunge Road', 'বালিগঞ্জ অঞ্চলের প্রাচীনতম জনপদ ও বালিগঞ্জ ফাঁড়ি সংলগ্ন সড়ক', 22.5325, 88.3675, 'বালিগঞ্জের ইতিহাস ও ঐতিহ্যের সাক্ষী।'],
+            ['বন্ডেল রোড', 'Bondel Road', 'বালিগঞ্জ-কসবা সংযোগকারী ব্রিটিশ আমলের রেলগেট ও শিল্পাঞ্চল সড়ক', 22.5265, 88.3715, 'বালিগঞ্জ স্টেশন ও পিকনিক গার্ডেনের সংযোগপথ।'],
+            ['পিকনিক গার্ডেন রোড', 'Picnic Garden Road', 'ব্রিটিশ আমলে ইউরোপীয়দের পিকনিক বা বনভোজন উদ্যানের নামানুসারে', 22.5235, 88.3825, 'তিলজলা ও কসবা অঞ্চলের প্রধান সংযোগকারী সড়ক।'],
+            ['কসবা রোড (রাজডাঙা মেইন রোড)', 'Kasba / Rajdanga Main Road', 'প্রাচীন রাজস্ব গ্রাম \'কসবা\' ও \'রাজডাঙা\'-র ঐতিহাসিক পথ', 22.5155, 88.3885, 'দক্ষিণ-পূর্ব কলকাতার দ্রুত বর্ধনশীল ঐতিহাসিক জনপদ।'],
+            ['একডালিয়া রোড', 'Ekdalia Road', 'গড়িয়াহাট-বালিগঞ্জ সংলগ্ন বিখ্যাত দুর্গাপূজা ও আবাসিক সড়ক', 22.5195, 88.3685, 'একডালিয়া এভারগ্রিন ও দক্ষিণ কলকাতার বনেদি সংস্কৃতির কেন্দ্র।'],
+            ['ফার্ন রোড', 'Fern Road', 'বালিগঞ্জ-গড়িয়াহাট সংযোগকারী শান্ত আবাসিক রাস্তা', 22.5182, 88.3672, 'দক্ষিণ কলকাতার ঐতিহ্যবাহী আবাসিক এলাকা।'],
+            ['হিন্দুস্তান পার্ক রোড', 'Hindustan Park Road', 'বিংশ শতকের প্রথমার্ধে পরিকল্পিত হিন্দুস্তান পার্ক আবাসনের সড়ক', 22.5172, 88.3645, 'বই, ক্যাফে ও শিল্পকলার জন্য বিখ্যাত দক্ষিণ কলকাতার প্রাণবন্ত রাস্তা।'],
+            ['গড়িয়াহাট রোড সাউথ (রাজা সুবোধ চন্দ্র মল্লিক রোড)', 'Raja S.C. Mullick Road', 'স্বাধীনতা সংগ্রামী ও যাদবপুর বিশ্ববিদ্যালয়ের অন্যতম প্রতিষ্ঠাতা রাজা সুবোধ মল্লিকের নামে', 22.4985, 88.3715, 'যাদবপুর বিশ্ববিদ্যালয়, বাঘাযতীন ও গড়িয়াকে যুক্তকারী প্রধান রাজপথ।'],
+            ['যাদবপুর সেন্ট্রাল রোড', 'Jadavpur Central Road', 'যাদবপুর বিশ্ববিদ্যালয় ও জাতীয় শিক্ষা পরিষদের (১৯০৬) ঐতিহাসিক সড়ক', 22.4965, 88.3685, 'বঙ্গভঙ্গ বিরোধী আন্দোলনের স্বদেশী শিক্ষার পীঠস্থান।'],
+            ['প্রিন্স আনোয়ার শাহ রোড', 'Prince Anwar Shah Road', 'মহীশূরের শাসক টিপু সুলতানের পুত্র প্রিন্স আনোয়ার শাহের নামানুসারে', 22.5015, 88.3585, 'টিপু সুলতানের বংশধরদের টালিগঞ্জ আবাসনের ইতিহাস বহনকারী প্রশস্ত রাজপথ।'],
+            ['টালিগঞ্জ সার্কুলার রোড', 'Tollygunge Circular Road', 'কর্নেল উইলিয়াম টলির খননকৃত \'টলির নালা\' (আদিগঙ্গা) সংলগ্ন সড়ক', 22.4985, 88.3425, 'টলিগঞ্জ ও নিউ আলিপুরকে যুক্তকারী ঐতিহাসিক রাস্তা।'],
+            ['এন.এস.সি. বোস রোড (নেতাজি সুভাষচন্দ্র বসু রোড)', 'N.S.C. Bose Road (Tollygunge-Garia)', 'টালিগঞ্জ ট্রাম ডিপো থেকে গড়িয়া পর্যন্ত বিস্তৃত প্রধান রাজপথ', 22.4825, 88.3625, 'বাংলা চলচ্চিত্র শিল্পের প্রাণকেন্দ্র (টলিউড স্টুডিও পাড়া) এই রাস্তার ধারে অবস্থিত।'],
+            ['চণ্ডী ঘোষ রোড', 'Chandi Ghosh Road', 'টালিগঞ্জ স্টুডিও পাড়া ও রিজেন্ট পার্ক সংযোগকারী ঐতিহাসিক রাস্তা', 22.4925, 88.3525, 'উত্তম কুমার ও বাংলা সিনেমার স্বর্ণযুগের স্টুডিওগুলোর সংযোগপথ।'],
+            ['দেশপ্রাণ শাসমল রোড (রসা রোড সাউথ)', 'Deshapran Sasmal Road', 'স্বাধীনতা সংগ্রামী দেশপ্রাণ বীরেন্দ্রনাথ শাসমলের নামানুসারে', 22.5055, 88.3465, 'টালিগঞ্জ ফাঁড়ি ও রবীন্দ্র সরোবর সংলগ্ন প্রধান সড়ক।'],
+            ['সাউদার্ন অ্যাভিনিউ (ড. মেঘনাদ সাহা সরণি)', 'Southern Avenue / Dr. Meghnad Saha Sarani', 'বিজ্ঞানী মেঘনাদ সাহার নামে নামাঙ্কিত রবীন্দ্র সরোবরের ধারের সবুজ রাজপথ', 22.5125, 88.3565, 'রবীন্দ্র সরোবর লেক ও নজরুল মঞ্চের গা ঘেঁষে বিস্তৃত কলকাতার অন্যতম সুন্দর রাস্তা।'],
+            ['লেক রোড (কবি ভারতী সরণি)', 'Lake Road / Kavi Bharati Sarani', 'রবীন্দ্র সরোবর (ঢাকুরিয়া লেক) সংলগ্ন ঐতিহাসিক আবাসিক সড়ক', 22.5145, 88.3585, 'দক্ষিণ কলকাতার পরিকল্পিত আবাসিক ও সাংস্কৃতিক রাস্তা।'],
+            ['লেক ভিউ রোড', 'Lake View Road', 'রবীন্দ্র সরোবরের উত্তর প্রান্তের সবুজ ছায়াঘেরা সড়ক', 22.5138, 88.3575, 'দক্ষিণ কলকাতার বনেদি আবাসিক এলাকা।'],
+            ['সর্দার শঙ্কর রোড', 'Sardar Shankar Road', 'রাসবিহারী ও লেক মার্কেট সংযোগকারী ঐতিহাসিক রাস্তা', 22.5162, 88.3515, 'লেক মার্কেট ও রবীন্দ্র সরোবরের সংযোগপথ।'],
+            ['মনোহরপুকুর রোড', 'Manoharpukur Road', 'ভবানীপুর ও দেশপ্রিয় পার্ক সংযোগকারী প্রাচীন পুকুরের নামানুসারে সড়ক', 22.5215, 88.3535, 'দক্ষিণ কলকাতার ঐতিহ্যবাহী দুর্গাপূজা ও আবাসিক রাস্তা।'],
+            ['ল্যান্সডাউন রোড (শরৎ বোস রোড)', 'Lansdowne Road / Sarat Bose Road', 'ভাইসরয় লর্ড ল্যান্সডাউনের নামে; পরে নেতাজির অগ্রজ শরৎচন্দ্র বসুর নামে', 22.5285, 88.3535, 'শরৎচন্দ্র বসু ও নেতাজির রাজনৈতিক কর্মকাণ্ডের স্মৃতিবিজড়িত রাজপথ।'],
+            ['এলগিন রোড (লালা লাজপত রায় সরণি)', 'Elgin Road / Lala Lajpat Rai Sarani', 'ভাইসরয় লর্ড এলগিনের নামে; পরে পাঞ্জাব কেশরী লালা লাজপত রায়ের নামে', 22.5382, 88.3492, 'নেতাজি ভবন (নেতাজির বাসভবন) এই রাস্তার ওপর অবস্থিত।'],
+            ['আশুতোষ মুখার্জি রোড', 'Ashutosh Mukherjee Road', 'বাংলার বাঘ স্যার আশুতোষ মুখোপাধ্যায়ের নামানুসারে', 22.5325, 88.3465, 'ভবানীপুরের প্রধান রাজপথ; যদুবাবুর বাজার ও শম্ভুনাথ পণ্ডিত হাসপাতাল সংলগ্ন।'],
+            ['হরীশ মুখার্জি রোড', 'Harish Mukherjee Road', 'হিন্দু প্যাট্রিয়ট পত্রিকার নির্ভীক সম্পাদক হরিশ্চন্দ্র মুখোপাধ্যায়ের নামে', 22.5315, 88.3445, 'নীল বিদ্রোহের সমর্থক হরিশ্চন্দ্র মুখোপাধ্যায়ের স্মৃতিধন্য ভবানীপুরের রাস্তা।'],
+            ['বেলতলা রোড (নরেশ মিত্র সরণি)', 'Beltala Road', 'ভবানীপুর ও বালিগঞ্জ সংযোগকারী প্রাচীন বেলগাছ তলার পথ', 22.5265, 88.3515, 'ঐতিহাসিক বেলতলা মোটর ভেহিকেলস অফিস সংলগ্ন রাস্তা।'],
+            ['পণ্ডিতিয়া রোড', 'Panditia Road', 'ভবানীপুর ও হাজরা সংলগ্ন প্রাচীন পণ্ডিত সমাজের বাসস্থান', 22.5242, 88.3565, 'দক্ষিণ কলকাতার ঐতিহ্যবাহী আবাসিক রাস্তা।'],
+            ['বকুলবাগান রোড', 'Bakulbagan Road', 'ভবানীপুরের বকুল বাগান ও সত্যজিৎ রায়ের পরিবারের স্মৃতিবিজড়িত পথ', 22.5295, 88.3495, 'ভবানীপুরের সাহিত্য ও চলচ্চিত্র সংস্কৃতির পীঠস্থান।'],
+            ['পদ্মপুকুর রোড', 'Paddapukur Road', 'ভবানীপুরের প্রাচীন পদ্মপুকুরের নামানুসারে নির্মিত রাস্তা', 22.5335, 88.3515, 'ভবানীপুরের বনেদি আবাসিক এলাকা।'],
+            ['শম্ভুনাথ পণ্ডিত স্ট্রিট', 'Sambhunath Pandit Street', 'কলকাতা হাইকোর্টের প্রথম ভারতীয় বিচারপতি শম্ভুনাথ পণ্ডিতের নামে', 22.5365, 88.3455, 'এস.এস.কে.এম (পিজি) হাসপাতাল ও শম্ভুনাথ পণ্ডিত হাসপাতাল সংলগ্ন সড়ক।'],
+            ['হসপিটাল রোড (এ.জে.সি. বোস রোড পশ্চিম)', 'Hospital Road', '১৭৭০ সালে প্রতিষ্ঠিত প্রেসিডেন্সি জেনারেল (বর্তমান SSKM) হাসপাতালের সড়ক', 22.5415, 88.3435, 'রোনাল্ড রসের ম্যালেরিয়া গবেষণার ঐতিহাসিক গবেষণাগার সংলগ্ন রাস্তা।'],
+            ['ক্যাথেড্রাল রোড', 'Cathedral Road', 'সেন্ট পলস ক্যাথেড্রাল ও বিড়লা প্ল্যানেটোরিয়াম সংলগ্ন সবুজ সড়ক', 22.5445, 88.3468, 'ময়দানের দক্ষিণ-পূর্ব প্রান্তের ঐতিহাসিক রাস্তা।'],
+            ['কুইন্স ওয়ে', 'Queens Way', 'ভিক্টোরিয়া মেমোরিয়ালের উত্তর প্রান্ত দিয়ে বিস্তৃত রাজকীয় সড়ক', 22.5475, 88.3435, 'ময়দান ও ভিক্টোরিয়া মেমোরিয়ালের সৌন্দর্য উপভোগের প্রধান পথ।'],
+            ['ক্যাসুয়ারিনা অ্যাভিনিউ', 'Casuarina Avenue', 'ময়দানের বুক চিরে ঝাউগাছের সারি ঘেরা ঐতিহাসিক রাস্তা', 22.5515, 88.3435, 'ভিক্টোরিয়া মেমোরিয়াল ও রেড রোড সংযোগকারী সবুজ পথ।'],
+            ['খিদ্দারপুর রোড', 'Kidderpore Road', 'অষ্টাদশ শতকে কর্নেল আলেকজান্ডার কিডের নির্মিত ডকের পথ', 22.5485, 88.3345, 'রেসকোর্স ও খিদিরপুর ডকের সংযোগকারী ঐতিহাসিক রাজপথ।'],
+            ['আলিমুদ্দিন স্ট্রিট', 'Alimuddin Street', 'বিশিষ্ট কমিউনিস্ট নেতা মুজফ্‌ফর আহ্‌মদ ও বামপন্থী আন্দোলনের ঐতিহাসিক সড়ক', 22.5565, 88.3568, 'মধ্য কলকাতার রাজনৈতিক ইতিহাসের গুরুত্বপূর্ণ ঠিকানা।'],
+            ['আলিপুর রোড', 'Alipore Road', 'সিরাজ-উদ-দৌলার আলিনগর ও ব্রিটিশ গভর্নরদের আবাসিক অঞ্চলের পথ', 22.5285, 88.3325, 'আলিপুর চিড়িয়াখানা, ন্যাশনাল লাইব্রেরি ও আলিপুর মিউজিয়াম সংলগ্ন রাজপথ।'],
+            ['বেলভেডিয়ার রোড', 'Belvedere Road', 'ওয়ারেন হেস্টিংসের \'বেলভেডিয়ার হাউস\' (বর্তমান ন্যাশনাল লাইব্রেরি)-এর সড়ক', 22.5335, 88.3345, 'আলিপুর চিড়িয়াখানা ও জাতীয় গ্রন্থাগারের সংযোগকারী ঐতিহ্যবাহী রাস্তা।'],
+            ['জাজেস কোর্ট রোড', 'Judges Court Road', 'আলিপুর জেলা ও দায়রা আদালতের ঐতিহাসিক সড়ক', 22.5265, 88.3345, 'আলিপুর বোমা মামলার (১৯০৮) ঐতিহাসিক বিচারকার্যের স্মৃতিবিজড়িত রাস্তা।'],
+            ['বর্ধমান রোড', 'Burdwan Road', 'বর্ধমানের মহারাজার আলিপুর প্রাসাদ বা \'বিজয় মঞ্জিল\'-এর নামানুসারে', 22.5245, 88.3315, 'আলিপুর ও মাঝেরহাট সংযোগকারী অভিজাত সড়ক।'],
+            ['নিউ আলিপুর বি-ব্লক অ্যাভিনিউ (নলিনী রঞ্জন অ্যাভিনিউ)', 'Nalini Ranjan Avenue (New Alipore)', 'বিশিষ্ট অর্থনীতিবিদ ও মন্ত্রী নলিনীরঞ্জন সরকারের নামানুসারে', 22.5095, 88.3325, 'স্বাধীনতার পর পরিকল্পিত নিউ আলিপুর উপনগরীর প্রধান সড়ক।'],
+            ['ডায়মন্ড হারবার রোড', 'Diamond Harbour Road', 'খিদিরপুর থেকে বঙ্গোপসাগরের মোহনা ডায়মন্ড হারবার পর্যন্ত বিস্তৃত মহাসড়ক', 22.5155, 88.3265, 'ইস্ট ইন্ডিয়া কোম্পানির জাহাজ নোঙর করার বন্দর ডায়মন্ড হারবারের সংযোগপথ।'],
+            ['গার্ডেন রিচ রোড', 'Garden Reach Road', 'হুগলি নদীর তীরে ইউরোপীয়দের মনোরম বাগানবাড়ি ও নবাব ওয়াজিদ আলি শাহের নির্বাসন স্থল', 22.5425, 88.2985, 'অযোধ্যার শেষ নবাব ওয়াজিদ আলি শাহের মেটিয়াবুরুজ প্রাসাদের ইতিহাস বহনকারী সড়ক।'],
+            ['সার্কুলার গার্ডেন রিচ রোড (কার্ল মার্কস সরণি)', 'Karl Marx Sarani / C.G.R. Road', 'খিদিরপুর ডক ও গার্ডেন রিচ সংযোগকারী ঐতিহাসিক বন্দর সড়ক', 22.5385, 88.3185, 'কলকাতা বন্দরের জাহাজ চলাচল ও শ্রমিক আন্দোলনের ঐতিহাসিক কেন্দ্র।'],
+            ['তারাতলা রোড', 'Taratala Road', 'খিদিরপুর ও বেহালা-বজবজ সংযোগকারী শিল্পাঞ্চল সড়ক', 22.5125, 88.3085, 'কলকাতার টাঁকশাল (Alipore Mint) ও মেরিন ইঞ্জিনিয়ারিং কলেজের রাস্তা।'],
+            ['জেমস লং সরণি', 'James Long Sarani', 'নীলদর্পণ নাটকের ইংরেজি অনুবাদক রেভারেন্ড জেমস লং-এর নামানুসারে', 22.4955, 88.3185, 'বেহালা ও নিউ আলিপুর সংযোগকারী ঐতিহাসিক রাজপথ।'],
+            ['সত্যেন রায় রোড', 'Satyen Roy Road', 'বেহালার প্রাচীন সাবর্ণ রায়চৌধুরী পরিবারের ঐতিহ্যবাহী সড়ক', 22.4985, 88.3125, 'কলকাতার আদি জমিদার সাবর্ণ রায়চৌধুরীদের আটচালা ও বড়িশার ঐতিহ্য।'],
+            ['বড়িশা হাই স্কুল রোড (সাবর্ণ পাড়া রোড)', 'Sabarna Para Road (Barisha)', '১৬১০ সালে শুরু হওয়া কলকাতার প্রাচীনতম সাবর্ণ রায়চৌধুরী বাড়ির দুর্গাপূজার পথ', 22.4825, 88.3115, 'জব চার্নককে কলকাতা-সুতানুটি-গোবিন্দপুর ইজারা দেওয়া সাবর্ণ পরিবারের পীঠস্থান।'],
+            ['বজবজ ট্রাঙ্ক রোড (মহাত্মা গান্ধী রোড দক্ষিণ)', 'Budge Budge Trunk Road', 'স্বামী বিবেকানন্দ ১৮৯৭ সালে শিকাগো থেকে ফিরে যে বজবজ বন্দরে নেমেছিলেন তার সংযোগপথ', 22.4885, 88.2955, 'বেহালা ও বজবজকে যুক্তকারী প্রাচীন বাণিজ্যিক রাস্তা।'],
+            ['ই.এম. বাইপাস (ইস্টার্ন মেট্রোপলিটান বাইপাস)', 'Eastern Metropolitan Bypass (E.M. Bypass)', 'পূর্ব কলকাতার জলাভূমির পাশ দিয়ে উত্তর ও দক্ষিণ কলকাতাকে যুক্তকারী আধুনিক মহাসড়ক', 22.5355, 88.3985, 'সায়েন্স সিটি, যুবভারতী ক্রীড়াঙ্গন ও সল্টলেককে যুক্তকারী কলকাতার লাইফলাইন।']
+        ];
+
+        // Convert extended streets array into structured objects and append to kolkataHeritageData
+        extendedKolkataStreets.forEach((st, index) => {
+            kolkataHeritageData.push({
+                id: `st-ext-${index + 1}`,
+                type: 'street',
+                nameBn: st[0],
+                nameEn: st[1],
+                oldName: st[2],
+                lat: st[3],
+                lng: st[4],
+                summaryBn: st[5],
+                historyBn: `${st[0]} (${st[1]}) কলকাতার নগরায়ন ও ইতিহাসের এক অবিচ্ছেদ্য অংশ। ${st[2]}। ${st[5]} প্রাচীন মানচিত্র, ব্রিটিশ নথিপত্র এবং কলকাতা পৌরসংস্থার আর্কাইভে এই রাস্তাটির বিশেষ ঐতিহাসিক গুরুত্ব নথিভুক্ত রয়েছে।`,
+                highlights: ['কলকাতার ঐতিহাসিক সড়ক', 'নগরায়নের ইতিহাস', 'ঐতিহ্যবাহী পাড়া']
+            });
+        });
+
+        // Dynamically update total counts in header & filter tabs
+        const totalStreetsCount = kolkataHeritageData.filter(d => d.type === 'street').length;
+        const totalPlacesCount = kolkataHeritageData.filter(d => d.type === 'place').length;
+        document.getElementById('street-count').innerText = totalStreetsCount;
+        document.getElementById('place-count').innerText = totalPlacesCount;
+        document.getElementById('count-all').innerText = kolkataHeritageData.length;
+        document.getElementById('count-street').innerText = totalStreetsCount;
+        document.getElementById('count-place').innerText = totalPlacesCount;
+
+        // ============================================================================
+        // 2. INITIALIZE LEAFLET MAP (100% FREE OSM & ESRI TILES - NO WATERMARK)
+        // ============================================================================
+        const KOLKATA_CENTER = [22.5626, 88.3580];
+        const map = L.map('kolkata-map', {
+            center: KOLKATA_CENTER,
+            zoom: 12,
+            zoomControl: false
+        });
+
+        // Add Zoom control at bottom-right
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // 100% Free OpenStreetMap Standard (Direct official OSM servers - Never requires API key)
+        const osmStandardLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors (100% Free)',
+            maxZoom: 19
+        });
+
+        // 100% Free Esri World Street Map (Rich street names & clear typography - No API Key)
+        const esriStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom',
+            maxZoom: 19
+        });
+
+        // 100% Free Esri World Imagery (Satellite View - No API Key)
+        const esriSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP',
+            maxZoom: 19
+        });
+
+        // Default to official OpenStreetMap so every single Kolkata lane is visible immediately
+        osmStandardLayer.addTo(map);
+
+        // Layer switcher for users
+        L.control.layers({
+            "ওপেনস্ট্রিট ম্যাপ (Free OpenStreetMap)": osmStandardLayer,
+            "এসরি স্ট্রিট ম্যাপ (Esri Street Map)": esriStreetLayer,
+            "স্যাটেলাইট ভিউ (Satellite View)": esriSatelliteLayer
+        }, null, { position: 'bottomright' }).addTo(map);
+
+        // Ensure map renders cleanly on container resize
+        setTimeout(() => { map.invalidateSize(); }, 250);
+        window.addEventListener('resize', () => { map.invalidateSize(); });
+
+        // Custom SVG Marker Generator
+        function createCustomIcon(type, isSelected = false) {
+            const color = type === 'street' ? '#C53030' : '#2B6CB0';
+            const iconClass = type === 'street' ? 'fa-road' : 'fa-landmark';
+            const size = isSelected ? 40 : 32;
+            const pulseHtml = isSelected 
+                ? `<div class="marker-pulse absolute inset-0 rounded-full" style="background-color: ${color};"></div>` 
+                : '';
+
+            return L.divIcon({
+                className: 'custom-heritage-marker',
+                html: `
+                    <div class="relative flex items-center justify-center" style="width:${size}px; height:${size}px;">
+                        ${pulseHtml}
+                        <div class="relative z-10 w-full h-full rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white transition-transform hover:scale-110" style="background-color: ${color};">
+                            <i class="fa-solid ${iconClass}" style="font-size: ${isSelected ? '15px' : '12px'};"></i>
+                        </div>
+                    </div>
+                `,
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2],
+                popupAnchor: [0, -size / 2]
+            });
+        }
+
+        // Store markers & state
+        const markersMap = {};
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let selectedItemId = null;
+        let filteredItems = [...kolkataHeritageData];
+
+        // Create markers for all items
+        kolkataHeritageData.forEach(item => {
+            const marker = L.marker([item.lat, item.lng], {
+                icon: createCustomIcon(item.type, false)
+            }).addTo(map);
+
+            const badgeColor = item.type === 'street' ? 'bg-[#C53030]' : 'bg-[#2B6CB0]';
+            const badgeText = item.type === 'street' ? 'ঐতিহাসিক রাস্তা' : 'দর্শনীয় স্থান';
+
+            marker.bindPopup(`
+                <div class="min-w-[200px] max-w-[250px]">
+                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white ${badgeColor} mb-1">${badgeText}</span>
+                    <h4 class="font-bold text-sm text-[#1A202C] leading-snug">${item.nameBn}</h4>
+                    <p class="text-[11px] text-gray-600 font-medium mb-1.5">${item.nameEn}</p>
+                    <p class="text-xs text-gray-700 leading-relaxed mb-2">${item.summaryBn}</p>
+                    <button onclick="selectItem('${item.id}')" class="w-full py-1 px-2 rounded bg-[#9B2C2C] hover:bg-[#741B1B] text-white text-xs font-bold transition cursor-pointer">
+                        বিস্তারিত ইতিহাস পড়ুন →
+                    </button>
+                </div>
+            `);
+
+            marker.on('click', () => {
+                selectItem(item.id, false); // false = don't re-trigger flyTo aggressively if already clicked
+            });
+
+            markersMap[item.id] = marker;
+        });
+
+        // ============================================================================
+        // 3. HERITAGE WALK POLYLINE ROUTE (NORTH TO SOUTH KOLKATA)
+        // ============================================================================
+        const heritageRouteIds = [
+            'pl-4',  // Dakshineswar
+            'pl-13', // Belur Math
+            'st-16', // Shyambazar
+            'pl-14', // Kumortuli
+            'st-15', // Hatibagan
+            'pl-6',  // Jorasanko Thakur Bari
+            'pl-9',  // Marble Palace
+            'st-1',  // College Street
+            'pl-2',  // Howrah Bridge
+            'pl-7',  // Writers' Building / BBD Bagh
+            'pl-15', // Town Hall
+            'st-17', // Dharmatala
+            'pl-3',  // Indian Museum
+            'st-2',  // Park Street
+            'pl-11', // Prinsep Ghat
+            'pl-1',  // Victoria Memorial
+            'pl-10', // St. Paul's Cathedral
+            'pl-5'   // Kalighat Temple
+        ];
+
+        const routeCoords = heritageRouteIds.map(id => {
+            const found = kolkataHeritageData.find(d => d.id === id);
+            return [found.lat, found.lng];
+        });
+
+        let heritagePolyline = null;
+        let isRouteVisible = false;
+
+        function toggleHeritageRoute() {
+            const btn = document.getElementById('toggle-route-btn');
+            const btnText = document.getElementById('route-btn-text');
+
+            if (!isRouteVisible) {
+                heritagePolyline = L.polyline(routeCoords, {
+                    color: '#B7791F',
+                    weight: 4,
+                    opacity: 0.85,
+                    dashArray: '8, 8',
+                    lineJoin: 'round'
+                }).addTo(map);
+
+                map.fitBounds(heritagePolyline.getBounds(), { padding: [30, 30] });
+                isRouteVisible = true;
+                btn.classList.remove('bg-[#D69E2E]', 'text-[#1A202C]');
+                btn.classList.add('bg-[#1A202C]', 'text-[#FBD38D]', 'border', 'border-[#D69E2E]');
+                btnText.innerText = 'রুট বন্ধ করুন';
+            } else {
+                if (heritagePolyline) {
+                    map.removeLayer(heritagePolyline);
+                    heritagePolyline = null;
+                }
+                isRouteVisible = false;
+                btn.classList.add('bg-[#D69E2E]', 'text-[#1A202C]');
+                btn.classList.remove('bg-[#1A202C]', 'text-[#FBD38D]', 'border', 'border-[#D69E2E]');
+                btnText.innerText = 'ঐতিহ্য ভ্রমণ রুট দেখুন';
+            }
+        }
+
+        // ============================================================================
+        // 4. FILTERING, SEARCHING & DIRECTORY RENDERING
+        // ============================================================================
+        function renderDirectory() {
+            const listContainer = document.getElementById('directory-list');
+            
+            filteredItems = kolkataHeritageData.filter(item => {
+                const matchesCategory = currentFilter === 'all' || item.type === currentFilter;
+                const q = searchQuery.toLowerCase().trim();
+                const matchesSearch = !q || 
+                    item.nameBn.toLowerCase().includes(q) ||
+                    item.nameEn.toLowerCase().includes(q) ||
+                    item.oldName.toLowerCase().includes(q) ||
+                    item.historyBn.toLowerCase().includes(q) ||
+                    item.highlights.some(h => h.toLowerCase().includes(q));
+                return matchesCategory && matchesSearch;
+            });
+
+            // Sync map marker visibility with filter
+            kolkataHeritageData.forEach(item => {
+                const isVisible = filteredItems.some(f => f.id === item.id);
+                const marker = markersMap[item.id];
+                if (isVisible) {
+                    if (!map.hasLayer(marker)) marker.addTo(map);
+                } else {
+                    if (map.hasLayer(marker)) map.removeLayer(marker);
+                }
+            });
+
+            if (filteredItems.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-10 px-4 text-gray-500">
+                        <i class="fa-solid fa-map-location-dot text-3xl text-[#C5A880] mb-2"></i>
+                        <p class="font-bold text-gray-700">কোনো তথ্য খুঁজে পাওয়া যায়নি</p>
+                        <p class="text-xs mt-1">অনুগ্রহ করে অন্য কোনো নাম দিয়ে খুঁজুন বা ফিল্টার পরিবর্তন করুন।</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = filteredItems.map(item => {
+                const isSelected = item.id === selectedItemId;
+                const isStreet = item.type === 'street';
+                const badgeBg = isStreet ? 'bg-[#FED7D7] text-[#9B2C2C]' : 'bg-[#BEE3F8] text-[#2B6CB0]';
+                const badgeIcon = isStreet ? 'fa-road' : 'fa-landmark';
+                const badgeLabel = isStreet ? 'রাস্তা' : 'দর্শনীয় স্থান';
+                const borderClass = isSelected 
+                    ? 'border-2 border-[#9B2C2C] bg-[#FFFDF9] shadow-md ring-2 ring-[#9B2C2C]/15' 
+                    : 'border border-[#E2D5C1] bg-white hover:border-[#B7791F] hover:shadow';
+
+                return `
+                    <div id="card-${item.id}" onclick="selectItem('${item.id}', true)" 
+                        class="p-3 rounded-xl transition cursor-pointer ${borderClass}">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <h3 class="font-bold text-[15px] text-[#1A202C] leading-snug">${item.nameBn}</h3>
+                                <p class="text-xs text-gray-500 font-medium">${item.nameEn}</p>
+                            </div>
+                            <span class="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 ${badgeBg}">
+                                <i class="fa-solid ${badgeIcon} text-[10px]"></i> ${badgeLabel}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-700 mt-1.5 line-clamp-2 leading-relaxed">
+                            ${item.summaryBn}
+                        </p>
+                        <div class="mt-2 pt-1.5 border-t border-gray-100 flex items-center justify-between text-[11px] text-[#9B2C2C] font-semibold">
+                            <span class="truncate max-w-[75%] text-gray-500 font-normal">
+                                <i class="fa-solid fa-clock-rotate-left mr-1"></i>${item.oldName}
+                            </span>
+                            <span class="flex items-center gap-1 shrink-0">
+                                ইতিহাস <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('bg-[#9B2C2C]', 'text-white', 'shadow');
+                tab.classList.add('text-[#5C4938]', 'hover:bg-white/60');
+            });
+            const activeTab = document.getElementById(`tab-${filterType}`);
+            activeTab.classList.add('bg-[#9B2C2C]', 'text-white', 'shadow');
+            activeTab.classList.remove('text-[#5C4938]', 'hover:bg-white/60');
+
+            renderDirectory();
+        }
+
+        const searchInput = document.getElementById('search-input');
+        const clearBtn = document.getElementById('clear-search');
+
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            clearBtn.classList.toggle('hidden', !searchQuery);
+            renderDirectory();
+        });
+
+        function clearSearch() {
+            searchQuery = '';
+            searchInput.value = '';
+            clearBtn.classList.add('hidden');
+            renderDirectory();
+        }
+
+        // ============================================================================
+        // 5. ITEM SELECTION, FLY-TO & DETAIL DRAWER LOGIC
+        // ============================================================================
+        function selectItem(id, shouldFly = true) {
+            const item = kolkataHeritageData.find(d => d.id === id);
+            if (!item) return;
+
+            // Reset previous selected marker icon
+            if (selectedItemId && markersMap[selectedItemId]) {
+                const prevItem = kolkataHeritageData.find(d => d.id === selectedItemId);
+                markersMap[selectedItemId].setIcon(createCustomIcon(prevItem.type, false));
+            }
+
+            selectedItemId = id;
+            const marker = markersMap[id];
+            marker.setIcon(createCustomIcon(item.type, true));
+
+            if (shouldFly) {
+                map.flyTo([item.lat, item.lng], 15, {
+                    animate: true,
+                    duration: 1.1
+                });
+            }
+            marker.openPopup();
+
+            // Update Detail Drawer Content
+            const drawer = document.getElementById('detail-drawer');
+            const header = document.getElementById('drawer-header');
+            const badge = document.getElementById('drawer-badge');
+
+            if (item.type === 'street') {
+                header.className = 'bg-[#9B2C2C] text-white px-4 py-3 flex items-start justify-between gap-2 shrink-0';
+                badge.innerText = 'ঐতিহাসিক রাস্তা • Historic Street';
+                badge.className = 'inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#FBD38D] text-[#741B1B] mb-1';
+            } else {
+                header.className = 'bg-[#2B6CB0] text-white px-4 py-3 flex items-start justify-between gap-2 shrink-0';
+                badge.innerText = 'ঐতিহাসিক স্থান • Historic Landmark';
+                badge.className = 'inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#BEE3F8] text-[#1A365D] mb-1';
+            }
+
+            document.getElementById('drawer-title-bn').innerText = item.nameBn;
+            document.getElementById('drawer-title-en').innerText = item.nameEn;
+            document.getElementById('drawer-oldname').innerText = item.oldName;
+            document.getElementById('drawer-coords').innerText = `${item.lat.toFixed(4)}° N, ${item.lng.toFixed(4)}° E`;
+            document.getElementById('drawer-history').innerText = item.historyBn;
+
+            const highlightsEl = document.getElementById('drawer-highlights');
+            highlightsEl.innerHTML = item.highlights.map(tag => `
+                <span class="px-2.5 py-1 rounded-lg bg-[#F2ECE1] border border-[#D4C3A8] text-xs font-semibold text-[#5C4938]">
+                    ✦ ${tag}
+                </span>
+            `).join('');
+
+            // Update counter in filtered list
+            const idx = filteredItems.findIndex(f => f.id === id);
+            document.getElementById('drawer-counter').innerText = idx >= 0 
+                ? `${idx + 1} / ${filteredItems.length}` 
+                : `Selected`;
+
+            drawer.classList.remove('hidden');
+
+            // Re-render list to highlight active card and scroll into view
+            renderDirectory();
+            const cardEl = document.getElementById(`card-${id}`);
+            if (cardEl) {
+                cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function closeDetailDrawer() {
+            document.getElementById('detail-drawer').classList.add('hidden');
+            if (selectedItemId && markersMap[selectedItemId]) {
+                const prevItem = kolkataHeritageData.find(d => d.id === selectedItemId);
+                markersMap[selectedItemId].setIcon(createCustomIcon(prevItem.type, false));
+                markersMap[selectedItemId].closePopup();
+            }
+            selectedItemId = null;
+            renderDirectory();
+        }
+
+        function navigateItem(direction) {
+            if (filteredItems.length === 0) return;
+            let currentIndex = filteredItems.findIndex(item => item.id === selectedItemId);
+            if (currentIndex === -1) currentIndex = 0;
+            else currentIndex = (currentIndex + direction + filteredItems.length) % filteredItems.length;
+            
+            selectItem(filteredItems[currentIndex].id, true);
+        }
+
+        function resetMapView() {
+            map.flyTo(KOLKATA_CENTER, 12, { animate: true, duration: 1.0 });
+        }
+
+        // Initial render on load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderDirectory();
+        });
+    </script>
+</body>
+</html>
