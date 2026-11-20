@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>3D Ludo & Snakes & Ladders</title>
+  <!-- Tailwind CSS for crisp UI overlays -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka for playful 3D board game typography & Inter for clean controls -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+      color: #f8fafc;
+      touch-action: none;
+    }
+    h1, h2, h3, .font-game {
+      font-family: 'Fredoka', sans-serif;
+    }
+    #game-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    .ui-layer {
+      position: relative;
+      z-index: 10;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .pointer-auto {
+      pointer-events: auto;
+    }
+    /* Custom 3D-styled tactile game buttons */
+    .btn-3d {
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease;
+      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35), 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+    .btn-3d:active:not(:disabled) {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 3px 8px rgba(0, 0, 0, 0.3);
+    }
+    .btn-3d:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    /* Glassmorphic HUD card */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+    /* Pulse ring for active player */
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.9; }
+      50% { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.9; }
+    }
+    .active-turn-badge {
+      animation: pulseRing 1.4s infinite ease-in-out;
+    }
+    /* Confetti canvas overlay */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js 3D Viewport -->
+  <canvas id="game-canvas"></canvas>
+  <!-- Victory Confetti Overlay -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Main UI Overlay -->
+  <div class="ui-layer p-3 sm:p-5">
+
+    <!-- TOP BAR: Mode Switcher, Camera Angle, Sound & Menu -->
+    <header class="flex flex-wrap items-center justify-between gap-2 w-full max-w-4xl mx-auto">
+      <div class="flex items-center gap-2 pointer-auto">
+        <button id="btn-open-menu" class="glass-panel btn-3d px-3 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-1.5 text-amber-300 hover:bg-slate-800/90">
+          <span>⚙️</span>
+          <span>Menu</span>
+        </button>
+
+        <!-- Seamless Mode Switcher Pill -->
+        <div class="glass-panel p-1 rounded-2xl flex items-center gap-1">
+          <button id="switch-ludo" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-game font-semibold transition-all bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow">
+            🎲 3D Ludo
+          </button>
+          <button id="switch-snakes" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-game font-semibold transition-all text-slate-300 hover:text-white">
+            🐍 Saap Ludo
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Controls: Camera View & Sound -->
+      <div class="flex items-center gap-2 pointer-auto">
+        <button id="btn-cam-view" class="glass-panel btn-3d px-3 py-2 rounded-2xl text-xs sm:text-sm font-semibold text-sky-300 flex items-center gap-1" title="Toggle Camera View">
+          <span>🎥</span>
+          <span id="cam-label" class="hidden sm:inline">3D Tilt</span>
+        </button>
+        <button id="btn-sound" class="glass-panel btn-3d p-2 rounded-2xl text-sm sm:text-base text-emerald-300" title="Toggle Sound">
+          🔊
+        </button>
+      </div>
+    </header>
+
+    <!-- CENTER FLOATING TOAST / EVENT BANNER -->
+    <div class="flex flex-col items-center justify-center my-auto pointer-events-none">
+      <div id="event-banner" class="opacity-0 scale-90 transition-all duration-300 glass-panel px-5 py-2.5 rounded-full border-2 border-amber-400/60 shadow-2xl text-center">
+        <span id="event-banner-text" class="font-game text-base sm:text-xl font-bold tracking-wide text-amber-300">
+          Roll the 3D Dice!
+        </span>
+      </div>
+    </div>
+
+    <!-- BOTTOM HUD: Player Cards + Big Tactile Roll Dice Button -->
+    <footer class="w-full max-w-4xl mx-auto flex flex-col gap-2.5">
+      <!-- Player Turn Cards -->
+      <div id="players-bar" class="grid grid-cols-2 sm:grid-cols-4 gap-2 pointer-auto">
+        <!-- Populated dynamically by JS -->
+      </div>
+
+      <!-- Action Dock -->
+      <div class="glass-panel rounded-3xl p-2.5 sm:p-3 flex items-center justify-between gap-3 pointer-auto">
+        <div class="flex items-center gap-3 pl-1">
+          <!-- Visual Mini Dice Readout -->
+          <div id="dice-readout-box" class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-white to-slate-200 text-slate-900 flex items-center justify-center font-game text-2xl sm:text-3xl font-bold shadow-inner border-2 border-slate-300">
+            🎲
+          </div>
+          <div class="flex flex-col">
+            <span id="turn-title" class="font-game text-sm sm:text-lg font-bold text-white leading-tight">
+              Red's Turn
+            </span>
+            <span id="turn-subtitle" class="text-xs sm:text-sm text-slate-300">
+              Tap Roll Dice to play
+            </span>
+          </div>
+        </div>
+
+        <button id="btn-roll" class="btn-3d bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-300 hover:to-emerald-500 text-slate-950 font-game font-bold text-base sm:text-xl px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl flex items-center gap-2 shrink-0">
+          <span>🎲</span>
+          <span>ROLL</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- SETUP / MAIN MENU MODAL -->
+  <div id="menu-modal" class="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-md rounded-3xl p-5 sm:p-6 border border-slate-700/80 shadow-2xl flex flex-col gap-4">
+      <div class="text-center">
+        <div class="inline-block px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold tracking-wider uppercase mb-1">
+          3D Board Game Hub
+        </div>
+        <h1 class="font-game text-2xl sm:text-3xl font-bold text-white">
+          Ludo &amp; Saap Ludo 3D
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-300 mt-1">
+          Drag board to rotate • Pinch or scroll to zoom • Tap pawns to move
+        </p>
+      </div>
+
+      <!-- Select Game Mode -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">1. Choose Game</label>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="menu-mode-ludo" class="p-3 rounded-2xl border-2 border-amber-400 bg-amber-500/20 text-left transition-all">
+            <div class="text-xl mb-0.5">👑 3D Ludo</div>
+            <div class="text-xs text-slate-300">Classic 4-pawn race, safe stars &amp; captures</div>
+          </button>
+          <button id="menu-mode-snakes" class="p-3 rounded-2xl border-2 border-slate-700 bg-slate-800/60 text-left transition-all">
+            <div class="text-xl mb-0.5">🐍 Saap Ludo</div>
+            <div class="text-xs text-slate-300">1 to 100 climb with 3D snakes &amp; ladders</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Select Player Count -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">2. Number of Players</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button data-pcount="2" class="pcount-btn py-2.5 rounded-xl font-game font-bold text-sm border-2 border-sky-400 bg-sky-500/20 text-white">2 Players</button>
+          <button data-pcount="3" class="pcount-btn py-2.5 rounded-xl font-game font-bold text-sm border-2 border-slate-700 bg-slate-800/60 text-slate-300">3 Players</button>
+          <button data-pcount="4" class="pcount-btn py-2.5 rounded-xl font-game font-bold text-sm border-2 border-slate-700 bg-slate-800/60 text-slate-300">4 Players</button>
+        </div>
+      </div>
+
+      <!-- Configure Human / AI per player -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">3. Player Control (Tap to toggle Human / AI)</label>
+        <div id="player-slots-config" class="grid grid-cols-2 gap-2">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <button id="btn-start-game" class="btn-3d w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-slate-950 font-game font-bold text-lg tracking-wide mt-1">
+        ▶ START 3D GAME
+      </button>
+    </div>
+  </div>
+
+  <!-- VICTORY MODAL -->
+  <div id="victory-modal" class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-sm rounded-3xl p-6 text-center border-2 border-amber-400/70 shadow-2xl flex flex-col items-center gap-4">
+      <div class="text-5xl animate-bounce">🏆</div>
+      <h2 id="winner-heading" class="font-game text-3xl font-bold text-amber-300">
+        Red Wins!
+      </h2>
+      <p id="winner-subtext" class="text-sm text-slate-200">
+        Master of the 3D Board!
+      </p>
+      <div class="flex gap-3 w-full mt-2">
+        <button id="btn-play-again" class="btn-3d flex-1 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-game font-bold text-base">
+          Play Again
+        </button>
+        <button id="btn-victory-menu" class="btn-3d flex-1 py-3 rounded-2xl bg-slate-700 text-white font-game font-bold text-base">
+          Main Menu
+        </button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/**
+ * ============================================================================
+ * 3D LUDO & SAAP LUDO (SNAKES & LADDERS) - COMPLETE ENGINE
+ * Built with Three.js r128, Web Audio API Synthesizer, and Responsive Touch UI
+ * ============================================================================
+ */
+
+// ----------------------------------------------------------------------------
+// 1. WEB AUDIO API SOUND EFFECTS (Zero external audio files required)
+// ----------------------------------------------------------------------------
+class SoundFX {
+  constructor() {
+    this.enabled = true;
+    this.ctx = null;
+  }
+
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  playTone(freq, type = 'sine', duration = 0.15, vol = 0.18, slideTo = null) {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    if (slideTo) {
+      osc.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+    }
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  diceRoll() {
+    if (!this.enabled) return;
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        this.playTone(180 + Math.random() * 240, 'triangle', 0.06, 0.14);
+      }, i * 65);
+    }
+  }
+
+  step() {
+    this.playTone(420, 'sine', 0.09, 0.16, 620);
+  }
+
+  capture() {
+    this.playTone(580, 'sawtooth', 0.12, 0.2, 220);
+    setTimeout(() => this.playTone(220, 'square', 0.2, 0.18, 110), 100);
+  }
+
+  ladder() {
+    const notes = [330, 392, 494, 587, 659, 784];
+    notes.forEach((n, idx) => {
+      setTimeout(() => this.playTone(n, 'triangle', 0.14, 0.18), idx * 75);
+    });
+  }
+
+  snakeBite() {
+    // Hiss + dramatic downward slide
+    this.playTone(520, 'sawtooth', 0.45, 0.22, 95);
+    setTimeout(() => this.playTone(180, 'square', 0.3, 0.18, 70), 220);
+  }
+
+  safeOrSix() {
+    this.playTone(523.25, 'sine', 0.12, 0.18);
+    setTimeout(() => this.playTone(659.25, 'sine', 0.18, 0.2), 90);
+  }
+
+  win() {
+    const fanfare = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+    fanfare.forEach((n, idx) => {
+      setTimeout(() => this.playTone(n, 'triangle', 0.22, 0.22), idx * 130);
+    });
+  }
+}
+
+const sfx = new SoundFX();
+
+// ----------------------------------------------------------------------------
+// 2. GAME CONFIGURATION & PLAYER DEFINITIONS
+// ----------------------------------------------------------------------------
+const PLAYER_THEMES = [
+  { id: 0, name: 'Red',    hex: 0xef4444, css: '#ef4444', badgeBg: 'bg-red-500',    lightHex: 0xfca5a5 },
+  { id: 1, name: 'Green',  hex: 0x22c55e, css: '#22c55e', badgeBg: 'bg-emerald-500',lightHex: 0x86efac },
+  { id: 2, name: 'Yellow', hex: 0xeab308, css: '#eab308', badgeBg: 'bg-amber-400',  lightHex: 0xfde047 },
+  { id: 3, name: 'Blue',   hex: 0x3b82f6, css: '#3b82f6', badgeBg: 'bg-blue-500',   lightHex: 0x93c5fd }
+];
+
+// Global State
+const state = {
+  mode: 'ludo', // 'ludo' | 'snakes'
+  playerCount: 2,
+  playerTypes: ['human', 'ai', 'ai', 'ai'], // 'human' or 'ai'
+  players: [],
+  currentTurn: 0,
+  diceValue: 6,
+  phase: 'IDLE', // 'IDLE' | 'ROLLING' | 'SELECT_PAWN' | 'MOVING' | 'GAME_OVER'
+  consecutiveSixes: 0,
+  validMoves: [],
+  cameraMode: 'tilt' // 'tilt' | 'top'
+};
+
+// ----------------------------------------------------------------------------
+// 3. THREE.JS SCENE, CAMERA, LIGHTING & INTERACTIVE ORBIT CONTROLS
+// ----------------------------------------------------------------------------
+const canvas = document.getElementById('game-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f172a);
+scene.fog = new THREE.FogExp2(0x0f172a, 0.016);
+
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 120);
+
+// Camera Orbit State (supports touch drag + pinch zoom + mouse drag + wheel)
+const camOrbit = {
+  theta: 0,           // horizontal rotation
+  phi: 0.72,          // vertical tilt angle (radians from top)
+  radius: 23,         // zoom distance
+  targetTheta: 0,
+  targetPhi: 0.72,
+  targetRadius: 23,
+  isDragging: false,
+  prevX: 0,
+  prevY: 0,
+  pinchDist: 0
+};
+
+function updateCameraPosition() {
+  camOrbit.theta += (camOrbit.targetTheta - camOrbit.theta) * 0.14;
+  camOrbit.phi += (camOrbit.targetPhi - camOrbit.phi) * 0.14;
+  camOrbit.radius += (camOrbit.targetRadius - camOrbit.radius) * 0.14;
+
+  const x = camOrbit.radius * Math.sin(camOrbit.phi) * Math.sin(camOrbit.theta);
+  const y = camOrbit.radius * Math.cos(camOrbit.phi);
+  const z = camOrbit.radius * Math.sin(camOrbit.phi) * Math.cos(camOrbit.theta);
+
+  camera.position.set(x, Math.max(4, y), z);
+  camera.lookAt(0, 0.2, 0.6);
+}
+
+// Responsive auto-framing helper
+function adjustDefaultZoomForAspect() {
+  const aspect = window.innerWidth / window.innerHeight;
+  const baseDist = aspect < 0.75 ? 29.5 : (aspect < 1.1 ? 25.0 : 21.5);
+  camOrbit.targetRadius = baseDist;
+}
+adjustDefaultZoomForAspect();
+
+// Lights
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.62);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xfffbeb, 0.92);
+dirLight.position.set(10, 22, 12);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.shadow.camera.near = 2;
+dirLight.shadow.camera.far = 50;
+const d = 12;
+dirLight.shadow.camera.left = -d;
+dirLight.shadow.camera.right = d;
+dirLight.shadow.camera.top = d;
+dirLight.shadow.camera.bottom = -d;
+dirLight.shadow.bias = -0.0005;
+scene.add(dirLight);
+
+const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
+rimLight.position.set(-12, 10, -14);
+scene.add(rimLight);
+
+// Groups for clean board switching
+const boardGroup = new THREE.Group();
+const pawnsGroup = new THREE.Group();
+const propsGroup = new THREE.Group(); // 3D Snakes, Ladders, Stars, Rings
+scene.add(boardGroup);
+scene.add(pawnsGroup);
+scene.add(propsGroup);
+
+// ----------------------------------------------------------------------------
+// 4. REALISTIC 3D DICE WITH PIP TEXTURES & TUMBLE ANIMATION
+// ----------------------------------------------------------------------------
+function createDiceFaceTexture(num) {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+
+  // Ivory glossy background with subtle rounded border
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 256, 256);
+
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 14;
+  ctx.strokeRect(7, 7, 242, 242);
+
+  // Pip positions
+  const pips = {
+    1: [[128, 128]],
+    2: [[68, 68], [188, 188]],
+    3: [[64, 64], [128, 128], [192, 192]],
+    4: [[68, 68], [188, 68], [68, 188], [188, 188]],
+    5: [[68, 68], [188, 68], [128, 128], [68, 188], [188, 188]],
+    6: [[68, 60], [188, 60], [68, 128], [188, 128], [68, 196], [188, 196]]
+  };
+
+  // Classic Ludo styling: 1 and 6 in vibrant crimson red, others deep slate
+  ctx.fillStyle = (num === 1 || num === 6) ? '#dc2626' : '#0f172a';
+  const radius = num === 1 ? 30 : 22;
+
+  pips[num].forEach(([x, y]) => {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  return tex;
+}
+
+// Three.js BoxGeometry face order: +X (right), -X (left), +Y (top), -Y (bottom), +Z (front), -Z (back)
+// Standard die opposite faces sum to 7:
+// +X: 3, -X: 4, +Y: 1, -Y: 6, +Z: 2, -Z: 5
+const diceMaterials = [
+  new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(3), roughness: 0.25, metalness: 0.05 }),
+  new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(4), roughness: 0.25, metalness: 0.05 }),
+  new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(1), roughness: 0.25, metalness: 0.05 }),
+  new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(6), roughness: 0.25, metalness: 0.05 }),
+  new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(2), roughness: 0.25, metalness: 0.05 }),
+  new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(5), roughness: 0.25, metalness: 0.05 })
+];
+
+const diceMesh = new THREE.Mesh(new THREE.BoxGeometry(1.45, 1.45, 1.45), diceMaterials);
+diceMesh.castShadow = true;
+diceMesh.position.set(0, 2.2, 0);
+scene.add(diceMesh);
+
+// Target Euler angles so the desired face points directly UP (+Y)
+const DICE_TOP_ROTATIONS = {
+  1: new THREE.Euler(0, 0, 0),
+  6: new THREE.Euler(Math.PI, 0, 0),
+  2: new THREE.Euler(-Math.PI / 2, 0, 0),
+  5: new THREE.Euler(Math.PI / 2, 0, 0),
+  3: new THREE.Euler(0, 0, Math.PI / 2),
+  4: new THREE.Euler(0, 0, -Math.PI / 2)
+};
+
+let diceAnim = {
+  active: false,
+  elapsed: 0,
+  duration: 0.68,
+  targetVal: 6,
+  startRot: new THREE.Euler(),
+  endRot: new THREE.Euler(),
+  callback: null
+};
+
+function animate3DDiceRoll(targetVal, callback) {
+  sfx.diceRoll();
+  diceAnim.active = true;
+  diceAnim.elapsed = 0;
+  diceAnim.targetVal = targetVal;
+  diceAnim.startRot.copy(diceMesh.rotation);
+
+  const baseEuler = DICE_TOP_ROTATIONS[targetVal];
+  // Add full 360-degree spins for dramatic tumble
+  diceAnim.endRot.set(
+    baseEuler.x + Math.PI * 4,
+    baseEuler.y + Math.PI * 2 * (Math.random() > 0.5 ? 1 : -1),
+    baseEuler.z + Math.PI * 4
+  );
+  diceAnim.callback = callback;
+}
+
+// ----------------------------------------------------------------------------
+// 5. 3D PAWN BUILDER (Sculpted Crown/Figure with Player Glow Ring)
+// ----------------------------------------------------------------------------
+function create3DPawn(theme, pawnIndex) {
+  const group = new THREE.Group();
+
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: theme.hex,
+    roughness: 0.22,
+    metalness: 0.15
+  });
+
+  // Base pedestal
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.18, 24), bodyMat);
+  base.position.y = 0.09;
+  base.castShadow = true;
+  base.receiveShadow = true;
+  group.add(base);
+
+  // Tapered torso
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.30, 0.52, 24), bodyMat);
+  torso.position.y = 0.42;
+  torso.castShadow = true;
+  group.add(torso);
+
+  // Collar ring
+  const collarMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.035, 12, 24), collarMat);
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = 0.67;
+  group.add(collar);
+
+  // Spherical Head
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.21, 24, 24), bodyMat);
+  head.position.y = 0.86;
+  head.castShadow = true;
+  group.add(head);
+
+  // Selection highlight ring beneath pawn (visible when selectable)
+  const ringGeo = new THREE.RingGeometry(0.40, 0.52, 28);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.9
+  });
+  const selectRing = new THREE.Mesh(ringGeo, ringMat);
+  selectRing.rotation.x = -Math.PI / 2;
+  selectRing.position.y = 0.03;
+  selectRing.visible = false;
+  group.add(selectRing);
+
+  group.userData = {
+    playerId: theme.id,
+    pawnIndex,
+    selectRing,
+    selectable: false,
+    baseScale: 1
+  };
+
+  return group;
+}
+
+// ----------------------------------------------------------------------------
+// 6. CLASSIC 3D LUDO BOARD & PATH COORDINATES (15x15 Grid)
+// ----------------------------------------------------------------------------
+const LUDO_TILE_SIZE = 1.0;
+
+// Convert 15x15 grid (col 0..14, row 0..14) to Three.js (x, z)
+function ludoGridToWorld(col, row) {
+  return {
+    x: (col - 7) * LUDO_TILE_SIZE,
+    z: (row - 7) * LUDO_TILE_SIZE
+  };
+}
+
+// 52-tile outer perimeter clockwise loop (starting at Red's start square [1, 6])
+const LUDO_MAIN_TRACK = [
+  // Left arm top row moving right (Red start is index 0)
+  [1,6], [2,6], [3,6], [4,6], [5,6],
+  // Top arm left col moving up
+  [6,5], [6,4], [6,3], [6,2], [6,1], [6,0],
+  // Top middle
+  [7,0],
+  // Top arm right col moving down (Green start is index 13 -> [8,1])
+  [8,0], [8,1], [8,2], [8,3], [8,4], [8,5],
+  // Right arm top row moving right
+  [9,6], [10,6], [11,6], [12,6], [13,6], [14,6],
+  // Right middle
+  [14,7],
+  // Right arm bottom row moving left (Yellow start is index 26 -> [13,8])
+  [14,8], [13,8], [12,8], [11,8], [10,8], [9,8],
+  // Bottom arm right col moving down
+  [8,9], [8,10], [8,11], [8,12], [8,13], [8,14],
+  // Bottom middle
+  [7,14],
+  // Bottom arm left col moving up (Blue start is index 39 -> [6,13])
+  [6,14], [6,13], [6,12], [6,11], [6,10], [6,9],
+  // Left arm bottom row moving left
+  [5,8], [4,8], [3,8], [2,8], [1,8], [0,8],
+  // Left middle
+  [0,7], [0,6]
+];
+
+// Start offsets in LUDO_MAIN_TRACK for each player: Red(0), Green(13), Yellow(26), Blue(39)
+const LUDO_START_OFFSETS = [0, 13, 26, 39];
+
+// Safe squares (indices on LUDO_MAIN_TRACK: 4 start squares + 4 star squares)
+const LUDO_SAFE_INDICES = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
+
+// Home stretch columns (5 colored tiles + final center triangle [7,7])
+const LUDO_HOME_PATHS = [
+  [[1,7], [2,7], [3,7], [4,7], [5,7], [6,7]],     // Red
+  [[7,1], [7,2], [7,3], [7,4], [7,5], [7,6]],     // Green
+  [[13,7], [12,7], [11,7], [10,7], [9,7], [8,7]], // Yellow
+  [[7,13], [7,12], [7,11], [7,10], [7,9], [7,8]]  // Blue
+];
+
+// Yard resting spots for each player's 4 pawns
+const LUDO_YARD_SPOTS = [
+  [[2.2, 2.2], [3.8, 2.2], [2.2, 3.8], [3.8, 3.8]],         // Red (Top-Left)
+  [[10.2, 2.2], [11.8, 2.2], [10.2, 3.8], [11.8, 3.8]],     // Green (Top-Right)
+  [[10.2, 10.2], [11.8, 10.2], [10.2, 11.8], [11.8, 11.8]], // Yellow (Bottom-Right)
+  [[2.2, 10.2], [3.8, 10.2], [2.2, 11.8], [3.8, 11.8]]      // Blue (Bottom-Left)
+];
+
+function createStarMesh(colorHex = 0xf59e0b) {
+  const shape = new THREE.Shape();
+  const outerR = 0.34, innerR = 0.15;
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const a = (i * Math.PI) / 5 - Math.PI / 2;
+    if (i === 0) shape.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    else shape.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: false });
+  const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI / 2;
+  return mesh;
+}
+
+function build3DLudoBoard() {
+  clearBoardGroups();
+
+  // Wooden outer frame base
+  const frameGeo = new THREE.BoxGeometry(16.2, 0.55, 16.2);
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.45, metalness: 0.1 });
+  const frame = new THREE.Mesh(frameGeo, frameMat);
+  frame.position.y = -0.32;
+  frame.receiveShadow = true;
+  boardGroup.add(frame);
+
+  // White board deck
+  const deckGeo = new THREE.BoxGeometry(15.1, 0.15, 15.1);
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
+  const deck = new THREE.Mesh(deckGeo, deckMat);
+  deck.position.y = -0.05;
+  deck.receiveShadow = true;
+  boardGroup.add(deck);
+
+  // Build individual track tiles
+  const tileGeo = new THREE.BoxGeometry(0.94, 0.08, 0.94);
+
+  LUDO_MAIN_TRACK.forEach(([col, row], idx) => {
+    let tileColor = 0xffffff;
+    if (idx === 0) tileColor = PLAYER_THEMES[0].hex;
+    else if (idx === 13) tileColor = PLAYER_THEMES[1].hex;
+    else if (idx === 26) tileColor = PLAYER_THEMES[2].hex;
+    else if (idx === 39) tileColor = PLAYER_THEMES[3].hex;
+    else if (LUDO_SAFE_INDICES.has(idx)) tileColor = 0xe2e8f0;
+
+    const tile = new THREE.Mesh(
+      tileGeo,
+      new THREE.MeshStandardMaterial({ color: tileColor, roughness: 0.4 })
+    );
+    const pos = ludoGridToWorld(col, row);
+    tile.position.set(pos.x, 0.02, pos.z);
+    tile.receiveShadow = true;
+    boardGroup.add(tile);
+
+    if (LUDO_SAFE_INDICES.has(idx)) {
+      const star = createStarMesh(idx % 13 === 0 ? 0xffffff : 0x64748b);
+      star.position.set(pos.x, 0.065, pos.z);
+      propsGroup.add(star);
+    }
+  });
+
+  // Home Stretch colored tiles
+  LUDO_HOME_PATHS.forEach((path, pIdx) => {
+    const theme = PLAYER_THEMES[pIdx];
+    path.slice(0, 5).forEach(([col, row]) => {
+      const tile = new THREE.Mesh(
+        tileGeo,
+        new THREE.MeshStandardMaterial({ color: theme.hex, roughness: 0.35 })
+      );
+      const pos = ludoGridToWorld(col, row);
+      tile.position.set(pos.x, 0.02, pos.z);
+      tile.receiveShadow = true;
+      boardGroup.add(tile);
+    });
+  });
+
+  // 4 Corner Yards (6x6 each)
+  const yardCenters = [
+    { col: 2.5, row: 2.5, theme: PLAYER_THEMES[0] },
+    { col: 11.5, row: 2.5, theme: PLAYER_THEMES[1] },
+    { col: 11.5, row: 11.5, theme: PLAYER_THEMES[2] },
+    { col: 2.5, row: 11.5, theme: PLAYER_THEMES[3] }
+  ];
+
+  yardCenters.forEach((yc, pIdx) => {
+    const pos = ludoGridToWorld(yc.col, yc.row);
+    const yardBase = new THREE.Mesh(
+      new THREE.BoxGeometry(5.85, 0.12, 5.85),
+      new THREE.MeshStandardMaterial({ color: yc.theme.hex, roughness: 0.38 })
+    );
+    yardBase.position.set(pos.x, 0.02, pos.z);
+    yardBase.receiveShadow = true;
+    boardGroup.add(yardBase);
+
+    const innerWhite = new THREE.Mesh(
+      new THREE.BoxGeometry(4.1, 0.14, 4.1),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 })
+    );
+    innerWhite.position.set(pos.x, 0.03, pos.z);
+    innerWhite.receiveShadow = true;
+    boardGroup.add(innerWhite);
+
+    // 4 Pawn Sockets in Yard
+    LUDO_YARD_SPOTS[pIdx].forEach(([sc, sr]) => {
+      const sp = ludoGridToWorld(sc, sr);
+      const socket = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.42, 0.42, 0.05, 24),
+        new THREE.MeshStandardMaterial({ color: yc.theme.lightHex, roughness: 0.4 })
+      );
+      socket.position.set(sp.x, 0.09, sp.z);
+      boardGroup.add(socket);
+    });
+  });
+
+  // Center Crown Goal Zone (3x3)
+  const centerCrown = new THREE.Mesh(
+    new THREE.BoxGeometry(2.92, 0.14, 2.92),
+    new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.28, metalness: 0.25 })
+  );
+  centerCrown.position.set(0, 0.03, 0);
+  centerCrown.receiveShadow = true;
+  boardGroup.add(centerCrown);
+
+  const trophyStar = createStarMesh(0xffffff);
+  trophyStar.scale.set(2.2, 2.2, 1.5);
+  trophyStar.position.set(0, 0.11, 0);
+  propsGroup.add(trophyStar);
+}
+
+// ----------------------------------------------------------------------------
+// 7. 3D SAAP LUDO (SNAKES & LADDERS) WITH 3D SCULPTED ANIMATED SNAKES & LADDERS
+// ----------------------------------------------------------------------------
+const SNAKES_AND_LADDERS_MAP = {
+  // Ladders: start -> end (climb up)
+  ladders: [
+    { from: 4,  to: 25 },
+    { from: 13, to: 46 },
+    { from: 33, to: 49 },
+    { from: 42, to: 63 },
+    { from: 50, to: 69 },
+    { from: 62, to: 81 },
+    { from: 74, to: 92 }
+  ],
+  // Snakes: head -> tail (slide down)
+  snakes: [
+    { head: 27, tail: 5,  color: 0x10b981, stripe: 0x064e3b },
+    { head: 40, tail: 3,  color: 0xf43f5e, stripe: 0x881337 },
+    { head: 54, tail: 31, color: 0x8b5cf6, stripe: 0x4c1d95 },
+    { head: 66, tail: 45, color: 0xf97316, stripe: 0x7c2d12 },
+    { head: 76, tail: 58, color: 0xec4899, stripe: 0x831843 },
+    { head: 89, tail: 53, color: 0x06b6d4, stripe: 0x164e63 },
+    { head: 99, tail: 41, color: 0xdc2626, stripe: 0xfacc15 } // King Cobra near 100!
+  ]
+};
+
+const SL_TILE_SIZE = 1.42;
+const animatedSnakes = []; // Store 3D snake objects for idle breathing & swallow animations
+
+// Convert square 1..100 (boustrophedon zig-zag) to Three.js (x, z)
+function slSquareToWorld(sq) {
+  const clamped = Math.max(1, Math.min(100, sq));
+  const idx = clamped - 1;
+  const rowFromBottom = Math.floor(idx / 10); // 0..9
+  let col = idx % 10;
+  if (rowFromBottom % 2 === 1) {
+    col = 9 - col; // Zig-zag right-to-left on odd rows
+  }
+  const x = (col - 4.5) * SL_TILE_SIZE;
+  const z = (4.5 - rowFromBottom) * SL_TILE_SIZE;
+  return { x, z };
+}
+
+function createNumberTileTexture(num, bgHex, textHex = '#1e293b', badge = '') {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = bgHex;
+  ctx.fillRect(0, 0, 128, 128);
+
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.14)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(2, 2, 124, 124);
+
+  ctx.fillStyle = textHex;
+  ctx.font = 'bold 44px Fredoka, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(num), 64, badge ? 54 : 66);
+
+  if (badge) {
+    ctx.font = 'bold 26px sans-serif';
+    ctx.fillText(badge, 64, 98);
+  }
+
+  return new THREE.CanvasTexture(c);
+}
+
+/**
+ * Builds a realistic 3D wooden ladder with side rails and cylindrical rungs
+ */
+function build3DLadder(fromSq, toSq) {
+  const p1 = slSquareToWorld(fromSq);
+  const p2 = slSquareToWorld(toSq);
+
+  const start = new THREE.Vector3(p1.x, 0.14, p1.z);
+  const end = new THREE.Vector3(p2.x, 0.18, p2.z);
+  const diff = new THREE.Vector3().subVectors(end, start);
+  const len = diff.length();
+
+  const ladderGroup = new THREE.Group();
+  const woodMat = new THREE.MeshStandardMaterial({
+    color: 0xd97706,
+    roughness: 0.45,
+    metalness: 0.08
+  });
+  const rungMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    roughness: 0.35
+  });
+
+  const width = 0.48;
+  const railGeo = new THREE.CylinderGeometry(0.055, 0.055, len, 12);
+
+  const leftRail = new THREE.Mesh(railGeo, woodMat);
+  leftRail.position.set(-width / 2, len / 2, 0);
+  leftRail.castShadow = true;
+  ladderGroup.add(leftRail);
+
+  const rightRail = new THREE.Mesh(railGeo, woodMat);
+  rightRail.position.set(width / 2, len / 2, 0);
+  rightRail.castShadow = true;
+  ladderGroup.add(rightRail);
+
+  // Rungs
+  const rungCount = Math.max(4, Math.floor(len / 0.48));
+  const rungGeo = new THREE.CylinderGeometry(0.04, 0.04, width, 10);
+  rungGeo.rotateZ(Math.PI / 2);
+
+  for (let i = 1; i < rungCount; i++) {
+    const rung = new THREE.Mesh(rungGeo, rungMat);
+    rung.position.set(0, (i / rungCount) * len, 0);
+    rung.castShadow = true;
+    ladderGroup.add(rung);
+  }
+
+  // Orient ladder from start to end
+  ladderGroup.position.copy(start);
+  const up = new THREE.Vector3(0, 1, 0);
+  const dir = diff.clone().normalize();
+  ladderGroup.quaternion.setFromUnitVectors(up, dir);
+
+  propsGroup.add(ladderGroup);
+}
+
+/**
+ * Builds a 3D sculpted curving snake with tapered body, 3D head, glowing eyes, and forked tongue!
+ */
+function build3DSnake(snakeDef) {
+  const pHead = slSquareToWorld(snakeDef.head);
+  const pTail = slSquareToWorld(snakeDef.tail);
+
+  const start = new THREE.Vector3(pHead.x, 0.34, pHead.z);
+  const end = new THREE.Vector3(pTail.x, 0.14, pTail.z);
+
+  const mid1 = new THREE.Vector3().lerpVectors(start, end, 0.33);
+  const mid2 = new THREE.Vector3().lerpVectors(start, end, 0.68);
+
+  // Perpendicular S-curve slither offsets
+  const dir = new THREE.Vector3().subVectors(end, start).normalize();
+  const perp = new THREE.Vector3(-dir.z, 0, dir.x);
+  const amp = 0.85;
+
+  mid1.addScaledVector(perp, amp);
+  mid1.y += 0.25;
+  mid2.addScaledVector(perp, -amp);
+  mid2.y += 0.16;
+
+  const curve = new THREE.CatmullRomCurve3([start, mid1, mid2, end]);
+  const snakeGroup = new THREE.Group();
+
+  // Build tapered segmented 3D body along curve for realistic snake silhouette
+  const segments = 34;
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: snakeDef.color,
+    roughness: 0.28,
+    metalness: 0.12
+  });
+  const stripeMat = new THREE.MeshStandardMaterial({
+    color: snakeDef.stripe,
+    roughness: 0.32
+  });
+
+  const bodySegments = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const pt = curve.getPoint(t);
+    // Thick near neck, tapering smoothly to a pointed tail
+    const radius = Math.max(0.04, 0.21 * (1 - Math.pow(t, 1.35)) + Math.sin(t * Math.PI) * 0.04);
+    const segMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, 14, 14),
+      i % 3 === 0 ? stripeMat : bodyMat
+    );
+    segMesh.position.copy(pt);
+    segMesh.castShadow = true;
+    snakeGroup.add(segMesh);
+    bodySegments.push({ mesh: segMesh, basePos: pt.clone(), t, baseScale: 1 });
+  }
+
+  // Sculpted 3D Snake Head at start
+  const headGroup = new THREE.Group();
+  headGroup.position.copy(start);
+
+  // Look slightly forward away from neck
+  const neckPt = curve.getPoint(0.06);
+  const lookTarget = new THREE.Vector3().subVectors(start, neckPt).add(start);
+  headGroup.lookAt(lookTarget);
+
+  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.28, 18, 16), bodyMat);
+  snout.scale.set(1.05, 0.72, 1.35);
+  snout.castShadow = true;
+  headGroup.add(snout);
+
+  // Two yellow/white eyes with dark pupils
+  const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+
+  [-0.15, 0.15].forEach(ex => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), eyeWhiteMat);
+    eye.position.set(ex, 0.12, 0.14);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 8), pupilMat);
+    pupil.position.set(ex * 1.05, 0.13, 0.19);
+    headGroup.add(eye, pupil);
+  });
+
+  // Forked Red Tongue
+  const tongueMat = new THREE.MeshBasicMaterial({ color: 0xff1e42 });
+  const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.015, 0.34), tongueMat);
+  tongue.position.set(0, -0.03, 0.42);
+  headGroup.add(tongue);
+
+  snakeGroup.add(headGroup);
+  propsGroup.add(snakeGroup);
+
+  animatedSnakes.push({
+    headSq: snakeDef.head,
+    tailSq: snakeDef.tail,
+    curve,
+    headGroup,
+    tongue,
+    bodySegments,
+    swallowTimer: 0,
+    phaseOffset: Math.random() * Math.PI * 2
+  });
+}
+
+function build3DSnakesBoard() {
+  clearBoardGroups();
+  animatedSnakes.length = 0;
+
+  // Board frame
+  const boardSpan = SL_TILE_SIZE * 10;
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(boardSpan + 1.1, 0.55, boardSpan + 1.1),
+    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.45 })
+  );
+  frame.position.y = -0.32;
+  frame.receiveShadow = true;
+  boardGroup.add(frame);
+
+  const ladderStarts = new Set(SNAKES_AND_LADDERS_MAP.ladders.map(l => l.from));
+  const snakeHeads = new Set(SNAKES_AND_LADDERS_MAP.snakes.map(s => s.head));
+
+  const tileGeo = new THREE.BoxGeometry(SL_TILE_SIZE * 0.96, 0.12, SL_TILE_SIZE * 0.96);
+  const palette = ['#fef3c7', '#e0f2fe', '#dcfce7', '#fce7f3', '#f1f5f9'];
+
+  for (let sq = 1; sq <= 100; sq++) {
+    const pos = slSquareToWorld(sq);
+    let bg = palette[sq % palette.length];
+    let badge = '';
+    if (sq === 1) { bg = '#86efac'; badge = 'GO'; }
+    if (sq === 100) { bg = '#fde047'; badge = '👑'; }
+    if (ladderStarts.has(sq)) badge = '🪜';
+    if (snakeHeads.has(sq)) badge = '🐍';
+
+    const tex = createNumberTileTexture(sq, bg, '#0f172a', badge);
+    const tileMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.45 });
+    const tile = new THREE.Mesh(tileGeo, tileMat);
+    tile.position.set(pos.x, 0.02, pos.z);
+    tile.receiveShadow = true;
+    boardGroup.add(tile);
+  }
+
+  // Render 3D Ladders
+  SNAKES_AND_LADDERS_MAP.ladders.forEach(l => build3DLadder(l.from, l.to));
+
+  // Render 3D Sculpted Snakes
+  SNAKES_AND_LADDERS_MAP.snakes.forEach(s => build3DSnake(s));
+}
+
+function clearBoardGroups() {
+  while (boardGroup.children.length) boardGroup.remove(boardGroup.children[0]);
+  while (pawnsGroup.children.length) pawnsGroup.remove(pawnsGroup.children[0]);
+  while (propsGroup.children.length) propsGroup.remove(propsGroup.children[0]);
+}
+
+// ----------------------------------------------------------------------------
+// 8. GAME INITIALIZATION & STATE RESET
+// ----------------------------------------------------------------------------
+function initGame() {
+  hideVictoryModal();
+  state.players = [];
+  state.currentTurn = 0;
+  state.consecutiveSixes = 0;
+  state.validMoves = [];
+  state.phase = 'IDLE';
+
+  if (state.mode === 'ludo') {
+    build3DLudoBoard();
+  } else {
+    build3DSnakesBoard();
+  }
+
+  // Spawn players and their 3D pawns
+  for (let i = 0; i < state.playerCount; i++) {
+    const theme = PLAYER_THEMES[i];
+    const pType = state.playerTypes[i];
+    const pawnsPerPlayer = state.mode === 'ludo' ? 4 : 1;
+    const pawns = [];
+
+    for (let pIdx = 0; pIdx < pawnsPerPlayer; pIdx++) {
+      const mesh = create3DPawn(theme, pIdx);
+      pawnsGroup.add(mesh);
+
+      const pawnObj = {
+        id: pIdx,
+        mesh,
+        // For Ludo: -1 = in yard, 0..50 = main track steps from start, 51..55 = home stretch, 56 = finished
+        // For Snakes & Ladders: 0 = off-board start, 1..100 = board square
+        progress: state.mode === 'ludo' ? -1 : 0,
+        finished: false
+      };
+      pawns.push(pawnObj);
+    }
+
+    state.players.push({
+      id: i,
+      theme,
+      type: pType,
+      pawns,
+      finishedCount: 0
+    });
+  }
+
+  syncAllPawnPositionsImmediate();
+  updateHUD();
+  showBanner(`${state.players[0].theme.name}'s Turn — Roll!`, state.players[0].theme.css);
+  checkAITurn();
+}
+
+function getPawnWorldTarget(player, pawn) {
+  if (state.mode === 'ludo') {
+    if (pawn.progress === -1) {
+      const [col, row] = LUDO_YARD_SPOTS[player.id][pawn.id];
+      const pos = ludoGridToWorld(col, row);
+      return new THREE.Vector3(pos.x, 0.12, pos.z);
+    }
+    if (pawn.progress >= 56) {
+      // Cluster nicely inside center goal crown
+      const angle = (player.id * Math.PI / 2) + (pawn.id - 1.5) * 0.28;
+      return new THREE.Vector3(Math.cos(angle) * 0.72, 0.12, Math.sin(angle) * 0.72);
+    }
+    if (pawn.progress >= 51) {
+      const homeStep = pawn.progress - 51; // 0..4
+      const [col, row] = LUDO_HOME_PATHS[player.id][homeStep];
+      const pos = ludoGridToWorld(col, row);
+      return new THREE.Vector3(pos.x, 0.08, pos.z);
+    }
+    // Main track 0..50
+    const globalIdx = (LUDO_START_OFFSETS[player.id] + pawn.progress) % 52;
+    const [col, row] = LUDO_MAIN_TRACK[globalIdx];
+    const pos = ludoGridToWorld(col, row);
+    return new THREE.Vector3(pos.x, 0.08, pos.z);
+  } else {
+    // Snakes & Ladders
+    if (pawn.progress <= 0) {
+      // Off-board staging beside square 1
+      const base = slSquareToWorld(1);
+      return new THREE.Vector3(base.x - 1.25 - player.id * 0.45, 0.08, base.z + (player.id % 2) * 0.5);
+    }
+    const pos = slSquareToWorld(pawn.progress);
+    // Offset multiple pawns on same square slightly so all remain visible
+    const angle = (player.id / state.playerCount) * Math.PI * 2;
+    const offsetR = 0.24;
+    return new THREE.Vector3(pos.x + Math.cos(angle) * offsetR, 0.08, pos.z + Math.sin(angle) * offsetR);
+  }
+}
+
+function syncAllPawnPositionsImmediate() {
+  state.players.forEach(player => {
+    player.pawns.forEach(pawn => {
+      const target = getPawnWorldTarget(player, pawn);
+      pawn.mesh.position.copy(target);
+    });
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 9. SMOOTH HOPPING & SLIDING ANIMATIONS FOR 3D PAWNS
+// ----------------------------------------------------------------------------
+function animatePawnHop(pawnMesh, toVec3, duration = 0.22, arcHeight = 0.85) {
+  return new Promise(resolve => {
+    const start = pawnMesh.position.clone();
+    const startTime = performance.now();
+    sfx.step();
+
+    function tick(now) {
+      const t = Math.min(1, (now - startTime) / (duration * 1000));
+      pawnMesh.position.lerpVectors(start, toVec3, t);
+      pawnMesh.position.y += Math.sin(t * Math.PI) * arcHeight;
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        pawnMesh.position.copy(toVec3);
+        resolve();
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+function animatePawnAlongSnakeCurve(pawnMesh, snakeObj, duration = 0.95) {
+  return new Promise(resolve => {
+    sfx.snakeBite();
+    snakeObj.swallowTimer = 1.0; // Trigger snake head bulge & lunge animation!
+    const startTime = performance.now();
+
+    function tick(now) {
+      // Clamp t strictly between 0 and 1 so CatmullRomCurve3.getPoint(t) never goes out of bounds
+      const rawT = (now - startTime) / (duration * 1000);
+      const t = Math.max(0, Math.min(1, rawT));
+      const pt = snakeObj.curve.getPoint(t);
+      pawnMesh.position.set(pt.x, pt.y + 0.15, pt.z);
+      // Shrink slightly while being swallowed through snake body!
+      const bulgeScale = 1 - Math.sin(t * Math.PI) * 0.38;
+      pawnMesh.scale.setScalar(bulgeScale);
+
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        pawnMesh.scale.setScalar(1);
+        resolve();
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 10. CORE GAMEPLAY RULES: ROLL DICE, VALID MOVES, CAPTURES, SNAKES & LADDERS
+// ----------------------------------------------------------------------------
+function handleRollDice() {
+  if (state.phase !== 'IDLE') return;
+  sfx.init();
+
+  state.phase = 'ROLLING';
+  updateHUD();
+
+  // Weighted slightly toward exciting rolls while keeping fair randomness
+  const rolled = Math.floor(Math.random() * 6) + 1;
+  state.diceValue = rolled;
+
+  if (rolled === 6) {
+    state.consecutiveSixes++;
+  } else {
+    state.consecutiveSixes = 0;
+  }
+
+  animate3DDiceRoll(rolled, () => {
+    const readout = document.getElementById('dice-readout-box');
+    readout.textContent = rolled;
+
+    // Three consecutive 6s rule in Ludo forfeits turn
+    if (state.mode === 'ludo' && state.consecutiveSixes >= 3) {
+      showBanner('Three 6s! Turn Passed!', '#f87171');
+      state.consecutiveSixes = 0;
+      setTimeout(advanceTurn, 1100);
+      return;
+    }
+
+    const player = state.players[state.currentTurn];
+    const moves = computeValidMoves(player, rolled);
+
+    if (moves.length === 0) {
+      showBanner(`Rolled ${rolled} — No valid moves`, '#94a3b8');
+      setTimeout(() => {
+        if (rolled === 6 && state.mode === 'ludo') {
+          state.phase = 'IDLE';
+          updateHUD();
+          checkAITurn();
+        } else {
+          advanceTurn();
+        }
+      }, 950);
+      return;
+    }
+
+    state.validMoves = moves;
+
+    // Auto-move if only 1 distinct option or AI player
+    if (moves.length === 1 || player.type === 'ai') {
+      const chosenPawn = player.type === 'ai' ? chooseBestAIMove(player, moves, rolled) : moves[0];
+      executeMove(player, chosenPawn, rolled);
+    } else {
+      // Highlight selectable pawns for human player
+      state.phase = 'SELECT_PAWN';
+      moves.forEach(p => {
+        p.mesh.userData.selectable = true;
+        p.mesh.userData.selectRing.visible = true;
+      });
+      showBanner(`Rolled ${rolled}! Tap a glowing pawn`, player.theme.css);
+      updateHUD();
+    }
+  });
+}
+
+function computeValidMoves(player, dice) {
+  const valid = [];
+  if (state.mode === 'ludo') {
+    player.pawns.forEach(pawn => {
+      if (pawn.finished) return;
+      if (pawn.progress === -1) {
+        if (dice === 6) valid.push(pawn);
+      } else if (pawn.progress + dice <= 56) {
+        valid.push(pawn);
+      }
+    });
+  } else {
+    // Snakes & Ladders: 1 pawn per player
+    const pawn = player.pawns[0];
+    if (pawn.progress + dice <= 100) {
+      valid.push(pawn);
+    }
+  }
+  return valid;
+}
+
+function chooseBestAIMove(player, moves, dice) {
+  if (state.mode === 'snakes' || moves.length === 1) return moves[0];
+
+  let best = moves[0];
+  let bestScore = -999;
+
+  moves.forEach(pawn => {
+    let score = 0;
+    if (pawn.progress === -1 && dice === 6) {
+      score += 80; // Bring new pawn into play
+    } else {
+      const nextProg = pawn.progress + dice;
+      if (nextProg === 56) score += 120; // Reach home crown!
+      if (nextProg <= 50) {
+        const gIdx = (LUDO_START_OFFSETS[player.id] + nextProg) % 52;
+        if (LUDO_SAFE_INDICES.has(gIdx)) score += 45;
+        // Check if captures an opponent
+        if (findCapturableOpponent(player.id, gIdx)) score += 100;
+      }
+      score += nextProg * 0.5;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = pawn;
+    }
+  });
+
+  return best;
+}
+
+function findCapturableOpponent(attackerId, globalTrackIdx) {
+  if (LUDO_SAFE_INDICES.has(globalTrackIdx)) return null;
+
+  for (const other of state.players) {
+    if (other.id === attackerId) continue;
+    for (const opPawn of other.pawns) {
+      if (opPawn.progress >= 0 && opPawn.progress <= 50) {
+        const opGlobal = (LUDO_START_OFFSETS[other.id] + opPawn.progress) % 52;
+        if (opGlobal === globalTrackIdx) {
+          return { player: other, pawn: opPawn };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+async function executeMove(player, pawn, dice) {
+  state.phase = 'MOVING';
+  // Clear selection rings
+  player.pawns.forEach(p => {
+    p.mesh.userData.selectable = false;
+    p.mesh.userData.selectRing.visible = false;
+  });
+  updateHUD();
+
+  let bonusTurn = (dice === 6);
+
+  if (state.mode === 'ludo') {
+    if (pawn.progress === -1) {
+      pawn.progress = 0;
+      sfx.safeOrSix();
+      const target = getPawnWorldTarget(player, pawn);
+      await animatePawnHop(pawn.mesh, target, 0.35, 1.2);
+    } else {
+      for (let s = 0; s < dice; s++) {
+        pawn.progress++;
+        const target = getPawnWorldTarget(player, pawn);
+        await animatePawnHop(pawn.mesh, target, 0.18, 0.72);
+      }
+    }
+
+    // Check reaching home crown
+    if (pawn.progress === 56) {
+      pawn.finished = true;
+      player.finishedCount++;
+      bonusTurn = true;
+      sfx.safeOrSix();
+      showBanner(`${player.theme.name} Pawn Home! (+Bonus Roll)`, player.theme.css);
+
+      if (player.finishedCount === 4) {
+        triggerVictory(player);
+        return;
+      }
+    } else if (pawn.progress <= 50) {
+      // Check capture
+      const gIdx = (LUDO_START_OFFSETS[player.id] + pawn.progress) % 52;
+      const victim = findCapturableOpponent(player.id, gIdx);
+      if (victim) {
+        sfx.capture();
+        bonusTurn = true;
+        showBanner(`💥 ${player.theme.name} captured ${victim.player.theme.name}!`, '#fbbf24');
+        victim.pawn.progress = -1;
+        const yardTarget = getPawnWorldTarget(victim.player, victim.pawn);
+        await animatePawnHop(victim.pawn.mesh, yardTarget, 0.45, 1.8);
+      }
+    }
+  } else {
+    // SAAP LUDO (SNAKES & LADDERS)
+    for (let s = 0; s < dice; s++) {
+      pawn.progress++;
+      const target = getPawnWorldTarget(player, pawn);
+      await animatePawnHop(pawn.mesh, target, 0.18, 0.72);
+    }
+
+    // Check Ladder Climb
+    const ladder = SNAKES_AND_LADDERS_MAP.ladders.find(l => l.from === pawn.progress);
+    if (ladder) {
+      sfx.ladder();
+      showBanner(`🪜 Ladder Climb! ${ladder.from} ➔ ${ladder.to}`, '#34d399');
+      pawn.progress = ladder.to;
+      const topTarget = getPawnWorldTarget(player, pawn);
+      await animatePawnHop(pawn.mesh, topTarget, 0.65, 1.35);
+    }
+
+    // Check 3D Snake Bite
+    const snakeObj = animatedSnakes.find(sn => sn.headSq === pawn.progress);
+    if (snakeObj) {
+      showBanner(`🐍 Oh no! Swallowed by Snake (${snakeObj.headSq} ➔ ${snakeObj.tailSq})`, '#f43f5e');
+      await animatePawnAlongSnakeCurve(pawn.mesh, snakeObj, 0.95);
+      pawn.progress = snakeObj.tailSq;
+      const tailTarget = getPawnWorldTarget(player, pawn);
+      pawn.mesh.position.copy(tailTarget);
+    }
+
+    // Check Victory at 100
+    if (pawn.progress >= 100) {
+      triggerVictory(player);
+      return;
+    }
+  }
+
+  if (bonusTurn) {
+    state.phase = 'IDLE';
+    updateHUD();
+    showBanner(`🎲 ${player.theme.name} gets a Bonus Roll!`, player.theme.css);
+    checkAITurn();
+  } else {
+    advanceTurn();
+  }
+}
+
+function advanceTurn() {
+  state.consecutiveSixes = 0;
+  state.currentTurn = (state.currentTurn + 1) % state.playerCount;
+  state.phase = 'IDLE';
+  const nextPlayer = state.players[state.currentTurn];
+  updateHUD();
+  showBanner(`${nextPlayer.theme.name}'s Turn`, nextPlayer.theme.css);
+  checkAITurn();
+}
+
+function checkAITurn() {
+  const current = state.players[state.currentTurn];
+  if (current && current.type === 'ai' && state.phase === 'IDLE') {
+    setTimeout(() => {
+      if (state.phase === 'IDLE' && state.players[state.currentTurn].type === 'ai') {
+        handleRollDice();
+      }
+    }, 850);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 11. RAYCASTING FOR TAPPING 3D PAWNS & 3D DICE DIRECTLY ON CANVAS
+// ----------------------------------------------------------------------------
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+
+function handleCanvasTap(clientX, clientY) {
+  if (state.phase !== 'SELECT_PAWN' && state.phase !== 'IDLE') return;
+
+  const rect = canvas.getBoundingClientRect();
+  pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(pointerNDC, camera);
+
+  // Allow tapping the 3D dice directly to roll!
+  if (state.phase === 'IDLE' && state.players[state.currentTurn].type === 'human') {
+    const diceHits = raycaster.intersectObject(diceMesh, false);
+    if (diceHits.length > 0) {
+      handleRollDice();
+      return;
+    }
+  }
+
+  // Check tapping a selectable 3D pawn
+  if (state.phase === 'SELECT_PAWN') {
+    const player = state.players[state.currentTurn];
+    const selectableMeshes = [];
+    player.pawns.forEach(p => {
+      if (p.mesh.userData.selectable) {
+        p.mesh.children.forEach(child => {
+          child.userData.parentPawn = p;
+          selectableMeshes.push(child);
+        });
+      }
+    });
+
+    const hits = raycaster.intersectObjects(selectableMeshes, false);
+    if (hits.length > 0) {
+      const tappedPawn = hits[0].object.userData.parentPawn;
+      if (tappedPawn) {
+        executeMove(player, tappedPawn, state.diceValue);
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 12. TOUCH & MOUSE GESTURES (ORBIT ROTATE, PINCH ZOOM, TAP DETECTION)
+// ----------------------------------------------------------------------------
+let tapStartPos = { x: 0, y: 0, time: 0 };
+
+canvas.addEventListener('pointerdown', e => {
+  camOrbit.isDragging = true;
+  camOrbit.prevX = e.clientX;
+  camOrbit.prevY = e.clientY;
+  tapStartPos = { x: e.clientX, y: e.clientY, time: performance.now() };
+});
+
+window.addEventListener('pointermove', e => {
+  if (!camOrbit.isDragging) return;
+  const dx = e.clientX - camOrbit.prevX;
+  const dy = e.clientY - camOrbit.prevY;
+  camOrbit.prevX = e.clientX;
+  camOrbit.prevY = e.clientY;
+
+  camOrbit.targetTheta -= dx * 0.0075;
+  camOrbit.targetPhi = Math.max(0.18, Math.min(1.15, camOrbit.targetPhi - dy * 0.0065));
+});
+
+window.addEventListener('pointerup', e => {
+  camOrbit.isDragging = false;
+  const moveDist = Math.hypot(e.clientX - tapStartPos.x, e.clientY - tapStartPos.y);
+  const elapsed = performance.now() - tapStartPos.time;
+  if (moveDist < 10 && elapsed < 350) {
+    handleCanvasTap(e.clientX, e.clientY);
+  }
+});
+
+// Wheel Zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  camOrbit.targetRadius = Math.max(12, Math.min(36, camOrbit.targetRadius + e.deltaY * 0.015));
+}, { passive: false });
+
+// Multi-touch Pinch Zoom
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    camOrbit.pinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    const newDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const delta = camOrbit.pinchDist - newDist;
+    camOrbit.pinchDist = newDist;
+    camOrbit.targetRadius = Math.max(12, Math.min(36, camOrbit.targetRadius + delta * 0.045));
+  }
+}, { passive: true });
+
+// ----------------------------------------------------------------------------
+// 13. UI & HUD SYNCHRONIZATION + VICTORY CONFETTI
+// ----------------------------------------------------------------------------
+let bannerTimeout = null;
+function showBanner(text, accentColor = '#fbbf24') {
+  const banner = document.getElementById('event-banner');
+  const label = document.getElementById('event-banner-text');
+  label.textContent = text;
+  label.style.color = accentColor;
+  banner.style.borderColor = accentColor;
+  banner.classList.remove('opacity-0', 'scale-90');
+  banner.classList.add('opacity-100', 'scale-100');
+
+  clearTimeout(bannerTimeout);
+  bannerTimeout = setTimeout(() => {
+    banner.classList.remove('opacity-100', 'scale-100');
+    banner.classList.add('opacity-0', 'scale-90');
+  }, 2200);
+}
+
+function updateHUD() {
+  const bar = document.getElementById('players-bar');
+  bar.innerHTML = '';
+
+  state.players.forEach((p, idx) => {
+    const isTurn = idx === state.currentTurn;
+    const progressText = state.mode === 'ludo'
+      ? `Home: ${p.finishedCount}/4`
+      : `Square: ${p.pawns[0].progress}/100`;
+
+    const card = document.createElement('div');
+    card.className = `glass-panel rounded-2xl px-3 py-2 flex items-center justify-between transition-all ${
+      isTurn ? 'active-turn-badge ring-2 ring-white bg-slate-800/90' : 'opacity-70'
+    }`;
+    card.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-3.5 rounded-full ${p.theme.badgeBg} shadow"></span>
+        <div class="flex flex-col">
+          <span class="font-game text-xs sm:text-sm font-bold text-white leading-none">
+            ${p.theme.name} <span class="text-[10px] font-normal text-slate-300">(${p.type === 'ai' ? 'AI' : 'P' + (idx + 1)})</span>
+          </span>
+          <span class="text-[11px] text-slate-300 mt-0.5">${progressText}</span>
+        </div>
+      </div>
+      ${isTurn ? '<span class="text-xs font-bold text-amber-300">●</span>' : ''}
+    `;
+    bar.appendChild(card);
+  });
+
+  const activePlayer = state.players[state.currentTurn];
+  if (activePlayer) {
+    document.getElementById('turn-title').textContent = `${activePlayer.theme.name}'s Turn (${activePlayer.type === 'ai' ? 'AI' : 'You'})`;
+    document.getElementById('turn-title').style.color = activePlayer.theme.css;
+
+    const sub = document.getElementById('turn-subtitle');
+    if (state.phase === 'IDLE') sub.textContent = activePlayer.type === 'ai' ? 'AI is thinking...' : 'Tap ROLL or tap 3D dice';
+    else if (state.phase === 'ROLLING') sub.textContent = 'Rolling 3D dice...';
+    else if (state.phase === 'SELECT_PAWN') sub.textContent = 'Tap a highlighted pawn to move';
+    else if (state.phase === 'MOVING') sub.textContent = 'Moving pawn...';
+
+    const rollBtn = document.getElementById('btn-roll');
+    rollBtn.disabled = !(state.phase === 'IDLE' && activePlayer.type === 'human');
+  }
+
+  // Sync top mode pills
+  const ludoTab = document.getElementById('switch-ludo');
+  const snakesTab = document.getElementById('switch-snakes');
+  if (state.mode === 'ludo') {
+    ludoTab.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-game font-semibold transition-all bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow';
+    snakesTab.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-game font-semibold transition-all text-slate-300 hover:text-white';
+  } else {
+    snakesTab.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-game font-semibold transition-all bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 shadow';
+    ludoTab.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-game font-semibold transition-all text-slate-300 hover:text-white';
+  }
+}
+
+// Menu Configuration UI
+function renderMenuPlayerConfig() {
+  const container = document.getElementById('player-slots-config');
+  container.innerHTML = '';
+  for (let i = 0; i < state.playerCount; i++) {
+    const theme = PLAYER_THEMES[i];
+    const isAI = state.playerTypes[i] === 'ai';
+    const btn = document.createElement('button');
+    btn.className = 'p-2.5 rounded-xl border border-slate-700 bg-slate-800/80 flex items-center justify-between text-left hover:border-slate-500 transition-all';
+    btn.innerHTML = `
+      <span class="flex items-center gap-2 font-game text-sm font-bold text-white">
+        <span class="w-3 h-3 rounded-full ${theme.badgeBg}"></span>
+        ${theme.name}
+      </span>
+      <span class="px-2 py-0.5 rounded-lg text-xs font-bold ${isAI ? 'bg-purple-500/30 text-purple-200' : 'bg-emerald-500/30 text-emerald-200'}">
+        ${isAI ? '🤖 AI' : '👤 Human'}
+      </span>
+    `;
+    btn.onclick = () => {
+      state.playerTypes[i] = state.playerTypes[i] === 'human' ? 'ai' : 'human';
+      renderMenuPlayerConfig();
+    };
+    container.appendChild(btn);
+  }
+}
+
+// Menu Event Listeners
+document.getElementById('menu-mode-ludo').onclick = () => {
+  state.mode = 'ludo';
+  document.getElementById('menu-mode-ludo').className = 'p-3 rounded-2xl border-2 border-amber-400 bg-amber-500/20 text-left transition-all';
+  document.getElementById('menu-mode-snakes').className = 'p-3 rounded-2xl border-2 border-slate-700 bg-slate-800/60 text-left transition-all';
+};
+
+document.getElementById('menu-mode-snakes').onclick = () => {
+  state.mode = 'snakes';
+  document.getElementById('menu-mode-snakes').className = 'p-3 rounded-2xl border-2 border-emerald-400 bg-emerald-500/20 text-left transition-all';
+  document.getElementById('menu-mode-ludo').className = 'p-3 rounded-2xl border-2 border-slate-700 bg-slate-800/60 text-left transition-all';
+};
+
+document.querySelectorAll('.pcount-btn').forEach(btn => {
+  btn.onclick = () => {
+    state.playerCount = Number(btn.dataset.pcount);
+    document.querySelectorAll('.pcount-btn').forEach(b => {
+      b.className = 'pcount-btn py-2.5 rounded-xl font-game font-bold text-sm border-2 border-slate-700 bg-slate-800/60 text-slate-300';
+    });
+    btn.className = 'pcount-btn py-2.5 rounded-xl font-game font-bold text-sm border-2 border-sky-400 bg-sky-500/20 text-white';
+    renderMenuPlayerConfig();
+  };
+});
+
+document.getElementById('btn-start-game').onclick = () => {
+  sfx.init();
+  document.getElementById('menu-modal').classList.add('hidden');
+  initGame();
+};
+
+document.getElementById('btn-open-menu').onclick = () => {
+  document.getElementById('menu-modal').classList.remove('hidden');
+};
+
+document.getElementById('switch-ludo').onclick = () => {
+  if (state.mode !== 'ludo') {
+    state.mode = 'ludo';
+    initGame();
+  }
+};
+
+document.getElementById('switch-snakes').onclick = () => {
+  if (state.mode !== 'snakes') {
+    state.mode = 'snakes';
+    initGame();
+  }
+};
+
+document.getElementById('btn-roll').onclick = handleRollDice;
+
+document.getElementById('btn-cam-view').onclick = () => {
+  if (state.cameraMode === 'tilt') {
+    state.cameraMode = 'top';
+    camOrbit.targetPhi = 0.16;
+    camOrbit.targetTheta = 0;
+    document.getElementById('cam-label').textContent = 'Top View';
+  } else {
+    state.cameraMode = 'tilt';
+    camOrbit.targetPhi = 0.72;
+    camOrbit.targetTheta = 0;
+    document.getElementById('cam-label').textContent = '3D Tilt';
+  }
+};
+
+document.getElementById('btn-sound').onclick = (e) => {
+  sfx.enabled = !sfx.enabled;
+  e.currentTarget.textContent = sfx.enabled ? '🔊' : '🔇';
+};
+
+// Victory & Confetti Celebration
+let confettiActive = false;
+const confettiCanvas = document.getElementById('confetti-canvas');
+const cCtx = confettiCanvas.getContext('2d');
+let particles = [];
+
+function triggerVictory(winner) {
+  state.phase = 'GAME_OVER';
+  sfx.win();
+  document.getElementById('winner-heading').textContent = `${winner.theme.name} Wins!`;
+  document.getElementById('winner-heading').style.color = winner.theme.css;
+  document.getElementById('winner-subtext').textContent =
+    state.mode === 'ludo'
+      ? 'All 4 pawns reached the Golden Crown!'
+      : 'First to conquer Square 100!';
+  document.getElementById('victory-modal').classList.remove('hidden');
+  startConfetti();
+}
+
+function hideVictoryModal() {
+  document.getElementById('victory-modal').classList.add('hidden');
+  confettiActive = false;
+  cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+}
+
+function startConfetti() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+  confettiActive = true;
+  particles = Array.from({ length: 120 }, () => ({
+    x: Math.random() * confettiCanvas.width,
+    y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+    r: Math.random() * 6 + 4,
+    color: ['#ef4444', '#22c55e', '#eab308', '#3b82f6', '#ec4899'][Math.floor(Math.random() * 5)],
+    vx: (Math.random() - 0.5) * 3,
+    vy: Math.random() * 3.5 + 2
+  }));
+}
+
+document.getElementById('btn-play-again').onclick = initGame;
+document.getElementById('btn-victory-menu').onclick = () => {
+  hideVictoryModal();
+  document.getElementById('menu-modal').classList.remove('hidden');
+};
+
+// ----------------------------------------------------------------------------
+// 14. MAIN 60FPS ANIMATION LOOP (3D Dice, Snakes Slither, Selection Rings)
+// ----------------------------------------------------------------------------
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  updateCameraPosition();
+
+  // Animate 3D Dice
+  if (diceAnim.active) {
+    diceAnim.elapsed += dt;
+    const t = Math.min(1, diceAnim.elapsed / diceAnim.duration);
+    const ease = 1 - Math.pow(1 - t, 3);
+
+    diceMesh.rotation.x = THREE.MathUtils.lerp(diceAnim.startRot.x, diceAnim.endRot.x, ease);
+    diceMesh.rotation.y = THREE.MathUtils.lerp(diceAnim.startRot.y, diceAnim.endRot.y, ease);
+    diceMesh.rotation.z = THREE.MathUtils.lerp(diceAnim.startRot.z, diceAnim.endRot.z, ease);
+    // High bounce arc
+    diceMesh.position.y = 2.0 + Math.abs(Math.sin(t * Math.PI * 2)) * (1 - t * 0.5) * 2.4;
+
+    if (t >= 1) {
+      diceAnim.active = false;
+      diceMesh.rotation.copy(DICE_TOP_ROTATIONS[diceAnim.targetVal]);
+      diceMesh.position.y = 2.0;
+      if (diceAnim.callback) diceAnim.callback();
+    }
+  } else {
+    // Gentle idle hover for 3D Dice
+    diceMesh.position.y = 2.05 + Math.sin(elapsed * 2.6) * 0.14;
+    if (state.phase === 'IDLE') {
+      diceMesh.rotation.y += dt * 0.45;
+    }
+  }
+
+  // Pulse selection rings under clickable pawns
+  state.players.forEach(p => {
+    p.pawns.forEach(pawn => {
+      if (pawn.mesh.userData.selectable) {
+        const s = 1 + Math.sin(elapsed * 8) * 0.18;
+        pawn.mesh.userData.selectRing.scale.set(s, s, 1);
+      }
+    });
+  });
+
+  // Animate 3D Snakes (Idle breathing wave, tongue flick, & swallow bulge!)
+  animatedSnakes.forEach(sn => {
+    const wave = Math.sin(elapsed * 3.2 + sn.phaseOffset);
+    sn.tongue.scale.z = 0.7 + Math.abs(Math.sin(elapsed * 9 + sn.phaseOffset)) * 0.65;
+
+    if (sn.swallowTimer > 0) {
+      sn.swallowTimer = Math.max(0, sn.swallowTimer - dt * 1.1);
+      const progress = 1 - sn.swallowTimer;
+      sn.headGroup.scale.setScalar(1 + Math.sin(sn.swallowTimer * Math.PI) * 0.45);
+      sn.bodySegments.forEach(seg => {
+        const dist = Math.abs(seg.t - progress);
+        const bulge = dist < 0.16 ? 1 + (1 - dist / 0.16) * 0.65 : 1;
+        seg.mesh.scale.setScalar(bulge);
+      });
+    } else {
+      sn.headGroup.scale.setScalar(1);
+      sn.bodySegments.forEach(seg => {
+        seg.mesh.position.y = seg.basePos.y + Math.sin(elapsed * 3.5 - seg.t * 8 + sn.phaseOffset) * 0.025;
+      });
+    }
+  });
+
+  // Update Confetti overlay if active
+  if (confettiActive) {
+    cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.y > confettiCanvas.height) p.y = -10;
+      cCtx.fillStyle = p.color;
+      cCtx.fillRect(p.x, p.y, p.r, p.r * 0.6);
+    });
+  }
+
+  renderer.render(scene, camera);
+}
+
+// Handle Window Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  adjustDefaultZoomForAspect();
+});
+
+// Start on Window Load
+window.onload = function () {
+  renderMenuPlayerConfig();
+  initGame();
+  animate();
+};
+</script>
+</body>
+</html>
