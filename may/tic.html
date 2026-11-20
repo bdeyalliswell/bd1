@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>3D Tic Tac Toe Arena</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+      color: #f8fafc;
+      touch-action: none;
+    }
+    .font-neon {
+      font-family: 'Orbitron', sans-serif;
+    }
+    #ttt-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    .ui-layer {
+      position: relative;
+      z-index: 10;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .pointer-auto {
+      pointer-events: auto;
+    }
+    .glass-panel {
+      background: rgba(10, 15, 30, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(56, 189, 248, 0.24);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    }
+    .btn-neon {
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+    .btn-neon:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+    .btn-neon:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    @keyframes pulseCyan {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.45); }
+      50% { box-shadow: 0 0 16px 3px rgba(34, 211, 238, 0.7); }
+    }
+    @keyframes pulseRose {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.45); }
+      50% { box-shadow: 0 0 16px 3px rgba(251, 113, 133, 0.7); }
+    }
+    .glow-x {
+      animation: pulseCyan 1.8s infinite;
+      border-color: rgba(34, 211, 238, 0.9);
+    }
+    .glow-o {
+      animation: pulseRose 1.8s infinite;
+      border-color: rgba(251, 113, 133, 0.9);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js 3D Viewport -->
+  <canvas id="ttt-canvas"></canvas>
+
+  <!-- Main Responsive HUD Overlay -->
+  <div class="ui-layer p-2.5 sm:p-4">
+
+    <!-- TOP BAR: Setup Modal Button, Board Switcher, Camera Presets & Sound -->
+    <header class="w-full max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2 pointer-auto">
+        <button id="btn-open-setup" class="glass-panel btn-neon px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-cyan-300 flex items-center gap-1.5 hover:bg-slate-800/90">
+          <span>⚙️</span>
+          <span>Setup</span>
+        </button>
+
+        <!-- Quick Mode Pill -->
+        <div class="glass-panel p-1 rounded-xl flex items-center gap-1">
+          <button id="quick-classic" class="px-2.5 py-1 rounded-lg text-xs font-neon font-bold bg-cyan-400 text-slate-950 transition-all">
+            3×3
+          </button>
+          <button id="quick-cubic" class="px-2.5 py-1 rounded-lg text-xs font-neon font-bold text-slate-300 hover:text-white transition-all">
+            3×3×3
+          </button>
+        </div>
+      </div>
+
+      <!-- Camera Controls & Sound -->
+      <div class="flex items-center gap-1.5 sm:gap-2 pointer-auto">
+        <div class="glass-panel p-1 rounded-xl flex items-center gap-1">
+          <button id="cam-3d" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-sky-500 text-slate-950 transition-all">
+            3D
+          </button>
+          <button id="cam-top" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all">
+            Top
+          </button>
+          <button id="cam-expand" class="hidden px-2.5 py-1 rounded-lg text-xs font-semibold text-amber-300 hover:bg-slate-800 transition-all" title="Expand or Collapse 3D Tiers">
+            ↕️ Expand
+          </button>
+          <button id="cam-reset" class="px-2 py-1 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all" title="Reset Camera">
+            ⟲
+          </button>
+        </div>
+
+        <button id="btn-sound" class="glass-panel btn-neon p-2 rounded-xl text-xs sm:text-sm text-emerald-300" title="Toggle Sound">
+          🔊
+        </button>
+      </div>
+    </header>
+
+    <!-- FLOATING TURN / RESULT BANNER -->
+    <div class="flex flex-col items-center pointer-events-none my-1">
+      <div id="status-banner" class="glass-panel px-4 py-1.5 rounded-full border border-cyan-400/50 text-xs sm:text-sm font-neon font-bold tracking-wider text-cyan-300 shadow-2xl transition-all duration-200">
+        X's TURN
+      </div>
+    </div>
+
+    <!-- BOTTOM HUD: Scoreboard (X, Draws, O) + Undo & New Round -->
+    <footer class="w-full max-w-4xl mx-auto flex flex-col gap-2 pointer-auto">
+      <div class="grid grid-cols-3 gap-2 sm:gap-3">
+        <!-- PLAYER X CARD -->
+        <div id="card-x" class="glass-panel rounded-2xl p-2 sm:p-3 flex flex-col items-center justify-center transition-all glow-x">
+          <div class="flex items-center gap-1.5">
+            <span class="font-neon font-extrabold text-sm sm:text-base text-cyan-400">✕</span>
+            <span id="label-x" class="text-xs sm:text-sm font-bold text-slate-200 truncate">Player X</span>
+          </div>
+          <div id="score-x" class="font-neon text-xl sm:text-2xl font-extrabold text-white mt-0.5">0</div>
+        </div>
+
+        <!-- DRAWS CARD -->
+        <div class="glass-panel rounded-2xl p-2 sm:p-3 flex flex-col items-center justify-center">
+          <span class="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider">Draws</span>
+          <div id="score-draw" class="font-neon text-xl sm:text-2xl font-extrabold text-slate-200 mt-0.5">0</div>
+        </div>
+
+        <!-- PLAYER O CARD -->
+        <div id="card-o" class="glass-panel rounded-2xl p-2 sm:p-3 flex flex-col items-center justify-center transition-all opacity-75">
+          <div class="flex items-center gap-1.5">
+            <span class="font-neon font-extrabold text-sm sm:text-base text-rose-400">◯</span>
+            <span id="label-o" class="text-xs sm:text-sm font-bold text-slate-200 truncate">AI (O)</span>
+          </div>
+          <div id="score-o" class="font-neon text-xl sm:text-2xl font-extrabold text-white mt-0.5">0</div>
+        </div>
+      </div>
+
+      <!-- Action Buttons Row -->
+      <div class="flex items-center justify-center gap-2.5">
+        <button id="btn-undo" class="glass-panel btn-neon flex-1 max-w-[160px] py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 flex items-center justify-center gap-1.5 hover:bg-slate-800/90">
+          <span>↩️</span>
+          <span>Undo</span>
+        </button>
+        <button id="btn-new-round" class="btn-neon flex-1 max-w-[200px] py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 text-slate-950 font-neon font-bold text-xs sm:text-sm tracking-wide shadow-lg flex items-center justify-center gap-1.5">
+          <span>✨</span>
+          <span>New Round</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- GAME SETUP MODAL -->
+  <div id="setup-modal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-md rounded-3xl p-5 sm:p-6 border border-cyan-500/30 shadow-2xl flex flex-col gap-4">
+      <div class="text-center">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 text-cyan-300 text-xs font-neon font-bold tracking-wider mb-1">
+          <span>✕</span><span>NEON 3D ARENA</span><span>◯</span>
+        </div>
+        <h1 class="font-neon text-2xl sm:text-3xl font-extrabold text-white tracking-wide">
+          3D Tic Tac Toe
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-300 mt-1">
+          Drag to orbit • Pinch or scroll to zoom • Tap cell to place
+        </p>
+      </div>
+
+      <!-- 1. Select Arena Dimension -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">1. Board Dimension</label>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="opt-dim-classic" class="p-3 rounded-2xl border-2 border-cyan-400 bg-cyan-500/20 text-left transition-all">
+            <div class="font-neon font-bold text-sm sm:text-base text-cyan-300">3×3 Classic</div>
+            <div class="text-xs text-slate-300 mt-0.5">Single 3D board • 8 winning lines</div>
+          </button>
+          <button id="opt-dim-cubic" class="p-3 rounded-2xl border-2 border-slate-700 bg-slate-900/70 text-left transition-all">
+            <div class="font-neon font-bold text-sm sm:text-base text-slate-200">3×3×3 Cubic</div>
+            <div class="text-xs text-slate-300 mt-0.5">3 glass tiers • 49 winning lines</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Select Opponent -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">2. Game Mode</label>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="opt-mode-ai" class="p-2.5 rounded-xl border-2 border-cyan-400 bg-cyan-500/20 text-center font-semibold text-xs sm:text-sm text-cyan-200 transition-all">
+            🤖 1P vs AI
+          </button>
+          <button id="opt-mode-pvp" class="p-2.5 rounded-xl border-2 border-slate-700 bg-slate-900/70 text-center font-semibold text-xs sm:text-sm text-slate-300 transition-all">
+            👥 2P Pass &amp; Play
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. AI Difficulty & Side -->
+      <div id="ai-config-group" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">3. AI Difficulty</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button data-diff="easy" class="diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-700 bg-slate-900/70 text-slate-300">Easy</button>
+            <button data-diff="medium" class="diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border-2 border-cyan-400 bg-cyan-500/25 text-cyan-200">Medium</button>
+            <button data-diff="hard" class="diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-700 bg-slate-900/70 text-slate-300">Unbeatable</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">4. Choose Your Symbol</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button data-sym="X" class="sym-btn py-2 rounded-xl text-xs sm:text-sm font-neon font-bold border-2 border-cyan-400 bg-cyan-500/25 text-cyan-300">✕ Play as X (First)</button>
+            <button data-sym="O" class="sym-btn py-2 rounded-xl text-xs sm:text-sm font-neon font-bold border border-slate-700 bg-slate-900/70 text-rose-300">◯ Play as O (Second)</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-launch-game" class="btn-neon w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-500 text-slate-950 font-neon font-extrabold text-base sm:text-lg tracking-wider shadow-xl mt-1">
+        ENTER 3D ARENA
+      </button>
+    </div>
+  </div>
+
+<script>
+/**
+ * ============================================================================
+ * 3D TIC TAC TOE ARENA — COMPLETE ENGINE
+ * Built with Three.js r128, Web Audio API Synthesizer, Minimax/Heuristic AI
+ * ============================================================================
+ */
+
+// ----------------------------------------------------------------------------
+// 1. PROCEDURAL WEB AUDIO API SOUND ENGINE
+// ----------------------------------------------------------------------------
+class ArenaAudio {
+  constructor() {
+    this.enabled = true;
+    this.ctx = null;
+  }
+
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  playTone(freq, type = 'sine', duration = 0.14, gainVal = 0.18, endFreq = null) {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    if (endFreq) {
+      osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+    }
+
+    gain.gain.setValueAtTime(gainVal, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  hoverTick() {
+    this.playTone(740, 'sine', 0.035, 0.04, 880);
+  }
+
+  placeX() {
+    // Crisp futuristic cyber chime + tactile thud
+    this.playTone(520, 'triangle', 0.14, 0.22, 780);
+    this.playTone(140, 'sine', 0.11, 0.24, 65);
+  }
+
+  placeO() {
+    // Warm harmonic chime + tactile thud
+    this.playTone(440, 'sine', 0.16, 0.22, 660);
+    this.playTone(125, 'sine', 0.12, 0.24, 58);
+  }
+
+  winFanfare() {
+    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+    notes.forEach((n, idx) => {
+      setTimeout(() => this.playTone(n, 'triangle', 0.26, 0.22), idx * 105);
+    });
+  }
+
+  drawSound() {
+    this.playTone(340, 'sawtooth', 0.18, 0.14, 260);
+    setTimeout(() => this.playTone(260, 'sawtooth', 0.25, 0.14, 210), 160);
+  }
+}
+
+const sfx = new ArenaAudio();
+
+// ----------------------------------------------------------------------------
+// 2. WINNING LINES GENERATOR (8 LINES FOR 3x3, ALL 49 LINES FOR 3x3x3)
+// ----------------------------------------------------------------------------
+function generateWinningLines(isCubic) {
+  const lines = [];
+  const tiers = isCubic ? 3 : 1;
+
+  // 1. Planar lines on each horizontal tier (rows, cols, 2 planar diagonals) -> 8 per tier
+  for (let y = 0; y < tiers; y++) {
+    for (let i = 0; i < 3; i++) {
+      // Row along X
+      lines.push([[0, y, i], [1, y, i], [2, y, i]]);
+      // Col along Z
+      lines.push([[i, y, 0], [i, y, 1], [i, y, 2]]);
+    }
+    // Planar diagonals
+    lines.push([[0, y, 0], [1, y, 1], [2, y, 2]]);
+    lines.push([[2, y, 0], [1, y, 1], [0, y, 2]]);
+  }
+
+  if (isCubic) {
+    // 2. Vertical pillars through all 3 tiers -> 9 lines
+    for (let x = 0; x < 3; x++) {
+      for (let z = 0; z < 3; z++) {
+        lines.push([[x, 0, z], [x, 1, z], [x, 2, z]]);
+      }
+    }
+
+    // 3. Vertical slice diagonals (XZ plane slices) -> 12 lines
+    for (let i = 0; i < 3; i++) {
+      // Along X at fixed Z
+      lines.push([[0, 0, i], [1, 1, i], [2, 2, i]]);
+      lines.push([[2, 0, i], [1, 1, i], [0, 2, i]]);
+      // Along Z at fixed X
+      lines.push([[i, 0, 0], [i, 1, 1], [i, 2, 2]]);
+      lines.push([[i, 0, 2], [i, 1, 1], [i, 2, 0]]);
+    }
+
+    // 4. True 3D corner-to-corner space diagonals -> 4 lines
+    lines.push([[0, 0, 0], [1, 1, 1], [2, 2, 2]]);
+    lines.push([[2, 0, 0], [1, 1, 1], [0, 2, 2]]);
+    lines.push([[0, 0, 2], [1, 1, 1], [2, 2, 0]]);
+    lines.push([[2, 0, 2], [1, 1, 1], [0, 2, 0]]);
+  }
+
+  return lines; // 8 for 3x3, 49 for 3x3x3!
+}
+
+// ----------------------------------------------------------------------------
+// 3. GAME STATE & AI ENGINE (EXACT MINIMAX FOR 3x3 + DEEP HEURISTIC FOR 3x3x3)
+// ----------------------------------------------------------------------------
+const game = {
+  dimension: 'classic', // 'classic' (3x3x1) | 'cubic' (3x3x3)
+  mode: 'ai',           // 'ai' | 'pvp'
+  difficulty: 'medium', // 'easy' | 'medium' | 'hard'
+  humanSymbol: 'X',     // 'X' | 'O'
+  turn: 'X',
+  board: [],            // 3D array [x][y][z] -> null | 'X' | 'O'
+  history: [],          // Stack of { x, y, z, symbol }
+  winLines: [],
+  winResult: null,      // { winner, line } | 'DRAW' | null
+  scores: { X: 0, O: 0, draw: 0 },
+  expandedTiers: false,
+  aiThinking: false
+};
+
+function createEmptyBoard(isCubic) {
+  const tiers = isCubic ? 3 : 1;
+  return Array.from({ length: 3 }, () =>
+    Array.from({ length: tiers }, () => Array(3).fill(null))
+  );
+}
+
+function getAvailableCells(board) {
+  const cells = [];
+  const tiers = board[0].length;
+  for (let x = 0; x < 3; x++) {
+    for (let y = 0; y < tiers; y++) {
+      for (let z = 0; z < 3; z++) {
+        if (board[x][y][z] === null) cells.push({ x, y, z });
+      }
+    }
+  }
+  return cells;
+}
+
+function evaluateWinState(board, winLines) {
+  for (const line of winLines) {
+    const [a, b, c] = line;
+    const v1 = board[a[0]][a[1]][a[2]];
+    if (v1 && v1 === board[b[0]][b[1]][b[2]] && v1 === board[c[0]][c[1]][c[2]]) {
+      return { winner: v1, line };
+    }
+  }
+  if (getAvailableCells(board).length === 0) {
+    return 'DRAW';
+  }
+  return null;
+}
+
+// Exact Minimax with Alpha-Beta Pruning for Classic 3x3
+function minimaxClassic(board, winLines, depth, isMaximizing, aiSym, humanSym, alpha, beta) {
+  const res = evaluateWinState(board, winLines);
+  if (res === 'DRAW') return 0;
+  if (res && res.winner === aiSym) return 100 - depth;
+  if (res && res.winner === humanSym) return depth - 100;
+
+  const avail = getAvailableCells(board);
+  if (isMaximizing) {
+    let best = -Infinity;
+    for (const cell of avail) {
+      board[cell.x][cell.y][cell.z] = aiSym;
+      const val = minimaxClassic(board, winLines, depth + 1, false, aiSym, humanSym, alpha, beta);
+      board[cell.x][cell.y][cell.z] = null;
+      if (val > best) best = val;
+      if (best > alpha) alpha = best;
+      if (beta <= alpha) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (const cell of avail) {
+      board[cell.x][cell.y][cell.z] = humanSym;
+      const val = minimaxClassic(board, winLines, depth + 1, true, aiSym, humanSym, alpha, beta);
+      board[cell.x][cell.y][cell.z] = null;
+      if (val < best) best = val;
+      if (best < beta) beta = best;
+      if (beta <= alpha) break;
+    }
+    return best;
+  }
+}
+
+// Strategic Heuristic + Lookahead AI for 3x3x3 Cubic Arena
+function evaluateCubicPosition(board, winLines, aiSym, humanSym) {
+  let score = 0;
+
+  // Center core cell [1,1,1] belongs to 13 winning lines!
+  if (board[1][1][1] === aiSym) score += 28;
+  else if (board[1][1][1] === humanSym) score -= 28;
+
+  // Evaluate all 49 winning lines
+  for (const line of winLines) {
+    let aiCount = 0;
+    let huCount = 0;
+    for (const [x, y, z] of line) {
+      const v = board[x][y][z];
+      if (v === aiSym) aiCount++;
+      else if (v === humanSym) huCount++;
+    }
+    if (aiCount > 0 && huCount === 0) {
+      if (aiCount === 3) score += 10000;
+      else if (aiCount === 2) score += 45;
+      else if (aiCount === 1) score += 6;
+    } else if (huCount > 0 && aiCount === 0) {
+      if (huCount === 3) score -= 10000;
+      else if (huCount === 2) score -= 55;
+      else if (huCount === 1) score -= 6;
+    }
+  }
+  return score;
+}
+
+function chooseBestAIMove() {
+  const aiSym = game.turn;
+  const humanSym = aiSym === 'X' ? 'O' : 'X';
+  const avail = getAvailableCells(game.board);
+  if (avail.length === 0) return null;
+
+  // Easy Mode: mostly random with occasional block
+  if (game.difficulty === 'easy') {
+    if (Math.random() < 0.72) {
+      return avail[Math.floor(Math.random() * avail.length)];
+    }
+  }
+
+  // Always take immediate winning move if available (for Medium & Hard)
+  for (const cell of avail) {
+    game.board[cell.x][cell.y][cell.z] = aiSym;
+    const win = evaluateWinState(game.board, game.winLines);
+    game.board[cell.x][cell.y][cell.z] = null;
+    if (win && win.winner === aiSym) return cell;
+  }
+
+  // Always block opponent's immediate winning move (for Medium & Hard)
+  for (const cell of avail) {
+    game.board[cell.x][cell.y][cell.z] = humanSym;
+    const win = evaluateWinState(game.board, game.winLines);
+    game.board[cell.x][cell.y][cell.z] = null;
+    if (win && win.winner === humanSym) return cell;
+  }
+
+  if (game.difficulty === 'medium' && Math.random() < 0.35) {
+    return avail[Math.floor(Math.random() * avail.length)];
+  }
+
+  // Classic 3x3 Unbeatable Minimax
+  if (game.dimension === 'classic') {
+    let bestScore = -Infinity;
+    let bestMoves = [];
+    for (const cell of avail) {
+      game.board[cell.x][cell.y][cell.z] = aiSym;
+      const score = minimaxClassic(game.board, game.winLines, 0, false, aiSym, humanSym, -Infinity, Infinity);
+      game.board[cell.x][cell.y][cell.z] = null;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMoves = [cell];
+      } else if (score === bestScore) {
+        bestMoves.push(cell);
+      }
+    }
+    return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+  }
+
+  // 3x3x3 Cubic Arena 2-ply Alpha-Beta Heuristic Search (creates double threats & controls core)
+  let bestScore = -Infinity;
+  let bestMoves = [];
+
+  for (const cell of avail) {
+    game.board[cell.x][cell.y][cell.z] = aiSym;
+
+    // Simulate opponent's strongest reply
+    const nextAvail = getAvailableCells(game.board);
+    let worstReply = Infinity;
+    for (const oppCell of nextAvail) {
+      game.board[oppCell.x][oppCell.y][oppCell.z] = humanSym;
+      const evalScore = evaluateCubicPosition(game.board, game.winLines, aiSym, humanSym);
+      game.board[oppCell.x][oppCell.y][oppCell.z] = null;
+      if (evalScore < worstReply) worstReply = evalScore;
+    }
+
+    game.board[cell.x][cell.y][cell.z] = null;
+
+    if (worstReply > bestScore) {
+      bestScore = worstReply;
+      bestMoves = [cell];
+    } else if (worstReply === bestScore) {
+      bestMoves.push(cell);
+    }
+  }
+
+  return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+}
+
+// ----------------------------------------------------------------------------
+// 4. THREE.JS 3D SCENE, TRANSLUCENT GLASS TIERS, SCULPTED X/O, LASER & PARTICLES
+// ----------------------------------------------------------------------------
+const canvas = document.getElementById('ttt-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050914);
+scene.fog = new THREE.FogExp2(0x050914, 0.025);
+
+const camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.1, 100);
+
+// Camera Orbit State
+const camOrbit = {
+  theta: 0.58,
+  phi: 0.92,
+  radius: 11.5,
+  targetTheta: 0.58,
+  targetPhi: 0.92,
+  targetRadius: 11.5,
+  isDragging: false,
+  prevX: 0,
+  prevY: 0,
+  pinchDist: 0
+};
+
+function getDefaultCameraRadius() {
+  const aspect = window.innerWidth / window.innerHeight;
+  const isCubic = game.dimension === 'cubic';
+  if (isCubic) {
+    return aspect < 0.72 ? 16.5 : (aspect < 1.1 ? 13.8 : 11.8);
+  } else {
+    return aspect < 0.72 ? 13.0 : (aspect < 1.1 ? 10.5 : 9.0);
+  }
+}
+
+function resetCameraView(mode = '3d') {
+  camOrbit.targetRadius = getDefaultCameraRadius();
+  if (mode === 'top') {
+    camOrbit.targetPhi = 0.14;
+    camOrbit.targetTheta = 0;
+  } else {
+    camOrbit.targetPhi = game.dimension === 'cubic' ? 0.96 : 0.82;
+    camOrbit.targetTheta = 0.58;
+  }
+}
+
+function updateCamera() {
+  camOrbit.theta += (camOrbit.targetTheta - camOrbit.theta) * 0.14;
+  camOrbit.phi += (camOrbit.targetPhi - camOrbit.phi) * 0.14;
+  camOrbit.radius += (camOrbit.targetRadius - camOrbit.radius) * 0.14;
+
+  const x = camOrbit.radius * Math.sin(camOrbit.phi) * Math.sin(camOrbit.theta);
+  const y = camOrbit.radius * Math.cos(camOrbit.phi);
+  const z = camOrbit.radius * Math.sin(camOrbit.phi) * Math.cos(camOrbit.theta);
+
+  camera.position.set(x, y, z);
+  camera.lookAt(0, 0, 0);
+}
+
+// Neon Cyberpunk Studio Lighting
+const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.65);
+scene.add(ambientLight);
+
+const keyLight = new THREE.DirectionalLight(0xffffff, 0.95);
+keyLight.position.set(8, 16, 10);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.width = 1024;
+keyLight.shadow.mapSize.height = 1024;
+scene.add(keyLight);
+
+const cyanRim = new THREE.PointLight(0x22d3ee, 1.1, 25);
+cyanRim.position.set(-7, 5, -7);
+scene.add(cyanRim);
+
+const roseRim = new THREE.PointLight(0xfb7185, 1.1, 25);
+roseRim.position.set(7, -4, 7);
+scene.add(roseRim);
+
+// Subtle background starfield dust for depth
+const starGeo = new THREE.BufferGeometry();
+const starCount = 260;
+const starPos = new Float32Array(starCount * 3);
+for (let i = 0; i < starCount * 3; i++) {
+  starPos[i] = (Math.random() - 0.5) * 48;
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+const starPoints = new THREE.Points(
+  starGeo,
+  new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.12, transparent: true, opacity: 0.55 })
+);
+scene.add(starPoints);
+
+// Scene Groups
+const arenaGroup = new THREE.Group();
+const piecesGroup = new THREE.Group();
+const fxGroup = new THREE.Group();
+scene.add(arenaGroup, piecesGroup, fxGroup);
+
+const CELL_SPACING = 1.65;
+let cellMeshes = [];         // Interactive cell hit-targets + visual pads
+let tierGroups = [];         // [tier0, tier1, tier2] so tiers can smoothly expand/collapse
+let placedPieceMeshes = [];  // Track placed pieces for spring bounce & tier sync
+let hoveredCellMesh = null;
+let winLaserMesh = null;
+let celebrationParticles = [];
+
+function getTierBaseY(yIdx) {
+  if (game.dimension === 'classic') return 0;
+  const spacing = game.expandedTiers ? 2.75 : 1.75;
+  return (yIdx - 1) * spacing;
+}
+
+function buildArenaScene() {
+  while (arenaGroup.children.length) arenaGroup.remove(arenaGroup.children[0]);
+  while (piecesGroup.children.length) piecesGroup.remove(piecesGroup.children[0]);
+  while (fxGroup.children.length) fxGroup.remove(fxGroup.children[0]);
+
+  cellMeshes = [];
+  tierGroups = [];
+  placedPieceMeshes = [];
+  hoveredCellMesh = null;
+  winLaserMesh = null;
+  celebrationParticles = [];
+
+  const isCubic = game.dimension === 'cubic';
+  const tiers = isCubic ? 3 : 1;
+  const boardSpan = CELL_SPACING * 3 + 0.35;
+
+  // 4 Vertical Corner Neon Pillars in Cubic Mode
+  if (isCubic) {
+    const pillarOffset = (CELL_SPACING * 1.5);
+    const pillarGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 12);
+    const pillarMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.35
+    });
+    [[-1,-1], [1,-1], [-1,1], [1,1]].forEach(([sx, sz]) => {
+      const p = new THREE.Mesh(pillarGeo, pillarMat);
+      p.position.set(sx * pillarOffset, 0, sz * pillarOffset);
+      p.userData.isPillar = true;
+      arenaGroup.add(p);
+    });
+  }
+
+  for (let y = 0; y < tiers; y++) {
+    const tGroup = new THREE.Group();
+    tGroup.position.y = getTierBaseY(y);
+    arenaGroup.add(tGroup);
+    tierGroups.push(tGroup);
+
+    // Translucent Glass Platform Deck
+    const deckGeo = new THREE.BoxGeometry(boardSpan, 0.1, boardSpan);
+    const deckMat = new THREE.MeshPhysicalMaterial({
+      color: isCubic ? 0x0f172a : 0x1e293b,
+      transparent: true,
+      opacity: isCubic ? 0.34 : 0.72,
+      roughness: 0.18,
+      metalness: 0.1
+    });
+    const deck = new THREE.Mesh(deckGeo, deckMat);
+    deck.position.y = -0.16;
+    deck.receiveShadow = true;
+    tGroup.add(deck);
+
+    // Glowing Grid Divider Bars (#)
+    const barMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: isCubic ? 0.55 : 0.85
+    });
+    [-0.5, 0.5].forEach(offset => {
+      const hBar = new THREE.Mesh(new THREE.BoxGeometry(boardSpan - 0.15, 0.045, 0.045), barMat);
+      hBar.position.set(0, -0.09, offset * CELL_SPACING);
+      tGroup.add(hBar);
+
+      const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, boardSpan - 0.15), barMat);
+      vBar.position.set(offset * CELL_SPACING, -0.09, 0);
+      tGroup.add(vBar);
+    });
+
+    // 9 Playable Cell Pads per Tier
+    const padGeo = new THREE.BoxGeometry(CELL_SPACING * 0.84, 0.08, CELL_SPACING * 0.84);
+    for (let x = 0; x < 3; x++) {
+      for (let z = 0; z < 3; z++) {
+        const padMat = new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: isCubic ? 0.06 : 0.12,
+          roughness: 0.3
+        });
+        const pad = new THREE.Mesh(padGeo, padMat);
+        pad.position.set((x - 1) * CELL_SPACING, -0.08, (z - 1) * CELL_SPACING);
+        pad.userData = { x, y, z, baseOpacity: isCubic ? 0.06 : 0.12 };
+        tGroup.add(pad);
+        cellMeshes.push(pad);
+      }
+    }
+  }
+}
+
+// Sculpted Glossy 3D X and O Piece Builders
+const matX = new THREE.MeshStandardMaterial({
+  color: 0x22d3ee,
+  emissive: 0x0891b2,
+  emissiveIntensity: 0.38,
+  roughness: 0.16,
+  metalness: 0.25
+});
+
+const matO = new THREE.MeshStandardMaterial({
+  color: 0xfb7185,
+  emissive: 0xe11d48,
+  emissiveIntensity: 0.38,
+  roughness: 0.16,
+  metalness: 0.25
+});
+
+function createSculpted3DPiece(symbol) {
+  const group = new THREE.Group();
+
+  if (symbol === 'X') {
+    // Two crossed beveled 3D bars with rounded end caps
+    const barLen = 1.18;
+    const barRadius = 0.15;
+    const barGeo = new THREE.CylinderGeometry(barRadius, barRadius, barLen, 20);
+    barGeo.rotateZ(Math.PI / 2);
+
+    const bar1 = new THREE.Mesh(barGeo, matX);
+    bar1.rotation.y = Math.PI / 4;
+    bar1.castShadow = true;
+
+    const bar2 = new THREE.Mesh(barGeo, matX);
+    bar2.rotation.y = -Math.PI / 4;
+    bar2.castShadow = true;
+
+    // Rounded end-cap spheres for sleek sculpted look
+    const capGeo = new THREE.SphereGeometry(barRadius, 16, 16);
+    const d = (barLen / 2) * Math.SQRT1_2;
+    [[-d, -d], [d, d], [-d, d], [d, -d]].forEach(([cx, cz]) => {
+      const cap = new THREE.Mesh(capGeo, matX);
+      cap.position.set(cx, 0, cz);
+      group.add(cap);
+    });
+
+    group.add(bar1, bar2);
+    group.position.y = 0.18;
+  } else {
+    // Glossy 3D Torus Ring for O
+    const torusGeo = new THREE.TorusGeometry(0.46, 0.15, 24, 42);
+    torusGeo.rotateX(Math.PI / 2);
+    const torus = new THREE.Mesh(torusGeo, matO);
+    torus.castShadow = true;
+    group.add(torus);
+    group.position.y = 0.18;
+  }
+
+  return group;
+}
+
+function spawn3DPiece(x, y, z, symbol) {
+  const mesh = createSculpted3DPiece(symbol);
+  mesh.position.set((x - 1) * CELL_SPACING, 0.22, (z - 1) * CELL_SPACING);
+  mesh.scale.setScalar(0.01);
+
+  // Parent directly to the tier group so Expand/Collapse smoothly moves pieces with their tier!
+  tierGroups[y].add(mesh);
+
+  const animObj = {
+    x, y, z,
+    symbol,
+    mesh,
+    elapsed: 0,
+    duration: 0.45
+  };
+  placedPieceMeshes.push(animObj);
+}
+
+// Glowing 3D Win Laser Beam + Particle Explosion
+function spawnWinLaserAndParticles(line, winnerSymbol) {
+  const [startCoord, , endCoord] = line;
+  const p1 = new THREE.Vector3(
+    (startCoord[0] - 1) * CELL_SPACING,
+    getTierBaseY(startCoord[1]) + 0.22,
+    (startCoord[2] - 1) * CELL_SPACING
+  );
+  const p2 = new THREE.Vector3(
+    (endCoord[0] - 1) * CELL_SPACING,
+    getTierBaseY(endCoord[1]) + 0.22,
+    (endCoord[2] - 1) * CELL_SPACING
+  );
+
+  // Extend slightly past the outer pieces for dramatic energy beam look
+  const dir = new THREE.Vector3().subVectors(p2, p1);
+  const len = dir.length() + 0.9;
+  const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+
+  const beamColor = winnerSymbol === 'X' ? 0x22d3ee : 0xfb7185;
+  const beamGroup = new THREE.Group();
+
+  // Inner white-hot core
+  const coreMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.06, len, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffffff })
+  );
+  // Outer neon aura cylinder
+  const auraMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.16, 0.16, len, 16),
+    new THREE.MeshBasicMaterial({ color: beamColor, transparent: true, opacity: 0.55 })
+  );
+
+  beamGroup.add(coreMesh, auraMesh);
+  beamGroup.position.copy(mid);
+  beamGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+  beamGroup.userData = { startCoord, endCoord };
+  fxGroup.add(beamGroup);
+  winLaserMesh = beamGroup;
+
+  // Burst 75 celebratory sparks along the 3 winning cells
+  const pGeo = new THREE.SphereGeometry(0.06, 8, 8);
+  const pMat = new THREE.MeshBasicMaterial({ color: beamColor });
+
+  line.forEach(([cx, cy, cz]) => {
+    const origin = new THREE.Vector3(
+      (cx - 1) * CELL_SPACING,
+      getTierBaseY(cy) + 0.25,
+      (cz - 1) * CELL_SPACING
+    );
+    for (let i = 0; i < 25; i++) {
+      const spark = new THREE.Mesh(pGeo, pMat);
+      spark.position.copy(origin);
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * Math.PI;
+      const speed = 1.8 + Math.random() * 3.8;
+      spark.userData = {
+        vel: new THREE.Vector3(
+          Math.sin(phi) * Math.cos(theta) * speed,
+          Math.cos(phi) * speed + 1.2,
+          Math.sin(phi) * Math.sin(theta) * speed
+        ),
+        life: 1.0
+      };
+      fxGroup.add(spark);
+      celebrationParticles.push(spark);
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 5. GAMEPLAY FLOW: PLACEMENT, UNDO, NEW ROUND & TURN MANAGEMENT
+// ----------------------------------------------------------------------------
+function initMatch() {
+  const isCubic = game.dimension === 'cubic';
+  game.board = createEmptyBoard(isCubic);
+  game.winLines = generateWinningLines(isCubic);
+  game.history = [];
+  game.turn = 'X';
+  game.winResult = null;
+  game.aiThinking = false;
+
+  buildArenaScene();
+  resetCameraView('3d');
+  updateHUD();
+
+  // Show/hide Expand Tiers button for 3x3x3 mode
+  const expandBtn = document.getElementById('cam-expand');
+  if (isCubic) {
+    expandBtn.classList.remove('hidden');
+  } else {
+    expandBtn.classList.add('hidden');
+  }
+
+  // If 1P vs AI and human chose O, AI (X) plays first
+  if (game.mode === 'ai' && game.humanSymbol === 'O') {
+    scheduleAIMove();
+  }
+}
+
+function handleCellMove(x, y, z) {
+  if (game.winResult || game.aiThinking) return;
+  if (game.board[x][y][z] !== null) return;
+  if (game.mode === 'ai' && game.turn !== game.humanSymbol) return;
+
+  executeMove(x, y, z);
+}
+
+function executeMove(x, y, z) {
+  const sym = game.turn;
+  game.board[x][y][z] = sym;
+  game.history.push({ x, y, z, symbol: sym });
+
+  if (sym === 'X') sfx.placeX();
+  else sfx.placeO();
+
+  spawn3DPiece(x, y, z, sym);
+
+  const outcome = evaluateWinState(game.board, game.winLines);
+  if (outcome) {
+    game.winResult = outcome;
+    if (outcome === 'DRAW') {
+      game.scores.draw++;
+      sfx.drawSound();
+    } else {
+      game.scores[outcome.winner]++;
+      sfx.winFanfare();
+      spawnWinLaserAndParticles(outcome.line, outcome.winner);
+    }
+    updateHUD();
+    return;
+  }
+
+  // Switch turns
+  game.turn = game.turn === 'X' ? 'O' : 'X';
+  updateHUD();
+
+  if (game.mode === 'ai' && game.turn !== game.humanSymbol) {
+    scheduleAIMove();
+  }
+}
+
+function scheduleAIMove() {
+  game.aiThinking = true;
+  updateHUD();
+  setTimeout(() => {
+    game.aiThinking = false;
+    if (game.winResult) return;
+    const move = chooseBestAIMove();
+    if (move) {
+      executeMove(move.x, move.y, move.z);
+    }
+  }, 420);
+}
+
+function undoLastMove() {
+  if (game.history.length === 0 || game.aiThinking) return;
+
+  // Clear any active win laser if undoing a finished round
+  if (game.winResult) {
+    if (game.winResult === 'DRAW') game.scores.draw = Math.max(0, game.scores.draw - 1);
+    else game.scores[game.winResult.winner] = Math.max(0, game.scores[game.winResult.winner] - 1);
+    game.winResult = null;
+    while (fxGroup.children.length) fxGroup.remove(fxGroup.children[0]);
+    winLaserMesh = null;
+  }
+
+  const stepsToUndo = (game.mode === 'ai' && game.turn === game.humanSymbol && game.history.length >= 2) ? 2 : 1;
+
+  for (let i = 0; i < stepsToUndo; i++) {
+    const last = game.history.pop();
+    if (!last) break;
+    game.board[last.x][last.y][last.z] = null;
+
+    const meshIdx = placedPieceMeshes.findIndex(p => p.x === last.x && p.y === last.y && p.z === last.z);
+    if (meshIdx !== -1) {
+      const item = placedPieceMeshes[meshIdx];
+      tierGroups[item.y].remove(item.mesh);
+      placedPieceMeshes.splice(meshIdx, 1);
+    }
+    game.turn = last.symbol;
+  }
+
+  updateHUD();
+}
+
+// ----------------------------------------------------------------------------
+// 6. RAYCASTING (HOVER HIGHLIGHTS & CELL SELECTION) + TOUCH/MOUSE CAMERA
+// ----------------------------------------------------------------------------
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+let tapStart = { x: 0, y: 0, time: 0 };
+
+function updateHoverHighlight(clientX, clientY) {
+  if (game.winResult || game.aiThinking) {
+    clearHoverHighlight();
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(pointerNDC, camera);
+  const hits = raycaster.intersectObjects(cellMeshes, false);
+
+  let validHit = null;
+  for (const h of hits) {
+    const { x, y, z } = h.object.userData;
+    if (game.board[x][y][z] === null) {
+      validHit = h.object;
+      break;
+    }
+  }
+
+  if (validHit !== hoveredCellMesh) {
+    clearHoverHighlight();
+    if (validHit) {
+      hoveredCellMesh = validHit;
+      hoveredCellMesh.material.color.setHex(game.turn === 'X' ? 0x22d3ee : 0xfb7185);
+      hoveredCellMesh.material.opacity = 0.42;
+      sfx.hoverTick();
+    }
+  }
+}
+
+function clearHoverHighlight() {
+  if (hoveredCellMesh) {
+    hoveredCellMesh.material.color.setHex(0x38bdf8);
+    hoveredCellMesh.material.opacity = hoveredCellMesh.userData.baseOpacity;
+    hoveredCellMesh = null;
+  }
+}
+
+canvas.addEventListener('pointerdown', e => {
+  camOrbit.isDragging = true;
+  camOrbit.prevX = e.clientX;
+  camOrbit.prevY = e.clientY;
+  tapStart = { x: e.clientX, y: e.clientY, time: performance.now() };
+});
+
+window.addEventListener('pointermove', e => {
+  if (camOrbit.isDragging) {
+    const dx = e.clientX - camOrbit.prevX;
+    const dy = e.clientY - camOrbit.prevY;
+    camOrbit.prevX = e.clientX;
+    camOrbit.prevY = e.clientY;
+
+    camOrbit.targetTheta -= dx * 0.0085;
+    camOrbit.targetPhi = Math.max(0.14, Math.min(2.45, camOrbit.targetPhi - dy * 0.0075));
+  } else if (e.pointerType === 'mouse') {
+    updateHoverHighlight(e.clientX, e.clientY);
+  }
+});
+
+window.addEventListener('pointerup', e => {
+  camOrbit.isDragging = false;
+  const moveDist = Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y);
+  const elapsed = performance.now() - tapStart.time;
+
+  if (moveDist < 10 && elapsed < 350) {
+    const rect = canvas.getBoundingClientRect();
+    pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointerNDC, camera);
+    const hits = raycaster.intersectObjects(cellMeshes, false);
+
+    for (const h of hits) {
+      const { x, y, z } = h.object.userData;
+      if (game.board[x][y][z] === null) {
+        clearHoverHighlight();
+        handleCellMove(x, y, z);
+        return;
+      }
+    }
+  }
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  camOrbit.targetRadius = Math.max(6.5, Math.min(24, camOrbit.targetRadius + e.deltaY * 0.012));
+}, { passive: false });
+
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    camOrbit.pinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    const newDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const delta = camOrbit.pinchDist - newDist;
+    camOrbit.pinchDist = newDist;
+    camOrbit.targetRadius = Math.max(6.5, Math.min(24, camOrbit.targetRadius + delta * 0.035));
+  }
+}, { passive: true });
+
+// ----------------------------------------------------------------------------
+// 7. HUD & MODAL BINDINGS
+// ----------------------------------------------------------------------------
+function updateHUD() {
+  document.getElementById('score-x').textContent = game.scores.X;
+  document.getElementById('score-o').textContent = game.scores.O;
+  document.getElementById('score-draw').textContent = game.scores.draw;
+
+  // Player labels
+  if (game.mode === 'ai') {
+    document.getElementById('label-x').textContent = game.humanSymbol === 'X' ? 'You (X)' : 'AI (X)';
+    document.getElementById('label-o').textContent = game.humanSymbol === 'O' ? 'You (O)' : 'AI (O)';
+  } else {
+    document.getElementById('label-x').textContent = 'Player X';
+    document.getElementById('label-o').textContent = 'Player O';
+  }
+
+  const cardX = document.getElementById('card-x');
+  const cardO = document.getElementById('card-o');
+  const banner = document.getElementById('status-banner');
+
+  if (game.winResult) {
+    cardX.classList.remove('glow-x', 'opacity-75');
+    cardO.classList.remove('glow-o', 'opacity-75');
+    if (game.winResult === 'DRAW') {
+      banner.textContent = "IT'S A DRAW!";
+      banner.style.color = '#e2e8f0';
+      banner.style.borderColor = 'rgba(148, 163, 184, 0.7)';
+    } else {
+      const w = game.winResult.winner;
+      banner.textContent = `🏆 PLAYER ${w} WINS!`;
+      banner.style.color = w === 'X' ? '#22d3ee' : '#fb7185';
+      banner.style.borderColor = w === 'X' ? 'rgba(34, 211, 238, 0.85)' : 'rgba(251, 113, 133, 0.85)';
+    }
+  } else {
+    if (game.turn === 'X') {
+      cardX.classList.add('glow-x');
+      cardX.classList.remove('opacity-75');
+      cardO.classList.remove('glow-o');
+      cardO.classList.add('opacity-75');
+      banner.textContent = game.aiThinking ? '🤖 AI (X) THINKING...' : "✕ X'S TURN";
+      banner.style.color = '#22d3ee';
+      banner.style.borderColor = 'rgba(34, 211, 238, 0.6)';
+    } else {
+      cardO.classList.add('glow-o');
+      cardO.classList.remove('opacity-75');
+      cardX.classList.remove('glow-x');
+      cardX.classList.add('opacity-75');
+      banner.textContent = game.aiThinking ? '🤖 AI (O) THINKING...' : "◯ O'S TURN";
+      banner.style.color = '#fb7185';
+      banner.style.borderColor = 'rgba(251, 113, 133, 0.6)';
+    }
+  }
+
+  // Sync top dimension pills
+  const qClassic = document.getElementById('quick-classic');
+  const qCubic = document.getElementById('quick-cubic');
+  if (game.dimension === 'classic') {
+    qClassic.className = 'px-2.5 py-1 rounded-lg text-xs font-neon font-bold bg-cyan-400 text-slate-950 transition-all';
+    qCubic.className = 'px-2.5 py-1 rounded-lg text-xs font-neon font-bold text-slate-300 hover:text-white transition-all';
+  } else {
+    qCubic.className = 'px-2.5 py-1 rounded-lg text-xs font-neon font-bold bg-cyan-400 text-slate-950 transition-all';
+    qClassic.className = 'px-2.5 py-1 rounded-lg text-xs font-neon font-bold text-slate-300 hover:text-white transition-all';
+  }
+
+  document.getElementById('btn-undo').disabled = game.history.length === 0 || game.aiThinking;
+}
+
+// Setup Modal Selectors
+document.getElementById('opt-dim-classic').onclick = () => {
+  game.dimension = 'classic';
+  document.getElementById('opt-dim-classic').className = 'p-3 rounded-2xl border-2 border-cyan-400 bg-cyan-500/20 text-left transition-all';
+  document.getElementById('opt-dim-cubic').className = 'p-3 rounded-2xl border-2 border-slate-700 bg-slate-900/70 text-left transition-all';
+};
+
+document.getElementById('opt-dim-cubic').onclick = () => {
+  game.dimension = 'cubic';
+  document.getElementById('opt-dim-cubic').className = 'p-3 rounded-2xl border-2 border-cyan-400 bg-cyan-500/20 text-left transition-all';
+  document.getElementById('opt-dim-classic').className = 'p-3 rounded-2xl border-2 border-slate-700 bg-slate-900/70 text-left transition-all';
+};
+
+document.getElementById('opt-mode-ai').onclick = () => {
+  game.mode = 'ai';
+  document.getElementById('opt-mode-ai').className = 'p-2.5 rounded-xl border-2 border-cyan-400 bg-cyan-500/20 text-center font-semibold text-xs sm:text-sm text-cyan-200 transition-all';
+  document.getElementById('opt-mode-pvp').className = 'p-2.5 rounded-xl border-2 border-slate-700 bg-slate-900/70 text-center font-semibold text-xs sm:text-sm text-slate-300 transition-all';
+  document.getElementById('ai-config-group').classList.remove('hidden');
+};
+
+document.getElementById('opt-mode-pvp').onclick = () => {
+  game.mode = 'pvp';
+  document.getElementById('opt-mode-pvp').className = 'p-2.5 rounded-xl border-2 border-cyan-400 bg-cyan-500/20 text-center font-semibold text-xs sm:text-sm text-cyan-200 transition-all';
+  document.getElementById('opt-mode-ai').className = 'p-2.5 rounded-xl border-2 border-slate-700 bg-slate-900/70 text-center font-semibold text-xs sm:text-sm text-slate-300 transition-all';
+  document.getElementById('ai-config-group').classList.add('hidden');
+};
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.onclick = () => {
+    game.difficulty = btn.dataset.diff;
+    document.querySelectorAll('.diff-btn').forEach(b => {
+      b.className = 'diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-700 bg-slate-900/70 text-slate-300';
+    });
+    btn.className = 'diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border-2 border-cyan-400 bg-cyan-500/25 text-cyan-200';
+  };
+});
+
+document.querySelectorAll('.sym-btn').forEach(btn => {
+  btn.onclick = () => {
+    game.humanSymbol = btn.dataset.sym;
+    document.querySelectorAll('.sym-btn').forEach(b => {
+      b.className = 'sym-btn py-2 rounded-xl text-xs sm:text-sm font-neon font-bold border border-slate-700 bg-slate-900/70 text-slate-300';
+    });
+    btn.className = 'sym-btn py-2 rounded-xl text-xs sm:text-sm font-neon font-bold border-2 border-cyan-400 bg-cyan-500/25 text-cyan-300';
+  };
+});
+
+document.getElementById('btn-launch-game').onclick = () => {
+  sfx.init();
+  game.scores = { X: 0, O: 0, draw: 0 };
+  document.getElementById('setup-modal').classList.add('hidden');
+  initMatch();
+};
+
+document.getElementById('btn-open-setup').onclick = () => {
+  document.getElementById('setup-modal').classList.remove('hidden');
+};
+
+document.getElementById('quick-classic').onclick = () => {
+  if (game.dimension !== 'classic') {
+    game.dimension = 'classic';
+    game.scores = { X: 0, O: 0, draw: 0 };
+    initMatch();
+  }
+};
+
+document.getElementById('quick-cubic').onclick = () => {
+  if (game.dimension !== 'cubic') {
+    game.dimension = 'cubic';
+    game.scores = { X: 0, O: 0, draw: 0 };
+    initMatch();
+  }
+};
+
+document.getElementById('btn-undo').onclick = undoLastMove;
+document.getElementById('btn-new-round').onclick = initMatch;
+
+// Camera Preset Buttons
+document.getElementById('cam-3d').onclick = () => {
+  resetCameraView('3d');
+  document.getElementById('cam-3d').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-sky-500 text-slate-950 transition-all';
+  document.getElementById('cam-top').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all';
+};
+
+document.getElementById('cam-top').onclick = () => {
+  resetCameraView('top');
+  document.getElementById('cam-top').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-sky-500 text-slate-950 transition-all';
+  document.getElementById('cam-3d').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all';
+};
+
+document.getElementById('cam-reset').onclick = () => {
+  resetCameraView('3d');
+  document.getElementById('cam-3d').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-sky-500 text-slate-950 transition-all';
+  document.getElementById('cam-top').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all';
+};
+
+document.getElementById('cam-expand').onclick = (e) => {
+  game.expandedTiers = !game.expandedTiers;
+  e.currentTarget.textContent = game.expandedTiers ? '↕️ Collapse' : '↕️ Expand';
+};
+
+document.getElementById('btn-sound').onclick = (e) => {
+  sfx.enabled = !sfx.enabled;
+  e.currentTarget.textContent = sfx.enabled ? '🔊' : '🔇';
+};
+
+// ----------------------------------------------------------------------------
+// 8. MAIN 60FPS ANIMATION LOOP (SPRING BOUNCE, TIER EXPANSION, LASER & PARTICLES)
+// ----------------------------------------------------------------------------
+const clock = new THREE.Clock();
+
+function springOut(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  updateCamera();
+
+  // Smoothly animate tier expansion/collapse in 3x3x3 Cubic mode
+  if (game.dimension === 'cubic' && tierGroups.length === 3) {
+    tierGroups.forEach((tg, yIdx) => {
+      const targetY = getTierBaseY(yIdx);
+      tg.position.y += (targetY - tg.position.y) * 0.14;
+    });
+    const pillarHeight = (game.expandedTiers ? 2.75 : 1.75) * 2 + 0.4;
+    arenaGroup.children.forEach(child => {
+      if (child.userData.isPillar) {
+        child.scale.y += (pillarHeight - child.scale.y) * 0.14;
+      }
+    });
+
+    // Keep win laser anchored accurately if tiers expand/collapse after win
+    if (winLaserMesh) {
+      const { startCoord, endCoord } = winLaserMesh.userData;
+      const p1 = new THREE.Vector3(
+        (startCoord[0] - 1) * CELL_SPACING,
+        tierGroups[startCoord[1]].position.y + 0.22,
+        (startCoord[2] - 1) * CELL_SPACING
+      );
+      const p2 = new THREE.Vector3(
+        (endCoord[0] - 1) * CELL_SPACING,
+        tierGroups[endCoord[1]].position.y + 0.22,
+        (endCoord[2] - 1) * CELL_SPACING
+      );
+      const dir = new THREE.Vector3().subVectors(p2, p1);
+      const len = dir.length() + 0.9;
+      winLaserMesh.position.addVectors(p1, p2).multiplyScalar(0.5);
+      winLaserMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+      winLaserMesh.children.forEach(c => {
+        c.scale.y = len / (c.geometry.parameters.height || 1);
+      });
+    }
+  }
+
+  // Spring bounce drop-in animation for placed X & O pieces
+  placedPieceMeshes.forEach(item => {
+    if (item.elapsed < item.duration) {
+      item.elapsed = Math.min(item.duration, item.elapsed + dt);
+      const t = item.elapsed / item.duration;
+      const s = springOut(t);
+      item.mesh.scale.setScalar(Math.max(0.01, s));
+      item.mesh.position.y = 0.22 + (1 - Math.min(1, t * 1.4)) * 0.95;
+    } else {
+      item.mesh.scale.setScalar(1);
+      item.mesh.position.y = 0.22 + Math.sin(elapsed * 2.5 + item.x + item.z) * 0.025;
+    }
+  });
+
+  // Pulse winning laser beam
+  if (winLaserMesh) {
+    const pulse = 1 + Math.sin(elapsed * 10) * 0.25;
+    winLaserMesh.children[1].scale.x = pulse;
+    winLaserMesh.children[1].scale.z = pulse;
+  }
+
+  // Update celebration particles
+  for (let i = celebrationParticles.length - 1; i >= 0; i--) {
+    const p = celebrationParticles[i];
+    p.userData.life -= dt * 0.75;
+    if (p.userData.life <= 0) {
+      fxGroup.remove(p);
+      celebrationParticles.splice(i, 1);
+    } else {
+      p.userData.vel.y -= 6.5 * dt;
+      p.position.addScaledVector(p.userData.vel, dt);
+      p.scale.setScalar(p.userData.life);
+    }
+  }
+
+  // Gentle ambient star rotation
+  starPoints.rotation.y += dt * 0.02;
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camOrbit.targetRadius = getDefaultCameraRadius();
+});
+
+window.onload = function () {
+  initMatch();
+  animate();
+};
+</script>
+</body>
+</html>
