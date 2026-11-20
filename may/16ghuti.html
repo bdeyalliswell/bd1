@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>3D Sholo Guti (16 Ghuti) Master</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at center, #261710 0%, #0d0806 100%);
+      color: #fafaf9;
+      touch-action: none;
+    }
+    .font-royal {
+      font-family: 'Cinzel', serif;
+    }
+    #guti-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    .ui-overlay {
+      position: relative;
+      z-index: 10;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .pointer-auto {
+      pointer-events: auto;
+    }
+    .glass-wood {
+      background: rgba(24, 15, 11, 0.84);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+    .btn-tactile {
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-tactile:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+    .btn-tactile:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+    @keyframes pulseAmber {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45); }
+      50% { box-shadow: 0 0 15px 3px rgba(245, 158, 11, 0.75); }
+    }
+    @keyframes pulseRuby {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.45); }
+      50% { box-shadow: 0 0 15px 3px rgba(244, 63, 94, 0.75); }
+    }
+    .glow-gold {
+      animation: pulseAmber 1.9s infinite;
+      border-color: rgba(251, 191, 36, 0.9);
+    }
+    .glow-ruby {
+      animation: pulseRuby 1.9s infinite;
+      border-color: rgba(251, 113, 133, 0.9);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js 3D Viewport -->
+  <canvas id="guti-canvas"></canvas>
+
+  <!-- Main Responsive HUD Overlay -->
+  <div class="ui-overlay p-2.5 sm:p-4">
+
+    <!-- TOP BAR: New Game, Rules, Undo, Camera Presets & Sound -->
+    <header class="w-full max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2 pointer-auto">
+        <button id="btn-open-setup" class="glass-wood btn-tactile px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-amber-300 flex items-center gap-1.5 hover:bg-stone-900/90">
+          <span>⚙️</span>
+          <span>New Game</span>
+        </button>
+
+        <button id="btn-undo" class="glass-wood btn-tactile px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-stone-200 flex items-center gap-1 hover:bg-stone-900/90" title="Undo Move">
+          <span>↩️</span>
+          <span class="hidden sm:inline">Undo</span>
+        </button>
+
+        <button id="btn-rules" class="glass-wood btn-tactile px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-emerald-300 flex items-center gap-1 hover:bg-stone-900/90" title="16 Ghuti Rules">
+          <span>📜</span>
+          <span class="hidden sm:inline">Rules</span>
+        </button>
+      </div>
+
+      <!-- Camera View Presets & Sound -->
+      <div class="flex items-center gap-1.5 sm:gap-2 pointer-auto">
+        <div class="glass-wood p-1 rounded-xl flex items-center gap-1">
+          <button id="cam-3d" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500 text-stone-950 transition-all">
+            3D
+          </button>
+          <button id="cam-top" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-stone-300 hover:text-white transition-all">
+            Top
+          </button>
+          <button id="cam-flip" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-stone-300 hover:text-white transition-all" title="Flip Board">
+            🔄 Flip
+          </button>
+        </div>
+
+        <button id="btn-sound" class="glass-wood btn-tactile p-2 rounded-xl text-xs sm:text-sm text-amber-300" title="Toggle Sound">
+          🔊
+        </button>
+      </div>
+    </header>
+
+    <!-- FLOATING STATUS / COMBO TOAST + MULTI-JUMP END TURN BUTTON -->
+    <div class="flex flex-col items-center gap-2 pointer-events-none my-1">
+      <div id="status-banner" class="glass-wood px-4 py-1.5 rounded-full border border-amber-400/60 text-xs sm:text-sm font-royal font-bold tracking-wider text-amber-300 shadow-2xl transition-all duration-200">
+        GOLD'S TURN
+      </div>
+
+      <!-- Appears only during an optional Multi-Jump Chain Capture -->
+      <button id="btn-end-chain" class="hidden pointer-auto btn-tactile px-4 py-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-stone-950 font-royal font-extrabold text-xs sm:text-sm tracking-wide shadow-xl border border-amber-200">
+        ✓ End Jump Chain
+      </button>
+    </div>
+
+    <!-- BOTTOM HUD: Player Score Cards, Remaining Soldiers & Captured Trays -->
+    <footer class="w-full max-w-4xl mx-auto flex flex-col gap-2 pointer-auto">
+      <div class="grid grid-cols-2 gap-2 sm:gap-3">
+        <!-- GOLD PLAYER CARD (Bottom Half) -->
+        <div id="card-gold" class="glass-wood rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between transition-all glow-gold">
+          <div class="flex items-center justify-between gap-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-amber-300 to-amber-600 border border-amber-100 shadow"></span>
+              <span id="label-gold" class="font-royal text-xs sm:text-sm font-bold text-amber-200 truncate">Gold (You)</span>
+            </div>
+            <span id="count-gold" class="text-xs font-bold text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md">16 Left</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-stone-300 mt-1.5">
+            <span>Captured: <strong id="cap-by-gold" class="text-rose-400 font-bold">0</strong>/16</span>
+            <span id="turn-counter" class="text-stone-400">Move #1</span>
+          </div>
+        </div>
+
+        <!-- RUBY PLAYER CARD (Top Half) -->
+        <div id="card-ruby" class="glass-wood rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between transition-all opacity-75">
+          <div class="flex items-center justify-between gap-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-rose-400 to-red-700 border border-rose-200 shadow"></span>
+              <span id="label-ruby" class="font-royal text-xs sm:text-sm font-bold text-rose-300 truncate">Ruby (AI)</span>
+            </div>
+            <span id="count-ruby" class="text-xs font-bold text-rose-300 bg-rose-500/15 px-2 py-0.5 rounded-md">16 Left</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-stone-300 mt-1.5">
+            <span>Captured: <strong id="cap-by-ruby" class="text-amber-300 font-bold">0</strong>/16</span>
+            <span class="text-stone-400">16 Ghuti</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- NEW GAME SETUP MODAL -->
+  <div id="setup-modal" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-wood w-full max-w-md rounded-3xl p-5 sm:p-6 border border-amber-500/35 shadow-2xl flex flex-col gap-4">
+      <div class="text-center">
+        <div class="inline-block px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-royal font-bold tracking-wider uppercase mb-1">
+          Sixteen Soldiers • 3D Strategy
+        </div>
+        <h1 class="font-royal text-2xl sm:text-3xl font-extrabold text-amber-200 tracking-wide">
+          Sholo Guti 3D
+        </h1>
+        <p class="text-xs sm:text-sm text-stone-300 mt-1">
+          Drag to orbit • Pinch or scroll to zoom • Tap Guti to move &amp; jump
+        </p>
+      </div>
+
+      <!-- 1. Game Mode -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-stone-400 mb-1.5">1. Game Mode</label>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="opt-mode-ai" class="p-3 rounded-2xl border-2 border-amber-400 bg-amber-500/20 text-left transition-all">
+            <div class="font-royal font-bold text-sm sm:text-base text-amber-200">🤖 1P vs AI</div>
+            <div class="text-xs text-stone-300 mt-0.5">Battle the tactical engine</div>
+          </button>
+          <button id="opt-mode-pvp" class="p-3 rounded-2xl border-2 border-stone-700 bg-stone-900/70 text-left transition-all">
+            <div class="font-royal font-bold text-sm sm:text-base text-stone-200">👥 2P Pass &amp; Play</div>
+            <div class="text-xs text-stone-300 mt-0.5">Play together on one device</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. AI Options -->
+      <div id="ai-options-box" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-stone-400 mb-1.5">2. AI Difficulty</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button data-diff="easy" class="diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border border-stone-700 bg-stone-900/70 text-stone-300">Easy</button>
+            <button data-diff="medium" class="diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border-2 border-amber-400 bg-amber-500/25 text-amber-200">Medium</button>
+            <button data-diff="hard" class="diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border border-stone-700 bg-stone-900/70 text-stone-300">Master</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-stone-400 mb-1.5">3. Choose Your Side</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button data-side="gold" class="side-btn py-2 rounded-xl text-xs sm:text-sm font-royal font-bold border-2 border-amber-400 bg-amber-500/25 text-amber-200">🟡 Gold (First)</button>
+            <button data-side="ruby" class="side-btn py-2 rounded-xl text-xs sm:text-sm font-royal font-bold border border-stone-700 bg-stone-900/70 text-rose-300">🔴 Ruby (Second)</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-start-match" class="btn-tactile w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-stone-950 font-royal font-extrabold text-base sm:text-lg tracking-wider shadow-xl mt-1">
+        START 16 GHUTI
+      </button>
+    </div>
+  </div>
+
+  <!-- AUTHENTIC 16 GHUTI RULES MODAL -->
+  <div id="rules-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-wood w-full max-w-md rounded-3xl p-5 sm:p-6 border border-amber-400/40 shadow-2xl flex flex-col gap-3">
+      <div class="flex items-center justify-between border-b border-stone-700/80 pb-2">
+        <h2 class="font-royal text-xl font-bold text-amber-300">How to Play Sholo Guti</h2>
+        <button id="btn-close-rules" class="text-stone-400 hover:text-white text-lg px-2">✕</button>
+      </div>
+      <ul class="text-xs sm:text-sm text-stone-200 space-y-2.5 leading-relaxed">
+        <li><strong class="text-amber-300">1. Setup:</strong> Each player commands <strong>16 Guti (soldiers)</strong> arranged on their half of the 37-node board, leaving only the center node empty.</li>
+        <li><strong class="text-emerald-300">2. Step Move:</strong> Tap any of your pieces to select it, then tap an <strong>emerald-ringed</strong> adjacent empty node connected by a carved line to move 1 step.</li>
+        <li><strong class="text-rose-400">3. Jump Capture:</strong> Leap straight over an adjacent enemy Guti onto an empty node directly behind it along the same line (<strong>pulsing crimson/gold rings</strong>) to capture it!</li>
+        <li><strong class="text-amber-300">4. Multi-Jump Chain:</strong> After capturing, if the same piece can immediately capture another enemy, you may continue jumping in a chain combo — or tap <strong>End Jump Chain</strong> to stop.</li>
+        <li><strong class="text-sky-300">5. Victory:</strong> Capture all <strong>16 opponent pieces</strong> (or leave your opponent with zero legal moves) to win!</li>
+      </ul>
+      <button id="btn-got-it" class="btn-tactile w-full py-2.5 rounded-xl bg-amber-500 text-stone-950 font-royal font-bold text-sm mt-2">
+        Got It!
+      </button>
+    </div>
+  </div>
+
+  <!-- VICTORY MODAL -->
+  <div id="victory-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-wood w-full max-w-sm rounded-3xl p-6 text-center border-2 border-amber-400/75 shadow-2xl flex flex-col items-center gap-3">
+      <div class="text-5xl animate-bounce">🏆</div>
+      <h2 id="victory-title" class="font-royal text-2xl sm:text-3xl font-extrabold text-amber-300">
+        Gold Wins!
+      </h2>
+      <p id="victory-sub" class="text-sm text-stone-200">
+        All 16 enemy soldiers captured!
+      </p>
+      <div class="flex gap-3 w-full mt-3">
+        <button id="btn-rematch" class="btn-tactile flex-1 py-3 rounded-2xl bg-amber-500 text-stone-950 font-royal font-bold text-sm sm:text-base">
+          Play Again
+        </button>
+        <button id="btn-victory-menu" class="btn-tactile flex-1 py-3 rounded-2xl bg-stone-700 text-white font-royal font-bold text-sm sm:text-base">
+          Main Menu
+        </button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/**
+ * ============================================================================
+ * 3D SHOLO GUTI (16 GHUTI / SIXTEEN SOLDIERS) — COMPLETE ENGINE
+ * Authentic 37-Node Board Graph, Multi-Jump Chain Captures, Alpha-Beta AI
+ * ============================================================================
+ */
+
+// ----------------------------------------------------------------------------
+// 1. WEB AUDIO API SYNTHESIZER (Tactile Wood Tap, Capture Thud, Combo Chimes)
+// ----------------------------------------------------------------------------
+class SholoAudio {
+  constructor() {
+    this.enabled = true;
+    this.ctx = null;
+  }
+
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  playTone(freq, type = 'sine', duration = 0.14, gainVal = 0.2, endFreq = null) {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    if (endFreq) {
+      osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+    }
+
+    gain.gain.setValueAtTime(gainVal, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  selectPiece() {
+    this.playTone(540, 'sine', 0.08, 0.14, 720);
+  }
+
+  woodStep() {
+    // Crisp carved wood/stone landing tap
+    this.playTone(210, 'triangle', 0.10, 0.26, 85);
+  }
+
+  captureJump(comboCount = 1) {
+    // Dramatic impact + rising harmonic chime per combo jump
+    this.playTone(165, 'sawtooth', 0.14, 0.25, 62);
+    const basePitch = 440 * Math.pow(1.18, Math.min(comboCount, 6));
+    setTimeout(() => this.playTone(basePitch, 'triangle', 0.22, 0.24, basePitch * 1.25), 55);
+  }
+
+  victory() {
+    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+    notes.forEach((n, idx) => {
+      setTimeout(() => this.playTone(n, 'triangle', 0.26, 0.22), idx * 115);
+    });
+  }
+}
+
+const sfx = new SholoAudio();
+
+// ----------------------------------------------------------------------------
+// 2. AUTHENTIC 37-NODE SHOLO GUTI BOARD TOPOLOGY & STRAIGHT-LINE JUMP TABLE
+// ----------------------------------------------------------------------------
+/**
+ * Standard Sholo Guti Board Layout (37 intersections):
+ * - Top Citadel (Ruby side):
+ *     Row -4 (Apex):      (-2,-4), (0,-4), (2,-4)      [3 nodes]
+ *     Row -3 (Mid-Apex):  (-1,-3), (0,-3), (1,-3)      [3 nodes]
+ * - Central 5x5 Grid:
+ *     Rows -2, -1, 0, +1, +2 and Cols -2, -1, 0, +1, +2 [25 nodes]
+ *     Center node is (0, 0) -> starts EMPTY!
+ * - Bottom Citadel (Gold side):
+ *     Row +3 (Mid-Apex):  (-1,+3), (0,+3), (1,+3)      [3 nodes]
+ *     Row +4 (Apex):      (-2,+4), (0,+4), (2,+4)      [3 nodes]
+ * Total = 3 + 3 + 25 + 3 + 3 = 37 nodes!
+ */
+const BOARD_NODES = [];
+const NODE_LOOKUP = new Map(); // "gx,gz" -> nodeIndex
+const ADJACENCY = [];          // nodeIndex -> Array of neighbor nodeIndices
+const JUMP_MAP = [];           // nodeIndex -> Array of { over: midNodeIdx, to: landNodeIdx }
+
+function buildSholoGutiGraph() {
+  BOARD_NODES.length = 0;
+  NODE_LOOKUP.clear();
+
+  function addNode(gx, gz, initialOwner) {
+    const idx = BOARD_NODES.length;
+    BOARD_NODES.push({ id: idx, gx, gz, initialOwner });
+    NODE_LOOKUP.set(`${gx},${gz}`, idx);
+  }
+
+  // Top Citadel (Ruby)
+  [[-2, -4], [0, -4], [2, -4]].forEach(([x, z]) => addNode(x, z, 'ruby'));
+  [[-1, -3], [0, -3], [1, -3]].forEach(([x, z]) => addNode(x, z, 'ruby'));
+
+  // 5x5 Central Grid
+  for (let gz = -2; gz <= 2; gz++) {
+    for (let gx = -2; gx <= 2; gx++) {
+      let owner = null;
+      if (gz < 0) owner = 'ruby';
+      else if (gz > 0) owner = 'gold';
+      else owner = null; // Center row (gz === 0) starts empty!
+      addNode(gx, gz, owner);
+    }
+  }
+
+  // Bottom Citadel (Gold)
+  [[-1, 3], [0, 3], [1, 3]].forEach(([x, z]) => addNode(x, z, 'gold'));
+  [[-2, 4], [0, 4], [2, 4]].forEach(([x, z]) => addNode(x, z, 'gold'));
+
+  // Initialize adjacency & jump lists
+  for (let i = 0; i < BOARD_NODES.length; i++) {
+    ADJACENCY[i] = [];
+    JUMP_MAP[i] = [];
+  }
+
+  function connectUndirected(gx1, gz1, gx2, gz2) {
+    const a = NODE_LOOKUP.get(`${gx1},${gz1}`);
+    const b = NODE_LOOKUP.get(`${gx2},${gz2}`);
+    if (a !== undefined && b !== undefined) {
+      if (!ADJACENCY[a].includes(b)) ADJACENCY[a].push(b);
+      if (!ADJACENCY[b].includes(a)) ADJACENCY[b].push(a);
+    }
+  }
+
+  // 1. Connect 5x5 Central Grid (Orthogonal + Alquerque alternating diagonals where (gx+gz) is even)
+  for (let gz = -2; gz <= 2; gz++) {
+    for (let gx = -2; gx <= 2; gx++) {
+      if (gx < 2) connectUndirected(gx, gz, gx + 1, gz); // Horizontal
+      if (gz < 2) connectUndirected(gx, gz, gx, gz + 1); // Vertical
+      if ((Math.abs(gx + gz) % 2) === 0) {
+        if (gx < 2 && gz < 2) connectUndirected(gx, gz, gx + 1, gz + 1);
+        if (gx > -2 && gz < 2) connectUndirected(gx, gz, gx - 1, gz + 1);
+      }
+    }
+  }
+
+  // 2. Connect Top Triangular Citadel
+  connectUndirected(-2, -4, 0, -4);
+  connectUndirected(0, -4, 2, -4);
+  connectUndirected(-1, -3, 0, -3);
+  connectUndirected(0, -3, 1, -3);
+  // Slanted edges converging to (0, -2)
+  connectUndirected(-2, -4, -1, -3);
+  connectUndirected(-1, -3, 0, -2);
+  connectUndirected(2, -4, 1, -3);
+  connectUndirected(1, -3, 0, -2);
+  // Central vertical spine through Top Citadel
+  connectUndirected(0, -4, 0, -3);
+  connectUndirected(0, -3, 0, -2);
+
+  // 3. Connect Bottom Triangular Citadel
+  connectUndirected(-2, 4, 0, 4);
+  connectUndirected(0, 4, 2, 4);
+  connectUndirected(-1, 3, 0, 3);
+  connectUndirected(0, 3, 1, 3);
+  // Slanted edges converging to (0, +2)
+  connectUndirected(-2, 4, -1, 3);
+  connectUndirected(-1, 3, 0, 2);
+  connectUndirected(2, 4, 1, 3);
+  connectUndirected(1, 3, 0, 2);
+  // Central vertical spine through Bottom Citadel
+  connectUndirected(0, 4, 0, 3);
+  connectUndirected(0, 3, 0, 2);
+
+  // 4. Precompute Collinear Straight-Line Jumps (A -> B -> C where AB and BC are collinear connected edges)
+  for (let a = 0; a < BOARD_NODES.length; a++) {
+    const nodeA = BOARD_NODES[a];
+    for (const b of ADJACENCY[a]) {
+      const nodeB = BOARD_NODES[b];
+      const dx1 = nodeB.gx - nodeA.gx;
+      const dz1 = nodeB.gz - nodeA.gz;
+
+      for (const c of ADJACENCY[b]) {
+        if (c === a) continue;
+        const nodeC = BOARD_NODES[c];
+        const dx2 = nodeC.gx - nodeB.gx;
+        const dz2 = nodeC.gz - nodeB.gz;
+
+        // Exact same direction vector along connected line!
+        if (dx1 === dx2 && dz1 === dz2) {
+          JUMP_MAP[a].push({ over: b, to: c });
+        }
+      }
+    }
+  }
+}
+
+buildSholoGutiGraph();
+
+// ----------------------------------------------------------------------------
+// 3. GAME RULES, MULTI-JUMP CHAIN LOGIC & ALPHA-BETA MINIMAX AI
+// ----------------------------------------------------------------------------
+const gameState = {
+  mode: 'ai',          // 'ai' | 'pvp'
+  difficulty: 'medium', // 'easy' | 'medium' | 'hard'
+  humanSide: 'gold',   // 'gold' | 'ruby'
+  turn: 'gold',        // 'gold' | 'ruby'
+  board: Array(37).fill(null), // null | 'gold' | 'ruby'
+  selectedNode: null,
+  chainPieceNode: null, // Locked node index when mid multi-jump chain capture
+  comboCount: 0,
+  validMoves: [],       // Array of { from, to, over: number|null }
+  history: [],
+  moveNumber: 1,
+  isAnimating: false,
+  gameOver: false
+};
+
+function getCaptureJumpsFromNode(board, nodeIdx, side) {
+  const opp = side === 'gold' ? 'ruby' : 'gold';
+  const jumps = [];
+  for (const j of JUMP_MAP[nodeIdx]) {
+    if (board[j.over] === opp && board[j.to] === null) {
+      jumps.push({ from: nodeIdx, to: j.to, over: j.over });
+    }
+  }
+  return jumps;
+}
+
+function getMovesFromNode(board, nodeIdx, side, chainOnly = false) {
+  if (board[nodeIdx] !== side) return [];
+  const jumps = getCaptureJumpsFromNode(board, nodeIdx, side);
+  if (chainOnly) return jumps;
+
+  const steps = [];
+  for (const adj of ADJACENCY[nodeIdx]) {
+    if (board[adj] === null) {
+      steps.push({ from: nodeIdx, to: adj, over: null });
+    }
+  }
+  return [...jumps, ...steps];
+}
+
+function getAllLegalMovesForSide(board, side) {
+  const all = [];
+  for (let i = 0; i < 37; i++) {
+    if (board[i] === side) {
+      all.push(...getMovesFromNode(board, i, side, false));
+    }
+  }
+  return all;
+}
+
+function countPieces(board) {
+  let gold = 0, ruby = 0;
+  for (let i = 0; i < 37; i++) {
+    if (board[i] === 'gold') gold++;
+    else if (board[i] === 'ruby') ruby++;
+  }
+  return { gold, ruby };
+}
+
+// Generate complete turn sequences (including multi-jump chains) for AI search
+function generateFullTurnSequences(board, side) {
+  const sequences = [];
+
+  function expandJumps(currBoard, currNode, pathSoFar) {
+    const nextJumps = getCaptureJumpsFromNode(currBoard, currNode, side);
+    if (nextJumps.length === 0) {
+      sequences.push(pathSoFar);
+      return;
+    }
+    for (const jmp of nextJumps) {
+      const nextBoard = currBoard.slice();
+      nextBoard[jmp.from] = null;
+      nextBoard[jmp.over] = null;
+      nextBoard[jmp.to] = side;
+      expandJumps(nextBoard, jmp.to, [...pathSoFar, jmp]);
+    }
+  }
+
+  for (let i = 0; i < 37; i++) {
+    if (board[i] !== side) continue;
+    const moves = getMovesFromNode(board, i, side, false);
+    for (const m of moves) {
+      if (m.over !== null) {
+        const nextBoard = board.slice();
+        nextBoard[m.from] = null;
+        nextBoard[m.over] = null;
+        nextBoard[m.to] = side;
+        expandJumps(nextBoard, m.to, [m]);
+      } else {
+        sequences.push([m]);
+      }
+    }
+  }
+
+  return sequences;
+}
+
+function evaluateBoardHeuristic(board, aiSide) {
+  const oppSide = aiSide === 'gold' ? 'ruby' : 'gold';
+  let score = 0;
+
+  for (let i = 0; i < 37; i++) {
+    const owner = board[i];
+    if (!owner) continue;
+    const node = BOARD_NODES[i];
+    // Centrality bonus (nodes closer to (0,0) have more connected lines)
+    const distFromCenter = Math.hypot(node.gx, node.gz);
+    const posBonus = Math.max(0, 14 - distFromCenter * 3);
+    const val = 100 + posBonus;
+    score += owner === aiSide ? val : -val;
+  }
+
+  return score;
+}
+
+function chooseBestAITurnSequence() {
+  const aiSide = gameState.turn;
+  const oppSide = aiSide === 'gold' ? 'ruby' : 'gold';
+  const sequences = generateFullTurnSequences(gameState.board, aiSide);
+  if (sequences.length === 0) return null;
+
+  // Easy AI: picks random move, occasionally prefers a capture
+  if (gameState.difficulty === 'easy') {
+    const captures = sequences.filter(seq => seq[0].over !== null);
+    if (captures.length > 0 && Math.random() < 0.4) {
+      return captures[Math.floor(Math.random() * captures.length)];
+    }
+    return sequences[Math.floor(Math.random() * sequences.length)];
+  }
+
+  const maxDepth = gameState.difficulty === 'medium' ? 2 : 3;
+
+  // Order sequences with multi-captures first for fast alpha-beta pruning
+  sequences.sort((a, b) => {
+    const capA = a[0].over !== null ? a.length * 100 : 0;
+    const capB = b[0].over !== null ? b.length * 100 : 0;
+    return capB - capA;
+  });
+
+  function applySeq(b, seq, side) {
+    const nb = b.slice();
+    for (const step of seq) {
+      nb[step.from] = null;
+      if (step.over !== null) nb[step.over] = null;
+      nb[step.to] = side;
+    }
+    return nb;
+  }
+
+  function minimax(currBoard, depth, alpha, beta, maximizing) {
+    const counts = countPieces(currBoard);
+    if (counts[oppSide] === 0) return 50000 + depth * 100;
+    if (counts[aiSide] === 0) return -50000 - depth * 100;
+    if (depth === 0) return evaluateBoardHeuristic(currBoard, aiSide);
+
+    const activeSide = maximizing ? aiSide : oppSide;
+    const nextSeqs = generateFullTurnSequences(currBoard, activeSide);
+    if (nextSeqs.length === 0) {
+      return maximizing ? -45000 : 45000;
+    }
+
+    // Cap branching factor slightly at deeper plies to keep mobile framerate instantaneous
+    const limitedSeqs = nextSeqs.slice(0, 24);
+
+    if (maximizing) {
+      let maxVal = -Infinity;
+      for (const seq of limitedSeqs) {
+        const nb = applySeq(currBoard, seq, activeSide);
+        const ev = minimax(nb, depth - 1, alpha, beta, false);
+        if (ev > maxVal) maxVal = ev;
+        if (ev > alpha) alpha = ev;
+        if (beta <= alpha) break;
+      }
+      return maxVal;
+    } else {
+      let minVal = Infinity;
+      for (const seq of limitedSeqs) {
+        const nb = applySeq(currBoard, seq, activeSide);
+        const ev = minimax(nb, depth - 1, alpha, beta, true);
+        if (ev < minVal) minVal = ev;
+        if (ev < beta) beta = ev;
+        if (beta <= alpha) break;
+      }
+      return minVal;
+    }
+  }
+
+  let bestSeq = sequences[0];
+  let bestScore = -Infinity;
+
+  for (const seq of sequences) {
+    const nb = applySeq(gameState.board, seq, aiSide);
+    const val = minimax(nb, maxDepth - 1, -Infinity, Infinity, false) + (Math.random() - 0.5) * 4;
+    if (val > bestScore) {
+      bestScore = val;
+      bestSeq = seq;
+    }
+  }
+
+  return bestSeq;
+}
+
+// ----------------------------------------------------------------------------
+// 4. THREE.JS 3D CARVED WOODEN BOARD, NODE SOCKETS, SCULPTED GUTIS & PARTICLES
+// ----------------------------------------------------------------------------
+const canvas = document.getElementById('guti-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x130b08);
+scene.fog = new THREE.FogExp2(0x130b08, 0.018);
+
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+
+// Camera Orbit Controls
+const camCtrl = {
+  theta: 0,
+  phi: 0.74,
+  radius: 17.5,
+  targetTheta: 0,
+  targetPhi: 0.74,
+  targetRadius: 17.5,
+  isDragging: false,
+  prevX: 0,
+  prevY: 0,
+  pinchDist: 0,
+  flipped: false
+};
+
+function updateResponsiveZoom() {
+  const aspect = window.innerWidth / window.innerHeight;
+  camCtrl.targetRadius = aspect < 0.72 ? 23.5 : (aspect < 1.1 ? 19.2 : 16.5);
+}
+updateResponsiveZoom();
+
+function updateCamera() {
+  camCtrl.theta += (camCtrl.targetTheta - camCtrl.theta) * 0.14;
+  camCtrl.phi += (camCtrl.targetPhi - camCtrl.phi) * 0.14;
+  camCtrl.radius += (camCtrl.targetRadius - camCtrl.radius) * 0.14;
+
+  const x = camCtrl.radius * Math.sin(camCtrl.phi) * Math.sin(camCtrl.theta);
+  const y = camCtrl.radius * Math.cos(camCtrl.phi);
+  const z = camCtrl.radius * Math.sin(camCtrl.phi) * Math.cos(camCtrl.theta);
+
+  camera.position.set(x, Math.max(3.5, y), z);
+  camera.lookAt(0, 0.15, 0);
+}
+
+// Warm Gallery Lighting
+const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x29170d, 0.68);
+scene.add(hemiLight);
+
+const keyLight = new THREE.DirectionalLight(0xfff7ed, 0.95);
+keyLight.position.set(8, 18, 10);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.width = 2048;
+keyLight.shadow.mapSize.height = 2048;
+keyLight.shadow.camera.near = 2;
+keyLight.shadow.camera.far = 42;
+const d = 9.5;
+keyLight.shadow.camera.left = -d;
+keyLight.shadow.camera.right = d;
+keyLight.shadow.camera.top = d;
+keyLight.shadow.camera.bottom = -d;
+keyLight.shadow.bias = -0.0004;
+scene.add(keyLight);
+
+const rimLight = new THREE.DirectionalLight(0xf59e0b, 0.35);
+rimLight.position.set(-9, 10, -12);
+scene.add(rimLight);
+
+// Procedural Rosewood & Teak Texture
+function createCarvedWoodTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#5c341d';
+  ctx.fillRect(0, 0, 512, 512);
+
+  for (let i = 0; i < 90; i++) {
+    ctx.strokeStyle = i % 2 === 0 ? 'rgba(36, 18, 8, 0.25)' : 'rgba(138, 84, 46, 0.18)';
+    ctx.lineWidth = 1.5 + Math.random() * 2.5;
+    ctx.beginPath();
+    const y = Math.random() * 512;
+    ctx.moveTo(0, y);
+    ctx.bezierCurveTo(170, y + (Math.random() - 0.5) * 35, 340, y + (Math.random() - 0.5) * 35, 512, y);
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+const NODE_SCALE = 1.48;
+function nodeToWorld(nodeIdx) {
+  const n = BOARD_NODES[nodeIdx];
+  return new THREE.Vector3(n.gx * NODE_SCALE, 0.14, n.gz * NODE_SCALE);
+}
+
+// Scene Groups
+const boardGroup = new THREE.Group();
+const hintsGroup = new THREE.Group();
+const piecesGroup = new THREE.Group();
+const fxGroup = new THREE.Group();
+scene.add(boardGroup, hintsGroup, piecesGroup, fxGroup);
+
+const nodeHitMeshes = [];
+const hintRings = [];
+const pieceMeshes = Array(37).fill(null);
+const particles = [];
+
+function build3DSholoGutiBoard() {
+  while (boardGroup.children.length) boardGroup.remove(boardGroup.children[0]);
+  while (hintsGroup.children.length) hintsGroup.remove(hintsGroup.children[0]);
+  nodeHitMeshes.length = 0;
+  hintRings.length = 0;
+
+  const woodTex = createCarvedWoodTexture();
+  const boardMat = new THREE.MeshStandardMaterial({
+    map: woodTex,
+    roughness: 0.36,
+    metalness: 0.08
+  });
+
+  // Outer carved octagonal/beveled plinth base
+  const plinth = new THREE.Mesh(
+    new THREE.BoxGeometry(8.4, 0.48, 14.2),
+    new THREE.MeshStandardMaterial({ color: 0x2a160c, roughness: 0.4, metalness: 0.12 })
+  );
+  plinth.position.y = -0.22;
+  plinth.receiveShadow = true;
+  boardGroup.add(plinth);
+
+  // Main inlaid wooden deck
+  const deck = new THREE.Mesh(
+    new THREE.BoxGeometry(7.7, 0.14, 13.5),
+    boardMat
+  );
+  deck.position.y = 0.04;
+  deck.receiveShadow = true;
+  boardGroup.add(deck);
+
+  // Golden brass border trim
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.28, metalness: 0.7 });
+  [[-3.88, 0, 0.08, 13.6], [3.88, 0, 0.08, 13.6], [0, -6.78, 7.84, 0.08], [0, 6.78, 7.84, 0.08]].forEach(([x, z, w, d]) => {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.16, d), trimMat);
+    bar.position.set(x, 0.05, z);
+    boardGroup.add(bar);
+  });
+
+  // Carved golden inlay connection lines between adjacent nodes
+  const lineMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    roughness: 0.3,
+    metalness: 0.55
+  });
+
+  const drawnPairs = new Set();
+  for (let a = 0; a < BOARD_NODES.length; a++) {
+    const pA = nodeToWorld(a);
+    for (const b of ADJACENCY[a]) {
+      const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+      if (drawnPairs.has(key)) continue;
+      drawnPairs.add(key);
+
+      const pB = nodeToWorld(b);
+      const diff = new THREE.Vector3().subVectors(pB, pA);
+      const len = diff.length();
+      const mid = new THREE.Vector3().addVectors(pA, pB).multiplyScalar(0.5);
+
+      const lineBar = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.03, len), lineMat);
+      lineBar.position.set(mid.x, 0.115, mid.z);
+      lineBar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), diff.clone().normalize());
+      boardGroup.add(lineBar);
+    }
+  }
+
+  // 37 Carved Circular Node Sockets + Invisible Touch Hit-Cylinders + Move Hint Rings
+  const socketGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.04, 24);
+  const socketMat = new THREE.MeshStandardMaterial({ color: 0x1c0f08, roughness: 0.5 });
+  const centerSocketMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3, metalness: 0.6 });
+
+  const hitGeo = new THREE.CylinderGeometry(0.58, 0.58, 0.45, 16);
+  const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+
+  const ringGeo = new THREE.RingGeometry(0.32, 0.48, 32);
+
+  for (let i = 0; i < BOARD_NODES.length; i++) {
+    const pos = nodeToWorld(i);
+    const isCenter = (BOARD_NODES[i].gx === 0 && BOARD_NODES[i].gz === 0);
+
+    const socket = new THREE.Mesh(socketGeo, isCenter ? centerSocketMat : socketMat);
+    socket.position.set(pos.x, 0.125, pos.z);
+    socket.receiveShadow = true;
+    boardGroup.add(socket);
+
+    // Touch/click hit area
+    const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+    hitMesh.position.set(pos.x, 0.25, pos.z);
+    hitMesh.userData = { nodeIdx: i };
+    boardGroup.add(hitMesh);
+    nodeHitMeshes.push(hitMesh);
+
+    // Glowing move destination ring
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x10b981,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(pos.x, 0.155, pos.z);
+    ring.visible = false;
+    hintsGroup.add(ring);
+    hintRings.push(ring);
+  }
+}
+
+// Sculpted Glossy 3D Guti Soldier Piece Builder
+const goldGutiMat = new THREE.MeshStandardMaterial({
+  color: 0xf59e0b,
+  emissive: 0x78350f,
+  emissiveIntensity: 0.2,
+  roughness: 0.2,
+  metalness: 0.55
+});
+
+const rubyGutiMat = new THREE.MeshStandardMaterial({
+  color: 0xe11d48,
+  emissive: 0x881337,
+  emissiveIntensity: 0.25,
+  roughness: 0.2,
+  metalness: 0.35
+});
+
+const ivoryTrimMat = new THREE.MeshStandardMaterial({
+  color: 0xfef3c7,
+  roughness: 0.25,
+  metalness: 0.2
+});
+
+function createSculpted3DGuti(side) {
+  const mat = side === 'gold' ? goldGutiMat : rubyGutiMat;
+  const group = new THREE.Group();
+
+  // Lathe-turned royal Guti silhouette
+  const pts = [
+    [0, 0], [0.38, 0], [0.38, 0.10], [0.30, 0.17], [0.27, 0.28],
+    [0.18, 0.54], [0.25, 0.62], [0.16, 0.68], [0, 0.68]
+  ].map(([x, y]) => new THREE.Vector2(x, y));
+
+  const body = new THREE.Mesh(new THREE.LatheGeometry(pts, 28), mat);
+  body.castShadow = true;
+  body.receiveShadow = true;
+
+  // Decorative ivory/brass collar ring
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.032, 12, 24), ivoryTrimMat);
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = 0.62;
+
+  // Crown finial sphere
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(0.16, 20, 20), mat);
+  crown.position.y = 0.80;
+  crown.castShadow = true;
+
+  // Active selection halo ring at base
+  const selRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.42, 0.54, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
+  );
+  selRing.rotation.x = -Math.PI / 2;
+  selRing.position.y = 0.03;
+  selRing.visible = false;
+
+  group.add(body, collar, crown, selRing);
+  group.userData = { side, selRing };
+  return group;
+}
+
+function spawnCaptureParticles(worldPos, victimSide) {
+  const color = victimSide === 'gold' ? 0xfbbf24 : 0xf43f5e;
+  const geo = new THREE.SphereGeometry(0.075, 8, 8);
+  const mat = new THREE.MeshBasicMaterial({ color });
+
+  for (let i = 0; i < 28; i++) {
+    const spark = new THREE.Mesh(geo, mat);
+    spark.position.copy(worldPos).add(new THREE.Vector3(0, 0.35, 0));
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI * 0.65;
+    const speed = 2.2 + Math.random() * 4.2;
+    spark.userData = {
+      vel: new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta) * speed,
+        Math.cos(phi) * speed + 2.0,
+        Math.sin(phi) * Math.sin(theta) * speed
+      ),
+      life: 1.0
+    };
+    fxGroup.add(spark);
+    particles.push(spark);
+  }
+}
+
+function animateGutiHop(mesh, toPos, isCaptureJump = false, duration = 0.28) {
+  return new Promise(resolve => {
+    const start = mesh.position.clone();
+    const startTime = performance.now();
+    const arcHeight = isCaptureJump ? 1.55 : 0.65;
+
+    function tick(now) {
+      const t = Math.min(1, (now - startTime) / (duration * 1000));
+      const ease = 1 - Math.pow(1 - t, 2.5);
+      mesh.position.lerpVectors(start, toPos, ease);
+      mesh.position.y = toPos.y + Math.sin(t * Math.PI) * arcHeight;
+
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        mesh.position.copy(toPos);
+        resolve();
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 5. MATCH INITIALIZATION, MOVE EXECUTION & MULTI-JUMP CHAIN CONTROLLER
+// ----------------------------------------------------------------------------
+function initMatch() {
+  gameState.board = BOARD_NODES.map(n => n.initialOwner);
+  gameState.turn = 'gold';
+  gameState.selectedNode = null;
+  gameState.chainPieceNode = null;
+  gameState.comboCount = 0;
+  gameState.validMoves = [];
+  gameState.history = [];
+  gameState.moveNumber = 1;
+  gameState.isAnimating = false;
+  gameState.gameOver = false;
+
+  // Rebuild all 32 3D Guti pieces
+  while (piecesGroup.children.length) piecesGroup.remove(piecesGroup.children[0]);
+  pieceMeshes.fill(null);
+
+  for (let i = 0; i < 37; i++) {
+    const owner = gameState.board[i];
+    if (owner) {
+      const mesh = createSculpted3DGuti(owner);
+      mesh.position.copy(nodeToWorld(i));
+      mesh.userData.nodeIdx = i;
+      piecesGroup.add(mesh);
+      pieceMeshes[i] = mesh;
+    }
+  }
+
+  // Orient camera to human player's side
+  camCtrl.flipped = (gameState.mode === 'ai' && gameState.humanSide === 'ruby');
+  camCtrl.targetTheta = camCtrl.flipped ? Math.PI : 0;
+  camCtrl.targetPhi = 0.74;
+
+  clearSelectionAndHints();
+  updateHUD();
+  document.getElementById('setup-modal').classList.add('hidden');
+  document.getElementById('victory-modal').classList.add('hidden');
+  document.getElementById('btn-end-chain').classList.add('hidden');
+
+  if (gameState.mode === 'ai' && gameState.turn !== gameState.humanSide) {
+    triggerAITurn();
+  }
+}
+
+function clearSelectionAndHints() {
+  for (let i = 0; i < 37; i++) {
+    hintRings[i].visible = false;
+    if (pieceMeshes[i]) {
+      pieceMeshes[i].userData.selRing.visible = false;
+    }
+  }
+}
+
+function showSelectionAndHints(nodeIdx, moves) {
+  clearSelectionAndHints();
+  if (pieceMeshes[nodeIdx]) {
+    pieceMeshes[nodeIdx].userData.selRing.visible = true;
+  }
+  for (const m of moves) {
+    const ring = hintRings[m.to];
+    ring.visible = true;
+    // Pulsing crimson/gold for capture jump, emerald for regular 1-step move
+    ring.material.color.setHex(m.over !== null ? 0xf43f5e : 0x10b981);
+  }
+}
+
+function handleNodeTap(nodeIdx) {
+  if (gameState.isAnimating || gameState.gameOver) return;
+  if (gameState.mode === 'ai' && gameState.turn !== gameState.humanSide) return;
+
+  // Check if tapped node is a valid destination for currently selected piece
+  const chosenMove = gameState.validMoves.find(m => m.to === nodeIdx);
+  if (chosenMove) {
+    executeSingleStepMove(chosenMove);
+    return;
+  }
+
+  // If locked into a multi-jump chain, player cannot switch to a different piece
+  if (gameState.chainPieceNode !== null) {
+    return;
+  }
+
+  // Otherwise select player's own piece
+  if (gameState.board[nodeIdx] === gameState.turn) {
+    sfx.selectPiece();
+    gameState.selectedNode = nodeIdx;
+    gameState.validMoves = getMovesFromNode(gameState.board, nodeIdx, gameState.turn, false);
+    showSelectionAndHints(nodeIdx, gameState.validMoves);
+  } else {
+    gameState.selectedNode = null;
+    gameState.validMoves = [];
+    clearSelectionAndHints();
+  }
+}
+
+async function executeSingleStepMove(move, isAISequenceStep = false) {
+  gameState.isAnimating = true;
+
+  // Save snapshot at the start of a turn (not mid-chain) so Undo reverts a full turn cleanly
+  if (gameState.chainPieceNode === null) {
+    gameState.history.push({
+      board: gameState.board.slice(),
+      turn: gameState.turn,
+      moveNumber: gameState.moveNumber
+    });
+  }
+
+  clearSelectionAndHints();
+  document.getElementById('btn-end-chain').classList.add('hidden');
+
+  const movingMesh = pieceMeshes[move.from];
+  const destWorld = nodeToWorld(move.to);
+  const isCapture = move.over !== null;
+
+  if (isCapture) {
+    gameState.comboCount++;
+    sfx.captureJump(gameState.comboCount);
+  } else {
+    sfx.woodStep();
+  }
+
+  await animateGutiHop(movingMesh, destWorld, isCapture, isCapture ? 0.34 : 0.24);
+
+  // Update logical board & 3D mesh references
+  const side = gameState.board[move.from];
+  gameState.board[move.from] = null;
+  gameState.board[move.to] = side;
+  pieceMeshes[move.from] = null;
+  pieceMeshes[move.to] = movingMesh;
+  movingMesh.userData.nodeIdx = move.to;
+
+  if (isCapture) {
+    const victimSide = gameState.board[move.over];
+    const victimMesh = pieceMeshes[move.over];
+    const victimPos = nodeToWorld(move.over);
+
+    gameState.board[move.over] = null;
+    pieceMeshes[move.over] = null;
+    if (victimMesh) piecesGroup.remove(victimMesh);
+
+    spawnCaptureParticles(victimPos, victimSide);
+    updateHUD();
+
+    // Check immediate victory (all 16 enemy pieces captured)
+    const counts = countPieces(gameState.board);
+    const opp = side === 'gold' ? 'ruby' : 'gold';
+    if (counts[opp] === 0) {
+      gameState.isAnimating = false;
+      declareWinner(side, `All 16 ${opp === 'gold' ? 'Gold' : 'Ruby'} soldiers captured!`);
+      return;
+    }
+
+    // Check for Multi-Jump Chain Capture continuation!
+    const followUpJumps = getCaptureJumpsFromNode(gameState.board, move.to, side);
+    if (followUpJumps.length > 0 && !isAISequenceStep) {
+      gameState.isAnimating = false;
+      gameState.chainPieceNode = move.to;
+      gameState.selectedNode = move.to;
+      gameState.validMoves = followUpJumps;
+      showSelectionAndHints(move.to, followUpJumps);
+      document.getElementById('btn-end-chain').classList.remove('hidden');
+      updateHUD();
+      return;
+    }
+  }
+
+  gameState.isAnimating = false;
+  if (!isAISequenceStep) {
+    finishTurn();
+  }
+}
+
+function finishTurn() {
+  gameState.selectedNode = null;
+  gameState.chainPieceNode = null;
+  gameState.comboCount = 0;
+  gameState.validMoves = [];
+  clearSelectionAndHints();
+  document.getElementById('btn-end-chain').classList.add('hidden');
+
+  if (gameState.turn === 'ruby') {
+    gameState.moveNumber++;
+  }
+  gameState.turn = gameState.turn === 'gold' ? 'ruby' : 'gold';
+  updateHUD();
+
+  // Check if next player has any legal moves left
+  const nextMoves = getAllLegalMovesForSide(gameState.board, gameState.turn);
+  if (nextMoves.length === 0) {
+    const winner = gameState.turn === 'gold' ? 'ruby' : 'gold';
+    declareWinner(winner, `${gameState.turn === 'gold' ? 'Gold' : 'Ruby'} has no legal moves left!`);
+    return;
+  }
+
+  if (gameState.mode === 'ai' && gameState.turn !== gameState.humanSide) {
+    triggerAITurn();
+  }
+}
+
+async function triggerAITurn() {
+  updateHUD();
+  await new Promise(r => setTimeout(r, 420));
+  if (gameState.gameOver) return;
+
+  const seq = chooseBestAITurnSequence();
+  if (!seq || seq.length === 0) return;
+
+  // Save snapshot before AI executes its chain
+  gameState.history.push({
+    board: gameState.board.slice(),
+    turn: gameState.turn,
+    moveNumber: gameState.moveNumber
+  });
+
+  for (let i = 0; i < seq.length; i++) {
+    // Prevent duplicate history push inside executeSingleStepMove
+    gameState.chainPieceNode = seq[i].from;
+    await executeSingleStepMove(seq[i], true);
+    if (gameState.gameOver) return;
+    if (i < seq.length - 1) {
+      await new Promise(r => setTimeout(r, 180));
+    }
+  }
+
+  finishTurn();
+}
+
+function declareWinner(winnerSide, reasonText) {
+  gameState.gameOver = true;
+  sfx.victory();
+  const titleEl = document.getElementById('victory-title');
+  titleEl.textContent = winnerSide === 'gold' ? '🟡 Gold Wins!' : '🔴 Ruby Wins!';
+  titleEl.style.color = winnerSide === 'gold' ? '#fcd34d' : '#fb7185';
+  document.getElementById('victory-sub').textContent = reasonText;
+  document.getElementById('victory-modal').classList.remove('hidden');
+  updateHUD();
+}
+
+function undoLastTurn() {
+  if (gameState.isAnimating || gameState.history.length === 0) return;
+
+  // In AI mode, revert back to human player's turn
+  let snap = gameState.history.pop();
+  if (gameState.mode === 'ai' && snap.turn !== gameState.humanSide && gameState.history.length > 0) {
+    snap = gameState.history.pop();
+  }
+
+  gameState.board = snap.board.slice();
+  gameState.turn = snap.turn;
+  gameState.moveNumber = snap.moveNumber;
+  gameState.selectedNode = null;
+  gameState.chainPieceNode = null;
+  gameState.comboCount = 0;
+  gameState.validMoves = [];
+  gameState.gameOver = false;
+
+  // Rebuild 3D pieces from restored board
+  while (piecesGroup.children.length) piecesGroup.remove(piecesGroup.children[0]);
+  pieceMeshes.fill(null);
+
+  for (let i = 0; i < 37; i++) {
+    const owner = gameState.board[i];
+    if (owner) {
+      const mesh = createSculpted3DGuti(owner);
+      mesh.position.copy(nodeToWorld(i));
+      mesh.userData.nodeIdx = i;
+      piecesGroup.add(mesh);
+      pieceMeshes[i] = mesh;
+    }
+  }
+
+  clearSelectionAndHints();
+  document.getElementById('btn-end-chain').classList.add('hidden');
+  document.getElementById('victory-modal').classList.add('hidden');
+  updateHUD();
+}
+
+// ----------------------------------------------------------------------------
+// 6. TOUCH & MOUSE CAMERA ORBIT + RAYCASTING
+// ----------------------------------------------------------------------------
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+let tapOrigin = { x: 0, y: 0, time: 0 };
+
+canvas.addEventListener('pointerdown', e => {
+  camCtrl.isDragging = true;
+  camCtrl.prevX = e.clientX;
+  camCtrl.prevY = e.clientY;
+  tapOrigin = { x: e.clientX, y: e.clientY, time: performance.now() };
+});
+
+window.addEventListener('pointermove', e => {
+  if (!camCtrl.isDragging) return;
+  const dx = e.clientX - camCtrl.prevX;
+  const dy = e.clientY - camCtrl.prevY;
+  camCtrl.prevX = e.clientX;
+  camCtrl.prevY = e.clientY;
+
+  camCtrl.targetTheta -= dx * 0.008;
+  camCtrl.targetPhi = Math.max(0.14, Math.min(1.22, camCtrl.targetPhi - dy * 0.007));
+});
+
+window.addEventListener('pointerup', e => {
+  camCtrl.isDragging = false;
+  const dist = Math.hypot(e.clientX - tapOrigin.x, e.clientY - tapOrigin.y);
+  const dt = performance.now() - tapOrigin.time;
+
+  if (dist < 10 && dt < 350) {
+    const rect = canvas.getBoundingClientRect();
+    pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(pointerNDC, camera);
+    const targets = [...nodeHitMeshes, ...piecesGroup.children];
+    const hits = raycaster.intersectObjects(targets, true);
+
+    for (const hit of hits) {
+      let obj = hit.object;
+      while (obj && obj.userData.nodeIdx === undefined) {
+        obj = obj.parent;
+      }
+      if (obj && obj.userData.nodeIdx !== undefined) {
+        handleNodeTap(obj.userData.nodeIdx);
+        return;
+      }
+    }
+  }
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  camCtrl.targetRadius = Math.max(10, Math.min(28, camCtrl.targetRadius + e.deltaY * 0.014));
+}, { passive: false });
+
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    camCtrl.pinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    const newDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const delta = camCtrl.pinchDist - newDist;
+    camCtrl.pinchDist = newDist;
+    camCtrl.targetRadius = Math.max(10, Math.min(28, camCtrl.targetRadius + delta * 0.04));
+  }
+}, { passive: true });
+
+// ----------------------------------------------------------------------------
+// 7. HUD UPDATES & MODAL BUTTON BINDINGS
+// ----------------------------------------------------------------------------
+function updateHUD() {
+  const counts = countPieces(gameState.board);
+  document.getElementById('count-gold').textContent = `${counts.gold} Left`;
+  document.getElementById('count-ruby').textContent = `${counts.ruby} Left`;
+  document.getElementById('cap-by-gold').textContent = 16 - counts.ruby;
+  document.getElementById('cap-by-ruby').textContent = 16 - counts.gold;
+  document.getElementById('turn-counter').textContent = `Move #${gameState.moveNumber}`;
+
+  if (gameState.mode === 'ai') {
+    document.getElementById('label-gold').textContent = gameState.humanSide === 'gold' ? 'Gold (You)' : 'Gold (AI)';
+    document.getElementById('label-ruby').textContent = gameState.humanSide === 'ruby' ? 'Ruby (You)' : 'Ruby (AI)';
+  } else {
+    document.getElementById('label-gold').textContent = 'Player Gold';
+    document.getElementById('label-ruby').textContent = 'Player Ruby';
+  }
+
+  const cardGold = document.getElementById('card-gold');
+  const cardRuby = document.getElementById('card-ruby');
+  const banner = document.getElementById('status-banner');
+
+  if (gameState.turn === 'gold') {
+    cardGold.classList.add('glow-gold');
+    cardGold.classList.remove('opacity-75');
+    cardRuby.classList.remove('glow-ruby');
+    cardRuby.classList.add('opacity-75');
+
+    if (gameState.chainPieceNode !== null) {
+      banner.textContent = `🔥 COMBO x${gameState.comboCount}! JUMP AGAIN OR END CHAIN`;
+    } else {
+      banner.textContent = (gameState.mode === 'ai' && gameState.humanSide !== 'gold')
+        ? '🤖 GOLD (AI) THINKING...'
+        : "🟡 GOLD'S TURN";
+    }
+    banner.style.color = '#fcd34d';
+    banner.style.borderColor = 'rgba(251, 191, 36, 0.75)';
+  } else {
+    cardRuby.classList.add('glow-ruby');
+    cardRuby.classList.remove('opacity-75');
+    cardGold.classList.remove('glow-gold');
+    cardGold.classList.add('opacity-75');
+
+    if (gameState.chainPieceNode !== null) {
+      banner.textContent = `🔥 COMBO x${gameState.comboCount}! JUMP AGAIN OR END CHAIN`;
+    } else {
+      banner.textContent = (gameState.mode === 'ai' && gameState.humanSide !== 'ruby')
+        ? '🤖 RUBY (AI) THINKING...'
+        : "🔴 RUBY'S TURN";
+    }
+    banner.style.color = '#fb7185';
+    banner.style.borderColor = 'rgba(251, 113, 133, 0.75)';
+  }
+
+  document.getElementById('btn-undo').disabled = gameState.history.length === 0 || gameState.isAnimating;
+}
+
+// Setup Modal Listeners
+document.getElementById('opt-mode-ai').onclick = () => {
+  gameState.mode = 'ai';
+  document.getElementById('opt-mode-ai').className = 'p-3 rounded-2xl border-2 border-amber-400 bg-amber-500/20 text-left transition-all';
+  document.getElementById('opt-mode-pvp').className = 'p-3 rounded-2xl border-2 border-stone-700 bg-stone-900/70 text-left transition-all';
+  document.getElementById('ai-options-box').classList.remove('hidden');
+};
+
+document.getElementById('opt-mode-pvp').onclick = () => {
+  gameState.mode = 'pvp';
+  document.getElementById('opt-mode-pvp').className = 'p-3 rounded-2xl border-2 border-amber-400 bg-amber-500/20 text-left transition-all';
+  document.getElementById('opt-mode-ai').className = 'p-3 rounded-2xl border-2 border-stone-700 bg-stone-900/70 text-left transition-all';
+  document.getElementById('ai-options-box').classList.add('hidden');
+};
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.onclick = () => {
+    gameState.difficulty = btn.dataset.diff;
+    document.querySelectorAll('.diff-btn').forEach(b => {
+      b.className = 'diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border border-stone-700 bg-stone-900/70 text-stone-300';
+    });
+    btn.className = 'diff-btn py-2 rounded-xl text-xs sm:text-sm font-semibold border-2 border-amber-400 bg-amber-500/25 text-amber-200';
+  };
+});
+
+document.querySelectorAll('.side-btn').forEach(btn => {
+  btn.onclick = () => {
+    gameState.humanSide = btn.dataset.side;
+    document.querySelectorAll('.side-btn').forEach(b => {
+      b.className = 'side-btn py-2 rounded-xl text-xs sm:text-sm font-royal font-bold border border-stone-700 bg-stone-900/70 text-stone-300';
+    });
+    btn.className = 'side-btn py-2 rounded-xl text-xs sm:text-sm font-royal font-bold border-2 border-amber-400 bg-amber-500/25 text-amber-200';
+  };
+});
+
+document.getElementById('btn-start-match').onclick = () => {
+  sfx.init();
+  initMatch();
+};
+
+document.getElementById('btn-open-setup').onclick = () => {
+  document.getElementById('setup-modal').classList.remove('hidden');
+};
+
+document.getElementById('btn-rematch').onclick = initMatch;
+document.getElementById('btn-victory-menu').onclick = () => {
+  document.getElementById('victory-modal').classList.add('hidden');
+  document.getElementById('setup-modal').classList.remove('hidden');
+};
+
+document.getElementById('btn-undo').onclick = undoLastTurn;
+document.getElementById('btn-end-chain').onclick = () => {
+  if (gameState.chainPieceNode !== null && !gameState.isAnimating) {
+    finishTurn();
+  }
+};
+
+// Rules Modal
+document.getElementById('btn-rules').onclick = () => document.getElementById('rules-modal').classList.remove('hidden');
+document.getElementById('btn-close-rules').onclick = () => document.getElementById('rules-modal').classList.add('hidden');
+document.getElementById('btn-got-it').onclick = () => document.getElementById('rules-modal').classList.add('hidden');
+
+// Camera Presets & Audio
+document.getElementById('cam-3d').onclick = () => {
+  camCtrl.targetPhi = 0.74;
+  document.getElementById('cam-3d').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500 text-stone-950 transition-all';
+  document.getElementById('cam-top').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold text-stone-300 hover:text-white transition-all';
+};
+
+document.getElementById('cam-top').onclick = () => {
+  camCtrl.targetPhi = 0.14;
+  document.getElementById('cam-top').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500 text-stone-950 transition-all';
+  document.getElementById('cam-3d').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold text-stone-300 hover:text-white transition-all';
+};
+
+document.getElementById('cam-flip').onclick = () => {
+  camCtrl.flipped = !camCtrl.flipped;
+  camCtrl.targetTheta = camCtrl.flipped ? Math.PI : 0;
+};
+
+document.getElementById('btn-sound').onclick = (e) => {
+  sfx.enabled = !sfx.enabled;
+  e.currentTarget.textContent = sfx.enabled ? '🔊' : '🔇';
+};
+
+// ----------------------------------------------------------------------------
+// 8. MAIN 60FPS ANIMATION LOOP
+// ----------------------------------------------------------------------------
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  updateCamera();
+
+  // Pulse destination move/jump hint rings
+  const pulse = 1 + Math.sin(elapsed * 6.5) * 0.14;
+  for (let i = 0; i < 37; i++) {
+    if (hintRings[i].visible) {
+      hintRings[i].scale.set(pulse, pulse, 1);
+    }
+  }
+
+  // Update capture burst particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.userData.life -= dt * 1.1;
+    if (p.userData.life <= 0) {
+      fxGroup.remove(p);
+      particles.splice(i, 1);
+    } else {
+      p.userData.vel.y -= 9.5 * dt;
+      p.position.addScaledVector(p.userData.vel, dt);
+      p.scale.setScalar(p.userData.life);
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  updateResponsiveZoom();
+});
+
+window.onload = function () {
+  build3DSholoGutiBoard();
+  initMatch();
+  // Show setup modal initially so user can choose 1P vs AI or 2P
+  document.getElementById('setup-modal').classList.remove('hidden');
+  animate();
+};
+</script>
+</body>
+</html>
