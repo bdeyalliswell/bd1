@@ -127,7 +127,7 @@
           <span class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
             StreamHub <span class="text-[10px] uppercase font-semibold bg-red-600/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/30">HD</span>
           </span>
-          <span class="text-[11px] text-slate-400 block" id="headerRangeText">ID: 71644 - 73644</span>
+          <span class="text-[11px] text-slate-400 block" id="headerRangeText">ID: v9575 - v13240</span>
         </div>
       </a>
 
@@ -135,7 +135,7 @@
       <div class="flex md:hidden items-center">
         <div class="px-2.5 py-1 bg-slate-800/80 rounded-lg border border-slate-700 text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>মোট <strong class="text-white" id="mobileTotalCount">2001</strong></span>
+          <span>মোট <strong class="text-white" id="mobileTotalCount">3666</strong></span>
         </div>
       </div>
 
@@ -144,12 +144,9 @@
         <div class="relative">
           <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base sm:text-lg"></i>
           <input 
-            type="number" 
-            inputmode="numeric"
+            type="text" 
             id="searchInput" 
-            placeholder="ভিডিও আইডি খুঁজুন (71644 - 73644)..." 
-            min="71644" 
-            max="73644" 
+            placeholder="ভিডিও আইডি খুঁজুন (উদাঃ 9575 বা v9575)..." 
             class="w-full pl-9 sm:pl-10 pr-20 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl text-base sm:text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-200 placeholder-slate-500 transition"
             onkeydown="if(event.key === 'Enter') handleSearch()"
           />
@@ -165,7 +162,7 @@
       <div class="hidden md:flex items-center gap-3 order-3 shrink-0">
         <div class="px-3 py-1.5 bg-slate-800/80 rounded-lg border border-slate-700 text-xs font-medium text-slate-300 flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>মোট <strong class="text-white" id="totalCountDisplay">2001</strong> ভিডিও</span>
+          <span>মোট <strong class="text-white" id="totalCountDisplay">3666</strong> ভিডিও</span>
         </div>
       </div>
 
@@ -199,7 +196,7 @@
         <select 
           id="pageSelector" 
           onchange="goToPage(parseInt(this.value))"
-          class="bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 sm:py-1.5 focus:outline-none focus:border-red-500 cursor-pointer min-w-[130px]">
+          class="bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 sm:py-1.5 focus:outline-none focus:border-red-500 cursor-pointer min-w-[135px]">
           <!-- Populated by JS -->
         </select>
       </div>
@@ -216,7 +213,7 @@
         <i class="ph ph-video-camera-slash"></i>
       </div>
       <h3 class="text-lg font-semibold text-slate-200">কোন ভিডিও পাওয়া যায়নি!</h3>
-      <p class="text-sm text-slate-400 mt-1">অনুগ্রহ করে সঠিক আইডি (71644 - 73644) লিখে খুঁজুন।</p>
+      <p class="text-sm text-slate-400 mt-1">অনুগ্রহ করে সঠিক আইডি (9575 - 13240) লিখে খুঁজুন।</p>
       <button onclick="resetToHome(event)" class="mt-4 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg border border-slate-700 transition">
         মূল তালিকায় ফিরে যান
       </button>
@@ -270,7 +267,7 @@
       <div class="px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 truncate">
           <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping shrink-0"></span>
-          <span id="playerVideoTitle" class="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">ভিডিও আইডি: #71644</span>
+          <span id="playerVideoTitle" class="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">ভিডিও আইডি: v9575</span>
         </div>
         
         <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
@@ -357,14 +354,14 @@
 
   <!-- Core JavaScript Logic -->
   <script>
-    // Video Link Configuration:
-    // https://server2.mydown.biz/myfiless/id/71644.mp4  থেকে  https://server2.mydown.biz/myfiless/id/73644.mp4
+    // Updated Video Link Configuration:
+    // https://server2.mydown.biz/myfiless/id/v9575.mp4 থেকে https://server2.mydown.biz/myfiless/id/v13240.mp4
     const MIN_ID = 9575;
     const MAX_ID = 13240;
     const BASE_URL = "https://server2.mydown.biz/myfiless/id/v";
     const FILE_EXT = ".mp4";
 
-    const TOTAL_VIDEOS = (END_ID - START_ID) + 1; // 2001 videos
+    const TOTAL_VIDEOS = (MAX_ID - MIN_ID) + 1; // 3666 videos
     const ITEMS_PER_PAGE = 20;
 
     // State Variables
@@ -374,7 +371,7 @@
     let fluidPlayerInstance = null;
     let isMinimized = false;
 
-    // Helper to build exact video URL
+    // Helper to build exact video URL (e.g., https://server2.mydown.biz/myfiless/id/v9575.mp4)
     function getVideoUrl(id) {
       return `${BASE_URL}${id}${FILE_EXT}`;
     }
@@ -383,7 +380,7 @@
     function initPageSelector() {
       document.getElementById('totalCountDisplay').textContent = TOTAL_VIDEOS;
       document.getElementById('mobileTotalCount').textContent = TOTAL_VIDEOS;
-      document.getElementById('headerRangeText').textContent = `ID: ${START_ID} - ${END_ID}`;
+      document.getElementById('headerRangeText').textContent = `ID: v${MIN_ID} - v${MAX_ID}`;
 
       const select = document.getElementById('pageSelector');
       select.innerHTML = '';
@@ -414,7 +411,7 @@
 
       // Create Cards
       for (let i = startIndex; i < endIndex; i++) {
-        const videoId = START_ID + i;
+        const videoId = MIN_ID + i;
         const videoUrl = getVideoUrl(videoId);
         
         const card = document.createElement('div');
@@ -441,7 +438,7 @@
 
             <!-- Video ID Pill -->
             <span class="absolute top-2.5 left-2.5 bg-slate-950/85 backdrop-blur-md border border-slate-700/60 text-slate-200 text-[11px] font-mono font-medium px-2 py-0.5 rounded-md flex items-center gap-1">
-              <i class="ph ph-hash text-red-400"></i> ${videoId}
+              <i class="ph ph-hash text-red-400"></i> v${videoId}
             </span>
 
             <!-- Format Badge -->
@@ -455,7 +452,7 @@
             <div>
               <div class="flex items-center justify-between gap-2 mb-1">
                 <h3 class="text-sm font-semibold text-white group-hover:text-red-400 transition truncate">
-                  ভিডিও পর্ব #${videoId}
+                  ভিডিও পর্ব #v${videoId}
                 </h3>
                 <span class="text-[11px] text-slate-400 shrink-0">#${i + 1}</span>
               </div>
@@ -568,10 +565,11 @@
       goToPage(currentPage + delta);
     }
 
-    // Search by Video ID
+    // Search by Video ID (Supports both "9575" and "v9575")
     function handleSearch() {
       const input = document.getElementById('searchInput');
-      const val = parseInt(input.value.trim());
+      const rawVal = input.value.trim().toLowerCase().replace(/^v/, '');
+      const val = parseInt(rawVal, 10);
       input.blur();
 
       if (isNaN(val)) {
@@ -579,17 +577,17 @@
         return;
       }
 
-      if (val < START_ID || val > END_ID) {
-        showToast(`আইডিটি ${START_ID} থেকে ${END_ID} এর মধ্যে হতে হবে!`);
+      if (val < MIN_ID || val > MAX_ID) {
+        showToast(`আইডিটি ${MIN_ID} থেকে ${MAX_ID} এর মধ্যে হতে হবে!`);
         return;
       }
 
-      const videoIndex = val - START_ID;
+      const videoIndex = val - MIN_ID;
       const targetPage = Math.floor(videoIndex / ITEMS_PER_PAGE) + 1;
 
       goToPage(targetPage);
       openPlayer(val);
-      showToast(`ভিডিও #${val} লোড হচ্ছে...`);
+      showToast(`ভিডিও v${val} লোড হচ্ছে...`);
     }
 
     function resetToHome(e) {
@@ -607,11 +605,11 @@
       const playerBox = document.getElementById('playerBox');
       const container = document.getElementById('videoContainer');
       
-      document.getElementById('playerVideoTitle').textContent = `ভিডিও প্লেয়ার: #${videoId}.mp4`;
+      document.getElementById('playerVideoTitle').textContent = `ভিডিও প্লেয়ার: v${videoId}.mp4`;
       document.getElementById('playerDownloadBtn').href = videoUrl;
 
-      document.getElementById('playerPrevBtn').disabled = (videoId <= START_ID);
-      document.getElementById('playerNextBtn').disabled = (videoId >= END_ID);
+      document.getElementById('playerPrevBtn').disabled = (videoId <= MIN_ID);
+      document.getElementById('playerNextBtn').disabled = (videoId >= MAX_ID);
 
       if (isMinimized) {
         playerBox.classList.remove('player-minimized');
@@ -666,7 +664,7 @@
     function playAdjacentVideo(offset) {
       if (!activeVideoId) return;
       const nextId = activeVideoId + offset;
-      if (nextId >= START_ID && nextId <= END_ID) {
+      if (nextId >= MIN_ID && nextId <= MAX_ID) {
         openPlayer(nextId);
       } else {
         showToast(offset > 0 ? "আপনি শেষ ভিডিওতে আছেন!" : "আপনি প্রথম ভিডিওতে আছেন!");
