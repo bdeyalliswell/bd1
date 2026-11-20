@@ -1,352 +1,383 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>bdeyRadio</title>
-<!-- Favicon -->
-<link rel="icon" type="image/png" href="icon.png">
-<!-- HLS.js for .m3u8 live stream playback -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-<style>
-  * {
-    box-sizing: border-box;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Akashvani Royal 1958 — 3D Vintage Radio</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Cinzel Decorative, Playfair Display, Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  
+  <!-- Three.js & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <!-- HLS.js for Live M3U8 Radio Streams -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-  body {
-    background: #1e1b18;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    min-height: 100dvh;
-    margin: 0;
-    padding: 80px 16px 16px;
-    font-family: 'Courier New', monospace;
-  }
-
-  /* Fixed Top-Right Root Home Button */
-  .root-home-btn {
-    position: fixed;
-    top: 14px;
-    right: 14px;
-    z-index: 10000;
-    width: 44px;
-    height: 44px;
-    background: rgba(18, 22, 25, 0.65);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.25s ease, box-shadow 0.25s ease;
-  }
-
-  .root-home-btn img {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
-    transition: transform 0.25s ease;
-  }
-
-  .root-home-btn:hover {
-    transform: scale(1.1);
-    background: rgba(28, 34, 40, 0.85);
-    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.85);
-  }
-
-  .root-home-btn:hover img {
-    transform: scale(1.08);
-  }
-
-  .root-home-btn:active {
-    transform: scale(0.92);
-  }
-
-  /* Fixed Top-Middle Logo */
-  .top-logo {
-    position: fixed;
-    top: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    max-height: 50px;
-    width: auto;
-    z-index: 1000;
-    pointer-events: none;
-  }
-
-  /* Responsive Radio Cabinet */
-  .radio-chassis {
-    width: 100%;
-    max-width: 440px;
-    background: linear-gradient(145deg, #5c3a21, #3d2314);
-    border: 8px solid #2a180d;
-    border-radius: 24px;
-    padding: 24px 20px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.8), inset 0 2px 4px rgba(255,255,255,0.1);
-    color: #ffd89b;
-  }
-
-  /* Band Selector Switch */
-  .band-selector-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 16px;
-  }
-
-  .band-switch-track {
-    display: flex;
-    background: #1a0f07;
-    border: 2px solid #3d2314;
-    border-radius: 8px;
-    padding: 3px;
-    gap: 4px;
-    box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
-    width: 100%;
-    max-width: 280px;
-  }
-
-  .band-btn {
-    flex: 1;
-    border: none;
-    background: transparent;
-    color: #8c6d48;
-    font-size: 0.9rem;
-    font-weight: 900;
-    font-family: inherit;
-    padding: 8px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    letter-spacing: 1px;
-    transition: all 0.15s ease;
-  }
-
-  .band-btn:hover {
-    color: #e5bf83;
-  }
-
-  .band-btn.active {
-    background: linear-gradient(180deg, #d8ab6b 0%, #8a5823 100%);
-    color: #23150b;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.6);
-  }
-
-  .band-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    font-weight: bold;
-    letter-spacing: 1px;
-  }
-
-  /* Speaker Grille */
-  .speaker-grille {
-    height: 110px;
-    background: repeating-linear-gradient(
-      0deg,
-      #1f140d,
-      #1f140d 3px,
-      #442a17 4px,
-      #442a17 6px
-    );
-    border-radius: 12px;
-    border: 3px solid #23150b;
-    margin-bottom: 20px;
-  }
-
-  /* Analog Dial Display */
-  .tuner-display {
-    background: #eedc9a;
-    color: #2b1f0d;
-    padding: 14px 10px;
-    border-radius: 8px;
-    border: 4px solid #1a0f07;
-    box-shadow: inset 0 4px 10px rgba(0,0,0,0.5);
-    text-align: center;
-    margin-bottom: 25px;
-    min-height: 58px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .station-name {
-    font-size: 1.05rem;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .station-freq {
-    font-size: 0.8rem;
-    color: #6e4e24;
-    margin-top: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Control Panel Layout */
-  .controls {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .control-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    font-weight: bold;
-    letter-spacing: 1px;
-    width: 100%;
-  }
-
-  /* Horizontal Volume Slider */
-  .volume-bar {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 14px;
-    background: #1a0f07;
-    border-radius: 7px;
-    outline: none;
-    border: 2px solid #3d2314;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
-    cursor: pointer;
-  }
-
-  .volume-bar::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 22px;
-    height: 32px;
-    background: linear-gradient(180deg, #d8ab6b, #8a5823);
-    border: 2px solid #23150b;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
-  }
-
-  .volume-bar::-moz-range-thumb {
-    width: 22px;
-    height: 32px;
-    background: linear-gradient(180deg, #d8ab6b, #8a5823);
-    border: 2px solid #23150b;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
-  }
-
-  /* Channel Arrows Container */
-  .arrow-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    width: 100%;
-  }
-
-  /* Antique Brass Push Buttons */
-  .vintage-arrow-btn {
-    width: 68px;
-    height: 48px;
-    background: linear-gradient(180deg, #d8ab6b 0%, #8a5823 100%);
-    border: 2px solid #23150b;
-    border-radius: 8px;
-    color: #23150b;
-    font-size: 1.4rem;
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #23150b, 0 5px 8px rgba(0, 0, 0, 0.6);
-    transition: all 0.05s ease;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .vintage-arrow-btn:active {
-    box-shadow: 0 1px 0 #23150b, 0 2px 4px rgba(0, 0, 0, 0.6);
-    transform: translateY(3px);
-  }
-
-  .vintage-arrow-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
-  }
-
-  @media (max-width: 600px) {
-    .root-home-btn {
-      top: 10px;
-      right: 10px;
-      width: 40px;
-      height: 40px;
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            royal: ['"Cinzel Decorative"', 'serif'],
+            serif: ['"Playfair Display"', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            royal: {
+              950: '#040712',
+              900: '#080e24',
+              800: '#0f1a3d',
+              700: '#172759',
+              gold: '#d4af37',
+              goldLight: '#f3d778',
+              goldDark: '#997a15',
+              amber: '#ff9d2e',
+              emerald: '#10b981',
+              mahogany: '#260b10'
+            }
+          }
+        }
+      }
     }
-    .root-home-btn img {
-      width: 20px;
-      height: 20px;
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
-  }
-</style>
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 42%, #131f47 0%, #070b1a 58%, #03050c 100%);
+      font-family: 'Inter', sans-serif;
+      color: #f8fafc;
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      cursor: grab;
+    }
+
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+
+    /* Royal Glassmorphism Panels */
+    .royal-glass {
+      background: linear-gradient(145deg, rgba(11, 18, 42, 0.78), rgba(6, 10, 24, 0.88));
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(212, 175, 55, 0.28);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(243, 215, 120, 0.15);
+    }
+
+    .gold-text-gradient {
+      background: linear-gradient(180deg, #fae392 0%, #d4af37 52%, #9e7b16 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Custom Brass Range Sliders */
+    input[type="range"].royal-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(212, 175, 55, 0.18);
+      height: 5px;
+      border-radius: 999px;
+      outline: none;
+      border: 1px solid rgba(212, 175, 55, 0.25);
+    }
+
+    input[type="range"].royal-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff0b3, #d4af37 65%, #7c5e08);
+      border: 1.5px solid #fff3c4;
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.7);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    input[type="range"].royal-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+
+    input[type="range"].royal-slider::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff0b3, #d4af37 65%, #7c5e08);
+      border: 1.5px solid #fff3c4;
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.7);
+      cursor: pointer;
+    }
+
+    /* Custom Scrollbar for Station Drawer */
+    .royal-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .royal-scroll::-webkit-scrollbar-track {
+      background: rgba(8, 14, 36, 0.5);
+      border-radius: 10px;
+    }
+    .royal-scroll::-webkit-scrollbar-thumb {
+      background: rgba(212, 175, 55, 0.45);
+      border-radius: 10px;
+    }
+    .royal-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(212, 175, 55, 0.8);
+    }
+
+    /* Equalizer Bars Animation */
+    @keyframes eqPulse {
+      0%, 100% { transform: scaleY(0.25); }
+      50% { transform: scaleY(1); }
+    }
+    .eq-bar {
+      transform-origin: bottom;
+      animation: eqPulse 0.8s ease-in-out infinite;
+    }
+    .eq-bar:nth-child(2) { animation-delay: 0.2s; animation-duration: 0.65s; }
+    .eq-bar:nth-child(3) { animation-delay: 0.4s; animation-duration: 0.9s; }
+    .eq-bar:nth-child(4) { animation-delay: 0.15s; animation-duration: 0.7s; }
+
+    /* Interactive Hover Tooltip in 3D */
+    #hover-badge {
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+  </style>
 </head>
 <body>
 
-<!-- Fixed Top Right Home Button -->
-<a href="../" class="root-home-btn" title="Back to Home">
-  <img src="https://i.postimg.cc/yd4m5DsN/home.png" alt="Home">
-</a>
+  <!-- Hidden HTML5 Audio Element -->
+  <audio id="radio-audio" crossOrigin="anonymous" playsinline></audio>
 
-<img src="logo.png" alt="bdeyRadio Logo" class="top-logo">
+  <!-- 3D Viewport Container -->
+  <div id="canvas-container"></div>
 
-<div class="radio-chassis">
-  <div class="band-selector-container">
-    <div class="band-switch-track">
-      <button class="band-btn active" data-band="MW">MW</button>
-      <button class="band-btn" data-band="SW">SW</button>
-      <button class="band-btn" data-band="FM">FM</button>
-    </div>
-    <span class="band-label">Band</span>
+  <!-- Floating 3D Part Tooltip -->
+  <div id="hover-badge" class="fixed z-30 opacity-0 px-3 py-1.5 rounded-full royal-glass text-xs font-medium text-royal-goldLight border border-royal-gold/40 shadow-lg flex items-center gap-1.5">
+    <span class="w-1.5 h-1.5 rounded-full bg-royal-gold animate-ping"></span>
+    <span id="hover-badge-text">Interactive Control</span>
   </div>
 
-  <div class="speaker-grille"></div>
-
-  <div class="tuner-display">
-    <div class="station-name" id="stationName">---</div>
-    <div class="station-freq" id="stationFreq">---</div>
-  </div>
-
-  <div class="controls">
-    <div class="control-group">
-      <input type="range" id="volSlider" class="volume-bar" min="0" max="1" step="0.01" value="0.7">
-      <span>Volume</span>
-    </div>
-
-    <div class="control-group">
-      <div class="arrow-buttons">
-        <button class="vintage-arrow-btn" id="prevBtn" title="Previous Station">&lt;</button>
-        <button class="vintage-arrow-btn" id="nextBtn" title="Next Station">&gt;</button>
+  <!-- TOP ROYAL HUD BAR -->
+  <header class="fixed top-3 left-3 right-3 sm:top-4 sm:left-5 sm:right-5 z-20 pointer-events-none flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+    
+    <!-- Brand Title & On-Air Status -->
+    <div class="pointer-events-auto royal-glass rounded-2xl px-4 py-2.5 flex items-center justify-between sm:justify-start gap-4">
+      <div class="flex items-center gap-3">
+        <!-- Royal Emblem SVG -->
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-royal-gold/30 to-royal-900 border border-royal-gold/50 flex items-center justify-center shadow-inner shrink-0">
+          <svg class="w-5 h-5 text-royal-goldLight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="font-royal text-sm sm:text-base md:text-lg tracking-wider gold-text-gradient leading-tight">
+            ROYAL VINTAGE RADIO
+          </h1>
+          <p class="text-[10px] sm:text-xs text-slate-400 tracking-widest uppercase">
+            Akashvani Imperial Edition • 1958
+          </p>
+        </div>
       </div>
-      <span>Channel</span>
+
+      <!-- Status Pill -->
+      <div id="status-pill" class="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[11px] font-mono tracking-wider">
+        <span id="status-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+        <span id="status-text" class="text-slate-300">STANDBY</span>
+      </div>
     </div>
+
+    <!-- Right Telemetry: Signal Strength & Camera Angles -->
+    <div class="pointer-events-auto royal-glass rounded-2xl px-3.5 py-2 flex flex-wrap items-center justify-between sm:justify-end gap-3 sm:gap-4">
+      
+      <!-- Signal Strength Meter (Linked to 3D Antenna) -->
+      <div class="flex items-center gap-2.5" title="Extend the 3D telescopic antenna to boost reception">
+        <span class="text-[11px] uppercase tracking-wider text-royal-goldLight/80 font-medium hidden sm:inline">Signal</span>
+        <div class="flex items-end gap-1 h-4 px-2 py-0.5 rounded-lg bg-black/40 border border-royal-gold/20" id="signal-bars">
+          <div class="w-1 h-1.5 rounded-xs bg-emerald-400 transition-all duration-300"></div>
+          <div class="w-1 h-2 rounded-xs bg-emerald-400 transition-all duration-300"></div>
+          <div class="w-1 h-2.5 rounded-xs bg-emerald-400 transition-all duration-300"></div>
+          <div class="w-1 h-3 rounded-xs bg-slate-600 transition-all duration-300"></div>
+          <div class="w-1 h-3.5 rounded-xs bg-slate-600 transition-all duration-300"></div>
+        </div>
+        <span id="signal-pct" class="text-xs font-mono text-emerald-400 w-9 text-right">68%</span>
+      </div>
+
+      <div class="h-4 w-[1px] bg-royal-gold/20 hidden sm:block"></div>
+
+      <!-- 3D Camera Preset Buttons -->
+      <div class="flex items-center gap-1.5">
+        <button data-cam="hero" class="cam-btn px-2.5 py-1.5 rounded-xl text-xs font-medium bg-royal-gold/25 text-royal-goldLight border border-royal-gold/50 hover:bg-royal-gold/35 transition">
+          3/4 Hero
+        </button>
+        <button data-cam="front" class="cam-btn px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:border-royal-gold/40 hover:text-royal-goldLight transition">
+          Dial Front
+        </button>
+        <button data-cam="antenna" class="cam-btn px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:border-royal-gold/40 hover:text-royal-goldLight transition">
+          3D Antenna
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- COLLAPSIBLE ROYAL STATION DRAWER -->
+  <aside id="station-drawer" class="fixed top-28 sm:top-24 right-3 sm:right-5 bottom-28 sm:bottom-28 w-[calc(100vw-1.5rem)] sm:w-96 z-30 royal-glass rounded-2xl flex flex-col overflow-hidden transition-all duration-300 translate-x-[115%] opacity-0 pointer-events-none">
+    <!-- Drawer Header -->
+    <div class="p-4 border-b border-royal-gold/25 flex items-center justify-between bg-royal-950/60">
+      <div>
+        <h2 class="font-serif text-base font-bold text-royal-goldLight tracking-wide">Imperial Frequency Band</h2>
+        <p class="text-[11px] text-slate-400">31 Live Akashvani & Betar Transmissions</p>
+      </div>
+      <button id="close-drawer-btn" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-royal-gold/20 border border-royal-gold/30 flex items-center justify-center text-royal-goldLight transition" aria-label="Close Stations">
+        ✕
+      </button>
+    </div>
+
+    <!-- Search Input -->
+    <div class="p-3 border-b border-royal-gold/15 bg-royal-900/40">
+      <div class="relative">
+        <input id="station-search" type="text" placeholder="Search station (e.g., Vividh, Kolkata, Betar)..." 
+               class="w-full bg-royal-950/80 border border-royal-gold/30 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royal-gold transition" />
+        <svg class="w-4 h-4 text-royal-gold/70 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Scrollable Station List -->
+    <div id="station-list" class="flex-1 overflow-y-auto royal-scroll p-2.5 space-y-1.5">
+      <!-- Populated dynamically via JS -->
+    </div>
+  </aside>
+
+  <!-- Toast / Stream Notification Banner -->
+  <div id="stream-toast" class="fixed bottom-28 left-1/2 -translate-x-1/2 z-30 pointer-events-none opacity-0 transition-all duration-300 px-4 py-2 rounded-full royal-glass border border-amber-400/50 text-xs text-amber-200 shadow-2xl flex items-center gap-2 max-w-[90vw] truncate">
+    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+    <span id="toast-msg">Connecting to broadcast tower...</span>
   </div>
-</div>
 
-<audio id="radioAudio" preload="none"></audio>
+  <!-- BOTTOM ROYAL CONSOLE BAR -->
+  <footer class="fixed bottom-3 left-3 right-3 sm:bottom-4 sm:left-5 sm:right-5 z-20 pointer-events-none flex justify-center">
+    <div class="pointer-events-auto w-full max-w-6xl royal-glass rounded-2xl p-3 sm:px-5 sm:py-3.5 flex flex-col lg:flex-row items-center justify-between gap-3">
+      
+      <!-- Left: Power, Prev, Play/Pause, Next & Now Playing -->
+      <div class="flex items-center justify-between lg:justify-start gap-2.5 sm:gap-3 w-full lg:w-auto">
+        
+        <!-- Vintage Power Button -->
+        <button id="power-btn" title="Toggle Radio Power" class="w-11 h-11 rounded-xl bg-gradient-to-b from-slate-800 to-slate-950 border border-royal-gold/40 hover:border-royal-gold flex items-center justify-center shadow-lg transition active:scale-95 shrink-0">
+          <svg id="power-icon" class="w-5 h-5 text-slate-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v9m6.36-6.36a9 9 0 1 1-12.72 0" />
+          </svg>
+        </button>
 
-<script>
-  const stationCatalog = {
-    MW: [
+        <!-- Transport Controls -->
+        <div class="flex items-center gap-1.5 bg-royal-950/70 p-1 rounded-xl border border-royal-gold/20 shrink-0">
+          <button id="prev-btn" title="Previous Station" class="w-9 h-9 rounded-lg hover:bg-royal-gold/20 text-royal-goldLight flex items-center justify-center transition active:scale-90">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+          
+          <button id="play-btn" title="Play / Pause Stream" class="w-10 h-10 rounded-lg bg-gradient-to-b from-royal-goldLight to-royal-goldDark text-royal-950 font-bold flex items-center justify-center shadow-md hover:brightness-110 transition active:scale-95">
+            <svg id="play-icon" class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="pause-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          
+          <button id="next-btn" title="Next Station" class="w-9 h-9 rounded-lg hover:bg-royal-gold/20 text-royal-goldLight flex items-center justify-center transition active:scale-90">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </button>
+        </div>
+
+        <!-- Station Title & Frequency Readout -->
+        <div class="min-w-0 flex-1 lg:w-64 pl-1">
+          <div class="flex items-center gap-2">
+            <span id="now-playing-index" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-royal-gold/20 text-royal-goldLight border border-royal-gold/30 shrink-0">CH 01</span>
+            <span id="now-playing-freq" class="text-[11px] font-mono text-amber-300/90 truncate">MW - Live Stream</span>
+          </div>
+          <h3 id="now-playing-name" class="font-serif text-sm sm:text-base font-bold text-white truncate mt-0.5">
+            Vividh Bharati
+          </h3>
+        </div>
+      </div>
+
+      <!-- Center: 3D Telescopic Antenna & Volume Sliders -->
+      <div class="flex flex-wrap sm:flex-nowrap items-center justify-between lg:justify-center gap-3 sm:gap-5 w-full lg:w-auto border-t lg:border-t-0 border-royal-gold/15 pt-2.5 lg:pt-0">
+        
+        <!-- 3D Antenna Extension Control -->
+        <div class="flex items-center gap-2 flex-1 sm:flex-initial">
+          <span class="text-[11px] font-medium text-royal-goldLight/90 whitespace-nowrap flex items-center gap-1" title="Adjust 3D Telescopic Antenna Length">
+            <svg class="w-3.5 h-3.5 text-royal-gold" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20V4m0 0l-4 4m4-4l4 4"/></svg>
+            Antenna
+          </span>
+          <input id="antenna-ext-slider" type="range" min="0" max="100" value="65" class="royal-slider w-20 sm:w-24" />
+        </div>
+
+        <!-- 3D Antenna Tilt Control -->
+        <div class="flex items-center gap-2 flex-1 sm:flex-initial">
+          <span class="text-[11px] font-medium text-royal-goldLight/90 whitespace-nowrap">Tilt</span>
+          <input id="antenna-tilt-slider" type="range" min="-45" max="45" value="18" class="royal-slider w-16 sm:w-20" />
+        </div>
+
+        <!-- Volume Control -->
+        <div class="flex items-center gap-2 flex-1 sm:flex-initial">
+          <button id="mute-btn" class="text-royal-goldLight hover:text-white transition" title="Mute / Unmute">
+            <svg id="vol-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+          </button>
+          <input id="volume-slider" type="range" min="0" max="100" value="80" class="royal-slider w-20 sm:w-24" />
+        </div>
+      </div>
+
+      <!-- Right: Static SFX Toggle & Stations Drawer Button -->
+      <div class="flex items-center justify-end gap-2 w-full lg:w-auto">
+        <button id="sfx-toggle-btn" title="Toggle Analog Tuning Static Sound" class="px-3 py-2 rounded-xl text-xs font-medium bg-royal-gold/15 text-royal-goldLight border border-royal-gold/30 hover:bg-royal-gold/25 transition flex items-center gap-1.5">
+          <span id="sfx-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>Tube Static</span>
+        </button>
+
+        <button id="toggle-drawer-btn" class="flex-1 lg:flex-initial px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-royal-800 to-royal-900 hover:from-royal-700 hover:to-royal-800 text-royal-goldLight border border-royal-gold/50 shadow-md transition flex items-center justify-center gap-2">
+          <svg class="w-4 h-4 text-royal-gold" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/>
+          </svg>
+          <span>Stations (31)</span>
+        </button>
+      </div>
+
+    </div>
+  </footer>
+
+  <script>
+    /**
+     * ============================================================================
+     * 1. EXACT STATION LIST (All 31 Akashvani & Radio Bangladesh Betar Streams)
+     * ============================================================================
+     */
+    const STATIONS = [
       { name: "Vividh Bharati", freq: "MW - Live Stream", src: "https://airhlspush.pc.cdn.bitgravity.com/httppush/hlspbaudio238/hlspbaudio23864kbps.m3u8" },
       { name: "AIR FM Rainbow", freq: "MW - Live Stream", src: "https://airhlspush.pc.cdn.bitgravity.com/httppush/hlspbaudio004/hlspbaudio00464kbps.m3u8" },
       { name: "AIR FM Gold", freq: "MW - Live Stream", src: "https://airhlspush.pc.cdn.bitgravity.com/httppush/hlspbaudio005/hlspbaudio00532kbps.m3u8" },
@@ -378,109 +409,1315 @@
       { name: "Akashvani Kathua", freq: "MW - Live Stream", src: "https://air.pc.cdn.bitgravity.com/air/live/pbaudio190/playlist.m3u8" },
       { name: "Akashvani Kargil", freq: "MW - Live Stream", src: "https://d1cvqgmbcpg5yn.cloudfront.net/283b994f330d1e21/283b994f330d1e21.m3u8" },
       { name: "Radio Bangladesh Betar", freq: "AM 693 kHz", src: "https://as1.digitalsynapsebd.com/proxy/bbdkka/stream" }
-    ],
-    SW: [],
-    FM: []
-  };
+    ];
 
-  let currentBand = "MW";
-  let currentStationIndex = 0;
-  let hlsInstance = null;
+    /**
+     * ============================================================================
+     * 2. APPLICATION STATE
+     * ============================================================================
+     */
+    const state = {
+      isPowered: false,
+      isPlaying: false,
+      isBuffering: false,
+      currentIndex: 0,
+      volume: 0.80,
+      isMuted: false,
+      antennaExtension: 0.65, // 0.0 to 1.0
+      antennaTilt: 18,        // -45 to +45 degrees
+      sfxEnabled: true,
+      drawerOpen: false,
+      needlePos: 0,           // Smoothly interpolated 0..1
+      targetNeedlePos: 0,
+      volumeKnobAngle: 0,
+      tuningKnobAngle: 0
+    };
 
-  const audio = document.getElementById('radioAudio');
-  const volSlider = document.getElementById('volSlider');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const stationName = document.getElementById('stationName');
-  const stationFreq = document.getElementById('stationFreq');
-  const bandButtons = document.querySelectorAll('.band-btn');
+    /**
+     * ============================================================================
+     * 3. WEB AUDIO API ANALOG TUNING STATIC GENERATOR
+     * ============================================================================
+     */
+    let audioCtx = null;
+    function playTuningStatic(duration = 0.38) {
+      if (!state.sfxEnabled || !state.isPowered) return;
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const bufferSize = Math.floor(audioCtx.sampleRate * duration);
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          // Crackle + analog white/pink static envelope
+          const env = Math.sin((i / bufferSize) * Math.PI);
+          const crackle = Math.random() > 0.96 ? (Math.random() * 2 - 1) * 1.6 : 0;
+          output[i] = ((Math.random() * 2 - 1) * 0.25 + crackle * 0.35) * env;
+        }
 
-  function stopPlayback() {
-    if (hlsInstance) {
-      hlsInstance.destroy();
-      hlsInstance = null;
-    }
-    audio.pause();
-    audio.removeAttribute('src');
-    audio.load();
-  }
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
 
-  function playStream(src) {
-    stopPlayback();
+        // Bandpass filter to emulate warm AM/MW tube radio static
+        const bandpass = audioCtx.createBiquadFilter();
+        bandpass.type = 'bandpass';
+        bandpass.frequency.value = 1450;
+        bandpass.Q.value = 1.8;
 
-    if (src.includes('.m3u8')) {
-      if (Hls.isSupported()) {
-        hlsInstance = new Hls();
-        hlsInstance.loadSource(src);
-        hlsInstance.attachMedia(audio);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-          audio.play().catch(() => {});
-        });
-      } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-        audio.src = src;
-        audio.play().catch(() => {});
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = Math.min(0.22, state.volume * 0.28);
+
+        whiteNoise.connect(bandpass);
+        bandpass.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        whiteNoise.start();
+      } catch (e) {
+        // Ignore audio context autoplay restrictions until user clicks
       }
-    } else {
-      audio.src = src;
-      audio.play().catch(() => {});
-    }
-  }
-
-  function updateStation() {
-    const bandStations = stationCatalog[currentBand];
-
-    if (!bandStations || bandStations.length === 0) {
-      stopPlayback();
-      stationName.textContent = "NO SIGNAL";
-      stationFreq.textContent = `[ ${currentBand} BAND BLANK ]`;
-      prevBtn.disabled = true;
-      nextBtn.disabled = true;
-      return;
     }
 
-    prevBtn.disabled = false;
-    nextBtn.disabled = false;
+    function playMechanicalClick() {
+      if (!state.sfxEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(190, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(45, audioCtx.currentTime + 0.045);
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.045);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+      } catch (e) {}
+    }
 
-    const selected = bandStations[currentStationIndex];
-    stationName.textContent = selected.name;
-    stationFreq.textContent = `CH ${currentStationIndex + 1}/${bandStations.length} • ${selected.freq}`;
-    playStream(selected.src);
-  }
+    /**
+     * ============================================================================
+     * 4. LIVE HLS & HTML5 AUDIO STREAM ENGINE
+     * ============================================================================
+     */
+    const audioEl = document.getElementById('radio-audio');
+    let hls = null;
+    let toastTimer = null;
 
-  bandButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      bandButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('stream-toast');
+      const text = document.getElementById('toast-msg');
+      text.textContent = msg;
+      toast.classList.remove('opacity-0');
+      toast.style.borderColor = isError ? 'rgba(248, 113, 113, 0.6)' : 'rgba(251, 191, 36, 0.5)';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0');
+      }, 3600);
+    }
 
-      currentBand = btn.dataset.band;
-      currentStationIndex = 0;
-      updateStation();
+    function stopStream() {
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+      audioEl.pause();
+      audioEl.removeAttribute('src');
+      audioEl.load();
+      state.isPlaying = false;
+      state.isBuffering = false;
+      updateUIState();
+    }
+
+    function tuneStation(index, autoPlay = true) {
+      state.currentIndex = (index + STATIONS.length) % STATIONS.length;
+      state.targetNeedlePos = state.currentIndex / (STATIONS.length - 1);
+      state.tuningKnobAngle += 0.65;
+
+      const station = STATIONS[state.currentIndex];
+      updateUIState();
+      renderStationList();
+      updateDialTexture();
+
+      if (!state.isPowered) {
+        if (autoPlay) {
+          togglePower(true);
+        }
+        return;
+      }
+
+      playTuningStatic(0.42);
+
+      if (!autoPlay) {
+        stopStream();
+        return;
+      }
+
+      state.isBuffering = true;
+      state.isPlaying = false;
+      updateUIState();
+
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+
+      audioEl.volume = state.isMuted ? 0 : state.volume;
+      const src = station.src;
+
+      if (src.endsWith('.m3u8') || src.includes('.m3u8')) {
+        if (window.Hls && Hls.isSupported()) {
+          hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 30
+          });
+          hls.loadSource(src);
+          hls.attachMedia(audioEl);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            audioEl.play().then(() => {
+              state.isPlaying = true;
+              state.isBuffering = false;
+              updateUIState();
+            }).catch(err => {
+              state.isBuffering = false;
+              updateUIState();
+              showToast(`Tap Play to start ${station.name}`, false);
+            });
+          });
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) {
+              state.isBuffering = false;
+              state.isPlaying = false;
+              updateUIState();
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                showToast(`Signal weak or stream offline: ${station.name}`, true);
+                hls.startLoad();
+              } else {
+                showToast(`Unable to lock signal for ${station.name}`, true);
+              }
+            }
+          });
+        } else if (audioEl.canPlayType('application/vnd.apple.mpegurl')) {
+          // Native Safari HLS
+          audioEl.src = src;
+          audioEl.play().then(() => {
+            state.isPlaying = true;
+            state.isBuffering = false;
+            updateUIState();
+          }).catch(() => {
+            state.isBuffering = false;
+            updateUIState();
+          });
+        }
+      } else {
+        // Direct MP3/AAC Stream (e.g., Radio Bangladesh Betar)
+        audioEl.src = src;
+        audioEl.play().then(() => {
+          state.isPlaying = true;
+          state.isBuffering = false;
+          updateUIState();
+        }).catch(() => {
+          state.isBuffering = false;
+          state.isPlaying = false;
+          updateUIState();
+          showToast(`Stream temporarily unavailable: ${station.name}`, true);
+        });
+      }
+    }
+
+    audioEl.addEventListener('playing', () => {
+      state.isPlaying = true;
+      state.isBuffering = false;
+      updateUIState();
     });
-  });
 
-  volSlider.addEventListener('input', (e) => {
-    audio.volume = e.target.value;
-  });
+    audioEl.addEventListener('waiting', () => {
+      if (state.isPowered) {
+        state.isBuffering = true;
+        updateUIState();
+      }
+    });
 
-  prevBtn.addEventListener('click', () => {
-    const bandStations = stationCatalog[currentBand];
-    if (bandStations && bandStations.length > 0) {
-      currentStationIndex = (currentStationIndex - 1 + bandStations.length) % bandStations.length;
-      updateStation();
+    audioEl.addEventListener('error', () => {
+      if (state.isPowered && audioEl.src) {
+        state.isBuffering = false;
+        state.isPlaying = false;
+        updateUIState();
+        showToast(`Broadcast signal interrupted. Try next station.`, true);
+      }
+    });
+
+    function togglePower(forceOn = null) {
+      playMechanicalClick();
+      state.isPowered = forceOn !== null ? forceOn : !state.isPowered;
+      if (state.isPowered) {
+        tuneStation(state.currentIndex, true);
+      } else {
+        stopStream();
+      }
+      updateUIState();
+      updateDialTexture();
     }
-  });
 
-  nextBtn.addEventListener('click', () => {
-    const bandStations = stationCatalog[currentBand];
-    if (bandStations && bandStations.length > 0) {
-      currentStationIndex = (currentStationIndex + 1) % bandStations.length;
-      updateStation();
+    /**
+     * ============================================================================
+     * 5. PROCEDURAL TEXTURES FOR 3D VINTAGE RADIO (Wood, Acoustic Cloth, Analog Dial)
+     * ============================================================================
+     */
+    function createMahoganyTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      // Deep Royal Mahogany / Rosewood Base
+      const grad = ctx.createLinearGradient(0, 0, 512, 512);
+      grad.addColorStop(0, '#2a0910');
+      grad.addColorStop(0.5, '#1c050a');
+      grad.addColorStop(1, '#26080f');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Fine wood grain striations
+      for (let i = 0; i < 420; i++) {
+        const y = Math.random() * 512;
+        ctx.strokeStyle = i % 3 === 0 ? 'rgba(65, 16, 22, 0.25)' : 'rgba(10, 2, 4, 0.35)';
+        ctx.lineWidth = 1 + Math.random() * 2.2;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.bezierCurveTo(170, y + (Math.random() - 0.5) * 14, 340, y + (Math.random() - 0.5) * 14, 512, y);
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
     }
-  });
 
-  audio.volume = volSlider.value;
-  updateStation();
-</script>
+    function createRoyalNavyLacquerTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
 
+      const grad = ctx.createRadialGradient(256, 256, 30, 256, 256, 380);
+      grad.addColorStop(0, '#101d47');
+      grad.addColorStop(0.6, '#09112b');
+      grad.addColorStop(1, '#050917');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Subtle royal damask / metallic fleck micro-grain
+      for (let i = 0; i < 1800; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(212, 175, 55, 0.03)' : 'rgba(255, 255, 255, 0.02)';
+        ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+      }
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    function createSpeakerClothTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#0c1329';
+      ctx.fillRect(0, 0, 256, 256);
+
+      // Woven Royal Gold & Midnight Thread Pattern
+      for (let y = 0; y < 256; y += 6) {
+        for (let x = 0; x < 256; x += 6) {
+          const alt = ((x + y) / 6) % 2 === 0;
+          ctx.fillStyle = alt ? '#b89428' : '#18264f';
+          ctx.fillRect(x, y, 4, 4);
+          ctx.fillStyle = 'rgba(255, 232, 150, 0.22)';
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(6, 5);
+      return tex;
+    }
+
+    // Dynamic Analog Glass Dial Canvas
+    const dialCanvas = document.createElement('canvas');
+    dialCanvas.width = 1024;
+    dialCanvas.height = 360;
+    const dialCtx = dialCanvas.getContext('2d');
+    const dialTexture = new THREE.CanvasTexture(dialCanvas);
+
+    function updateDialTexture() {
+      const w = dialCanvas.width;
+      const h = dialCanvas.height;
+      const station = STATIONS[state.currentIndex];
+
+      // Background glow (warm vacuum tube amber when ON, dark smoked glass when OFF)
+      const bgGrad = dialCtx.createLinearGradient(0, 0, 0, h);
+      if (state.isPowered) {
+        bgGrad.addColorStop(0, '#361c07');
+        bgGrad.addColorStop(0.5, '#592e0b');
+        bgGrad.addColorStop(1, '#2b1404');
+      } else {
+        bgGrad.addColorStop(0, '#070b17');
+        bgGrad.addColorStop(0.5, '#0d152b');
+        bgGrad.addColorStop(1, '#060912');
+      }
+      dialCtx.fillStyle = bgGrad;
+      dialCtx.fillRect(0, 0, w, h);
+
+      // Warm Tube Bulb Hotspots behind the dial
+      if (state.isPowered) {
+        [160, 512, 864].forEach(bx => {
+          const bulb = dialCtx.createRadialGradient(bx, h * 0.55, 10, bx, h * 0.55, 220);
+          bulb.addColorStop(0, 'rgba(255, 195, 90, 0.48)');
+          bulb.addColorStop(0.6, 'rgba(255, 140, 30, 0.16)');
+          bulb.addColorStop(1, 'rgba(255, 120, 10, 0)');
+          dialCtx.fillStyle = bulb;
+          dialCtx.fillRect(0, 0, w, h);
+        });
+      }
+
+      // Ornate Gold Inner Frame Border
+      dialCtx.strokeStyle = state.isPowered ? '#f3d778' : '#5e4c19';
+      dialCtx.lineWidth = 5;
+      dialCtx.strokeRect(14, 14, w - 28, h - 28);
+
+      // Header Labels: AKASHVANI IMPERIAL & Band Markers
+      dialCtx.fillStyle = state.isPowered ? '#ffe89e' : '#64748b';
+      dialCtx.font = 'bold 22px Georgia, serif';
+      dialCtx.textAlign = 'left';
+      dialCtx.fillText('AKASHVANI • ROYAL RECEIVER', 38, 52);
+
+      dialCtx.textAlign = 'right';
+      dialCtx.font = 'bold 20px monospace';
+      dialCtx.fillStyle = state.isPowered ? '#ffae42' : '#475569';
+      dialCtx.fillText('MW  530 — 1600 kHz   |   SW1  6 — 18 MHz', w - 38, 52);
+
+      // Horizontal Frequency Scale Lines
+      const scaleLeft = 55;
+      const scaleRight = w - 55;
+      const scaleWidth = scaleRight - scaleLeft;
+
+      dialCtx.strokeStyle = state.isPowered ? 'rgba(255, 225, 140, 0.65)' : 'rgba(148, 163, 184, 0.25)';
+      dialCtx.lineWidth = 2;
+      dialCtx.beginPath();
+      dialCtx.moveTo(scaleLeft, 125);
+      dialCtx.lineTo(scaleRight, 125);
+      dialCtx.moveTo(scaleLeft, 195);
+      dialCtx.lineTo(scaleRight, 195);
+      dialCtx.stroke();
+
+      // Frequency Ticks & kHz Numbers
+      const freqs = ['550', '650', '750', '850', '1000', '1200', '1400', '1600'];
+      for (let i = 0; i <= 60; i++) {
+        const x = scaleLeft + (i / 60) * scaleWidth;
+        const isMajor = i % 5 === 0;
+        dialCtx.beginPath();
+        dialCtx.moveTo(x, 125);
+        dialCtx.lineTo(x, isMajor ? 148 : 136);
+        dialCtx.stroke();
+
+        dialCtx.beginPath();
+        dialCtx.moveTo(x, 195);
+        dialCtx.lineTo(x, isMajor ? 174 : 185);
+        dialCtx.stroke();
+      }
+
+      dialCtx.font = 'bold 19px monospace';
+      dialCtx.textAlign = 'center';
+      dialCtx.fillStyle = state.isPowered ? '#ffd670' : '#475569';
+      freqs.forEach((f, idx) => {
+        const fx = scaleLeft + (idx / (freqs.length - 1)) * scaleWidth;
+        dialCtx.fillText(f, fx, 168);
+      });
+
+      // Station Markers along the bottom band
+      STATIONS.forEach((st, idx) => {
+        const sx = scaleLeft + (idx / (STATIONS.length - 1)) * scaleWidth;
+        const isCurrent = idx === state.currentIndex;
+        dialCtx.fillStyle = isCurrent
+          ? (state.isPowered ? '#ff4d4d' : '#94a3b8')
+          : (state.isPowered ? 'rgba(255, 210, 120, 0.45)' : 'rgba(100, 116, 139, 0.25)');
+        dialCtx.beginPath();
+        dialCtx.arc(sx, 212, isCurrent ? 5 : 2.5, 0, Math.PI * 2);
+        dialCtx.fill();
+      });
+
+      // Bottom Station Name Readout Box
+      dialCtx.fillStyle = state.isPowered ? 'rgba(20, 8, 2, 0.65)' : 'rgba(5, 8, 18, 0.75)';
+      dialCtx.fillRect(38, 242, w - 76, 82);
+      dialCtx.strokeStyle = state.isPowered ? 'rgba(243, 215, 120, 0.45)' : 'rgba(100, 116, 139, 0.2)';
+      dialCtx.lineWidth = 2;
+      dialCtx.strokeRect(38, 242, w - 76, 82);
+
+      dialCtx.textAlign = 'left';
+      dialCtx.font = 'bold 34px Georgia, serif';
+      dialCtx.fillStyle = state.isPowered ? '#fff3cc' : '#475569';
+      dialCtx.fillText(station.name.toUpperCase(), 60, 294);
+
+      dialCtx.textAlign = 'right';
+      dialCtx.font = 'bold 22px monospace';
+      dialCtx.fillStyle = state.isPowered ? '#34d399' : '#334155';
+      const statusLabel = !state.isPowered ? 'POWER OFF' : (state.isBuffering ? 'TUNING...' : station.freq);
+      dialCtx.fillText(statusLabel, w - 60, 291);
+
+      // Glowing Red Tuning Needle Indicator
+      const needleX = scaleLeft + state.needlePos * scaleWidth;
+      if (state.isPowered) {
+        dialCtx.shadowColor = '#ff3b3b';
+        dialCtx.shadowBlur = 16;
+      }
+      dialCtx.strokeStyle = state.isPowered ? '#ff3b3b' : '#64748b';
+      dialCtx.lineWidth = 5;
+      dialCtx.beginPath();
+      dialCtx.moveTo(needleX, 82);
+      dialCtx.lineTo(needleX, 232);
+      dialCtx.stroke();
+      dialCtx.shadowBlur = 0;
+
+      dialTexture.needsUpdate = true;
+    }
+
+    /**
+     * ============================================================================
+     * 6. THREE.JS 3D VINTAGE ROYAL RADIO SCENE & MODEL CONSTRUCTION
+     * ============================================================================
+     */
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050814, 0.032);
+
+    const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(4.6, 2.5, 7.6);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
+    container.appendChild(renderer.domElement);
+
+    // OrbitControls for Full 360 Inspection
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 3.8;
+    controls.maxDistance = 14;
+    controls.maxPolarAngle = Math.PI * 0.52;
+    controls.target.set(0, 1.35, 0);
+
+    // Three-Point Studio Lighting + Royal Rim Light
+    const ambientLight = new THREE.AmbientLight(0x2a3b75, 0.85);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xfff0d4, 1.65);
+    keyLight.position.set(5.5, 8.5, 6.5);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.camera.near = 1;
+    keyLight.shadow.camera.far = 25;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
+
+    const royalRimLight = new THREE.DirectionalLight(0x3b82f6, 1.35);
+    royalRimLight.position.set(-6.5, 5.0, -5.5);
+    scene.add(royalRimLight);
+
+    const goldFillLight = new THREE.PointLight(0xd4af37, 0.9, 14);
+    goldFillLight.position.set(-3.5, 2.2, 4.5);
+    scene.add(goldFillLight);
+
+    // Warm Vacuum-Tube Dial Point Light (toggles with power)
+    const dialGlowLight = new THREE.PointLight(0xff9922, 0, 3.2);
+    dialGlowLight.position.set(0.75, 1.72, 1.25);
+    scene.add(dialGlowLight);
+
+    // Rich PBR Materials
+    const mahoganyMat = new THREE.MeshStandardMaterial({
+      map: createMahoganyTexture(),
+      roughness: 0.24,
+      metalness: 0.12
+    });
+
+    const royalNavyMat = new THREE.MeshStandardMaterial({
+      map: createRoyalNavyLacquerTexture(),
+      roughness: 0.22,
+      metalness: 0.28
+    });
+
+    const brushedGoldMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      roughness: 0.26,
+      metalness: 0.88
+    });
+
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.14,
+      metalness: 0.95
+    });
+
+    const bakeliteMat = new THREE.MeshStandardMaterial({
+      color: 0x090c18,
+      roughness: 0.25,
+      metalness: 0.15
+    });
+
+    const speakerClothMat = new THREE.MeshStandardMaterial({
+      map: createSpeakerClothTexture(),
+      roughness: 0.85,
+      metalness: 0.1
+    });
+
+    // Royal Velvet & Marble Display Pedestal Table
+    const tableGroup = new THREE.Group();
+    const tableTopGeo = new THREE.CylinderGeometry(5.6, 5.9, 0.28, 64);
+    const tableTopMat = new THREE.MeshStandardMaterial({
+      color: 0x070d21,
+      roughness: 0.45,
+      metalness: 0.35
+    });
+    const tableTop = new THREE.Mesh(tableTopGeo, tableTopMat);
+    tableTop.position.y = -0.14;
+    tableTop.receiveShadow = true;
+    tableGroup.add(tableTop);
+
+    const tableGoldTrim = new THREE.Mesh(
+      new THREE.TorusGeometry(5.75, 0.035, 16, 100),
+      brushedGoldMat
+    );
+    tableGoldTrim.rotation.x = Math.PI / 2;
+    tableGoldTrim.position.y = -0.02;
+    tableGroup.add(tableGoldTrim);
+    scene.add(tableGroup);
+
+    // =========================================================================
+    // BUILD THE 3D VINTAGE RADIO ASSEMBLY
+    // =========================================================================
+    const radioRoot = new THREE.Group();
+    scene.add(radioRoot);
+
+    const interactiveMeshes = []; // For raycasting hover/click
+
+    // 1. Turned Antique Brass Feet (4 corners)
+    const footPositions = [
+      [-1.85, 0.11, 0.72],
+      [1.85, 0.11, 0.72],
+      [-1.85, 0.11, -0.72],
+      [1.85, 0.11, -0.72]
+    ];
+    footPositions.forEach(([fx, fy, fz]) => {
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.11, 0.22, 24), brushedGoldMat);
+      foot.position.set(fx, fy, fz);
+      foot.castShadow = true;
+      radioRoot.add(foot);
+    });
+
+    // 2. Lower Plinth Base (Royal Navy + Gold Trim)
+    const basePlinth = new THREE.Mesh(new THREE.BoxGeometry(4.35, 0.22, 1.85), royalNavyMat);
+    basePlinth.position.set(0, 0.32, 0);
+    basePlinth.castShadow = true;
+    basePlinth.receiveShadow = true;
+    radioRoot.add(basePlinth);
+
+    const baseGoldBand = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.05, 1.9), brushedGoldMat);
+    baseGoldBand.position.set(0, 0.44, 0);
+    radioRoot.add(baseGoldBand);
+
+    // 3. Main Vintage Cabinet Body (Deep Mahogany Outer Shell + Royal Navy Inner Faceplate)
+    const cabinetW = 4.2;
+    const cabinetH = 2.25;
+    const cabinetD = 1.72;
+
+    const mainCabinet = new THREE.Mesh(new THREE.BoxGeometry(cabinetW, cabinetH, cabinetD), mahoganyMat);
+    mainCabinet.position.set(0, 1.58, 0);
+    mainCabinet.castShadow = true;
+    mainCabinet.receiveShadow = true;
+    radioRoot.add(mainCabinet);
+
+    // Stepped Royal Crown Molding on Top
+    const crownLower = new THREE.Mesh(new THREE.BoxGeometry(4.36, 0.14, 1.86), royalNavyMat);
+    crownLower.position.set(0, 2.75, 0);
+    crownLower.castShadow = true;
+    radioRoot.add(crownLower);
+
+    const crownGoldBead = new THREE.Mesh(new THREE.BoxGeometry(4.42, 0.045, 1.92), brushedGoldMat);
+    crownGoldBead.position.set(0, 2.83, 0);
+    radioRoot.add(crownGoldBead);
+
+    const crownUpper = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.12, 1.65), mahoganyMat);
+    crownUpper.position.set(0, 2.91, 0);
+    crownUpper.castShadow = true;
+    radioRoot.add(crownUpper);
+
+    // Corner Brass Pillars / Fluted Side Columns
+    [-2.06, 2.06].forEach(px => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 2.26, 20), brushedGoldMat);
+      col.position.set(px, 1.58, 0.84);
+      col.castShadow = true;
+      radioRoot.add(col);
+    });
+
+    // Recessed Royal Midnight Navy Front Baffle Panel
+    const frontPanel = new THREE.Mesh(new THREE.BoxGeometry(3.92, 2.02, 0.08), royalNavyMat);
+    frontPanel.position.set(0, 1.58, 0.84);
+    frontPanel.receiveShadow = true;
+    radioRoot.add(frontPanel);
+
+    // Ornate Gold Perimeter Frame around Front Panel
+    const topBar = new THREE.Mesh(new THREE.BoxGeometry(3.98, 0.06, 0.11), brushedGoldMat);
+    topBar.position.set(0, 2.58, 0.85);
+    radioRoot.add(topBar);
+
+    const botBar = new THREE.Mesh(new THREE.BoxGeometry(3.98, 0.06, 0.11), brushedGoldMat);
+    botBar.position.set(0, 0.58, 0.85);
+    radioRoot.add(botBar);
+
+    // 4. Left Section: Royal Acoustic Speaker Grille & Brass Louvers
+    const speakerGroup = new THREE.Group();
+    speakerGroup.position.set(-0.98, 1.58, 0.87);
+    radioRoot.add(speakerGroup);
+
+    const speakerBacking = new THREE.Mesh(new THREE.BoxGeometry(1.62, 1.72, 0.04), speakerClothMat);
+    speakerGroup.add(speakerBacking);
+
+    // Gold Frame around Speaker
+    const spkTop = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.07), brushedGoldMat);
+    spkTop.position.y = 0.86;
+    speakerGroup.add(spkTop);
+    const spkBot = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.07), brushedGoldMat);
+    spkBot.position.y = -0.86;
+    speakerGroup.add(spkBot);
+    const spkLeft = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.76, 0.07), brushedGoldMat);
+    spkLeft.position.x = -0.82;
+    speakerGroup.add(spkLeft);
+    const spkRight = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.76, 0.07), brushedGoldMat);
+    spkRight.position.x = 0.82;
+    speakerGroup.add(spkRight);
+
+    // Vertical Brass Louver Slats
+    for (let i = -3; i <= 3; i++) {
+      const slat = new THREE.Mesh(new THREE.BoxGeometry(0.032, 1.66, 0.05), brushedGoldMat);
+      slat.position.set(i * 0.21, 0, 0.02);
+      speakerGroup.add(slat);
+    }
+
+    // Center Royal Crest Medallion on Speaker Grille
+    const crestRing = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.025, 16, 40), brushedGoldMat);
+    crestRing.position.set(0, 0, 0.045);
+    speakerGroup.add(crestRing);
+
+    const crestCore = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.03, 32), royalNavyMat);
+    crestCore.rotation.x = Math.PI / 2;
+    crestCore.position.set(0, 0, 0.035);
+    speakerGroup.add(crestCore);
+
+    // 5. Right-Upper Section: Illuminated Glass Frequency Dial
+    const dialGroup = new THREE.Group();
+    dialGroup.position.set(0.88, 1.98, 0.87);
+    radioRoot.add(dialGroup);
+
+    const dialScreenMat = new THREE.MeshStandardMaterial({
+      map: dialTexture,
+      emissiveMap: dialTexture,
+      emissive: new THREE.Color(0xffb347),
+      emissiveIntensity: 0.0,
+      roughness: 0.15,
+      metalness: 0.05
+    });
+
+    const dialPlane = new THREE.Mesh(new THREE.PlaneGeometry(1.86, 0.68), dialScreenMat);
+    dialPlane.position.z = 0.02;
+    dialGroup.add(dialPlane);
+
+    // Beveled Brass Dial Bezel
+    const bezelTop = new THREE.Mesh(new THREE.BoxGeometry(1.96, 0.06, 0.09), brushedGoldMat);
+    bezelTop.position.set(0, 0.36, 0.03);
+    dialGroup.add(bezelTop);
+    const bezelBot = new THREE.Mesh(new THREE.BoxGeometry(1.96, 0.06, 0.09), brushedGoldMat);
+    bezelBot.position.set(0, -0.36, 0.03);
+    dialGroup.add(bezelBot);
+    const bezelLeft = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.78, 0.09), brushedGoldMat);
+    bezelLeft.position.set(-0.95, 0, 0.03);
+    dialGroup.add(bezelLeft);
+    const bezelRight = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.78, 0.09), brushedGoldMat);
+    bezelRight.position.set(0.95, 0, 0.03);
+    dialGroup.add(bezelRight);
+
+    // 6. Magic Eye Tuning Indicator Tube (6E5) & Jewel Pilot Lamp
+    const magicEyeGroup = new THREE.Group();
+    magicEyeGroup.position.set(0.88, 1.38, 0.88);
+    radioRoot.add(magicEyeGroup);
+
+    const eyeBezel = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.024, 16, 32), brushedGoldMat);
+    eyeBezel.position.z = 0.02;
+    magicEyeGroup.add(eyeBezel);
+
+    const magicEyeMat = new THREE.MeshStandardMaterial({
+      color: 0x06291c,
+      emissive: 0x10b981,
+      emissiveIntensity: 0.0,
+      roughness: 0.1
+    });
+    const magicEyeGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.03, 28), magicEyeMat);
+    magicEyeGlass.rotation.x = Math.PI / 2;
+    magicEyeGlass.position.z = 0.01;
+    magicEyeGroup.add(magicEyeGlass);
+
+    // Ruby Jewel Power Pilot Lamp (left of Magic Eye)
+    const pilotLampMat = new THREE.MeshStandardMaterial({
+      color: 0x3b0808,
+      emissive: 0xff2a2a,
+      emissiveIntensity: 0.0,
+      roughness: 0.15
+    });
+    const pilotBezel = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.015, 12, 24), brushedGoldMat);
+    pilotBezel.position.set(0.28, 1.38, 0.90);
+    radioRoot.add(pilotBezel);
+
+    const pilotJewel = new THREE.Mesh(new THREE.SphereGeometry(0.055, 20, 20), pilotLampMat);
+    pilotJewel.position.set(0.28, 1.38, 0.89);
+    radioRoot.add(pilotJewel);
+
+    // 7. Interactive 3D Knobs & Power Toggle Switch
+    function createVintageKnob(radius, height) {
+      const g = new THREE.Group();
+      const skirt = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.15, radius * 1.25, 0.05, 32), brushedGoldMat);
+      skirt.rotation.x = Math.PI / 2;
+      g.add(skirt);
+
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.88, radius, height, 32), bakeliteMat);
+      body.rotation.x = Math.PI / 2;
+      body.position.z = height * 0.5;
+      body.castShadow = true;
+      g.add(body);
+
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.65, radius * 0.65, 0.02, 28), brushedGoldMat);
+      cap.rotation.x = Math.PI / 2;
+      cap.position.z = height + 0.01;
+      g.add(cap);
+
+      // Gold pointer indicator line
+      const pointer = new THREE.Mesh(new THREE.BoxGeometry(0.025, radius * 0.72, 0.03), brushedGoldMat);
+      pointer.position.set(0, radius * 0.35, height + 0.015);
+      g.add(pointer);
+
+      return g;
+    }
+
+    // Volume Knob (Left Lower Right-Panel)
+    const volumeKnob = createVintageKnob(0.19, 0.22);
+    volumeKnob.position.set(0.32, 0.94, 0.88);
+    volumeKnob.userData = { action: 'volume', label: 'Volume Knob (Click to Boost/Cycle)' };
+    radioRoot.add(volumeKnob);
+    volumeKnob.traverse(child => {
+      if (child.isMesh) {
+        child.userData = volumeKnob.userData;
+        interactiveMeshes.push(child);
+      }
+    });
+
+    // Power Toggle Switch Assembly (Center Lower Right-Panel)
+    const powerSwitchGroup = new THREE.Group();
+    powerSwitchGroup.position.set(0.88, 0.94, 0.88);
+    radioRoot.add(powerSwitchGroup);
+
+    const switchPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.04, 24), brushedGoldMat);
+    switchPlate.rotation.x = Math.PI / 2;
+    powerSwitchGroup.add(switchPlate);
+
+    const switchLever = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.036, 0.24, 16), chromeMat);
+    switchLever.position.set(0, 0, 0.11);
+    switchLever.rotation.x = Math.PI * 0.36; // Tilted down when OFF
+    powerSwitchGroup.add(switchLever);
+
+    const switchHitbox = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.36), new THREE.MeshBasicMaterial({ visible: false }));
+    switchHitbox.userData = { action: 'power', label: 'Power Switch (Click to Toggle ON/OFF)' };
+    powerSwitchGroup.add(switchHitbox);
+    interactiveMeshes.push(switchHitbox);
+
+    // Tuning Knob (Right Lower Right-Panel)
+    const tuningKnob = createVintageKnob(0.22, 0.24);
+    tuningKnob.position.set(1.44, 0.94, 0.88);
+    tuningKnob.userData = { action: 'tune', label: 'Tuning Dial Knob (Click for Next Station)' };
+    radioRoot.add(tuningKnob);
+    tuningKnob.traverse(child => {
+      if (child.isMesh) {
+        child.userData = tuningKnob.userData;
+        interactiveMeshes.push(child);
+      }
+    });
+
+    // Vintage Rear Ventilated Backplate
+    const backPlate = new THREE.Mesh(new THREE.BoxGeometry(3.85, 1.95, 0.04), bakeliteMat);
+    backPlate.position.set(0, 1.58, -0.85);
+    radioRoot.add(backPlate);
+
+    // =========================================================================
+    // 8. EXTENDABLE & TILTABLE 3D TELESCOPIC METALLIC ANTENNA
+    // =========================================================================
+    const antennaMountGroup = new THREE.Group();
+    // Positioned on top-right rear of the radio cabinet
+    antennaMountGroup.position.set(1.68, 2.97, -0.52);
+    radioRoot.add(antennaMountGroup);
+
+    // Heavy Brass Base Collar & Swivel Ball Joint
+    const antBaseCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.12, 24), brushedGoldMat);
+    antBaseCollar.position.y = 0.06;
+    antennaMountGroup.add(antBaseCollar);
+
+    const antSwivelBall = new THREE.Mesh(new THREE.SphereGeometry(0.11, 24, 24), brushedGoldMat);
+    antSwivelBall.position.y = 0.14;
+    antennaMountGroup.add(antSwivelBall);
+
+    // Pivot Group that tilts cleanly
+    const antennaPivot = new THREE.Group();
+    antennaPivot.position.y = 0.14;
+    antennaMountGroup.add(antennaPivot);
+
+    // Nested Telescopic Chrome Segments (5 tapering tubes)
+    const antennaSegments = [];
+    const segCount = 5;
+    const segLen = 0.72;
+    let parentObj = antennaPivot;
+
+    for (let i = 0; i < segCount; i++) {
+      const radiusTop = 0.042 - i * 0.0065;
+      const radiusBot = 0.046 - i * 0.0065;
+      const segGroup = new THREE.Group();
+
+      const tubeMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(radiusTop, radiusBot, segLen, 20),
+        i === 0 ? brushedGoldMat : chromeMat
+      );
+      tubeMesh.position.y = segLen * 0.5;
+      tubeMesh.castShadow = true;
+      tubeMesh.userData = { action: 'antenna', label: '3D Telescopic Antenna (Click to Extend/Retract)' };
+      interactiveMeshes.push(tubeMesh);
+      segGroup.add(tubeMesh);
+
+      // Brass retention ring at joint
+      if (i > 0) {
+        const ring = new THREE.Mesh(new THREE.CylinderGeometry(radiusBot * 1.18, radiusBot * 1.18, 0.03, 18), brushedGoldMat);
+        ring.position.y = 0.015;
+        segGroup.add(ring);
+      }
+
+      // Classic Spherical Tip on final segment
+      if (i === segCount - 1) {
+        const tipSphere = new THREE.Mesh(new THREE.SphereGeometry(0.055, 20, 20), brushedGoldMat);
+        tipSphere.position.y = segLen + 0.02;
+        tipSphere.userData = { action: 'antenna', label: '3D Telescopic Antenna (Click to Extend/Retract)' };
+        interactiveMeshes.push(tipSphere);
+        segGroup.add(tipSphere);
+      }
+
+      parentObj.add(segGroup);
+      antennaSegments.push(segGroup);
+      parentObj = segGroup;
+    }
+
+    function update3DAntennaGeometry() {
+      // Tilt in radians (tilts sideways/backwards gracefully)
+      const tiltRad = THREE.MathUtils.degToRad(-state.antennaTilt);
+      antennaPivot.rotation.z = tiltRad;
+      antennaPivot.rotation.x = THREE.MathUtils.degToRad(-12);
+
+      // Extend nested segments smoothly
+      const ext = state.antennaExtension; // 0 to 1
+      for (let i = 1; i < antennaSegments.length; i++) {
+        // When ext=0, nested inside previous segment; when ext=1, fully extended
+        const minOffset = 0.06;
+        const maxOffset = segLen - 0.06;
+        antennaSegments[i].position.y = minOffset + ext * (maxOffset - minOffset);
+      }
+
+      // Update Signal Strength UI based on Antenna Extension & Optimal Tilt
+      const tiltPenalty = Math.abs(state.antennaTilt - 15) * 0.25;
+      const rawSignal = Math.round(Math.min(100, Math.max(24, 34 + ext * 68 - tiltPenalty)));
+      document.getElementById('signal-pct').textContent = `${rawSignal}%`;
+
+      const bars = document.getElementById('signal-bars').children;
+      const activeBars = Math.ceil((rawSignal / 100) * bars.length);
+      for (let b = 0; b < bars.length; b++) {
+        if (b < activeBars) {
+          bars[b].classList.remove('bg-slate-600');
+          bars[b].classList.add('bg-emerald-400');
+        } else {
+          bars[b].classList.remove('bg-emerald-400');
+          bars[b].classList.add('bg-slate-600');
+        }
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 7. 3D RAYCASTING FOR DIRECT INTERACTION ON KNOBS, SWITCH & ANTENNA
+     * ============================================================================
+     */
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const hoverBadge = document.getElementById('hover-badge');
+    const hoverBadgeText = document.getElementById('hover-badge-text');
+    let hoveredAction = null;
+    let pointerDownPos = { x: 0, y: 0 };
+
+    window.addEventListener('pointermove', (e) => {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(interactiveMeshes, false);
+
+      if (hits.length > 0) {
+        const hitData = hits[0].object.userData;
+        hoveredAction = hitData.action;
+        hoverBadgeText.textContent = hitData.label;
+        hoverBadge.style.left = `${Math.min(window.innerWidth - 230, e.clientX + 14)}px`;
+        hoverBadge.style.top = `${Math.max(60, e.clientY - 28)}px`;
+        hoverBadge.classList.remove('opacity-0');
+        container.style.cursor = 'pointer';
+      } else {
+        hoveredAction = null;
+        hoverBadge.classList.add('opacity-0');
+        container.style.cursor = 'grab';
+      }
+    });
+
+    container.addEventListener('pointerdown', (e) => {
+      pointerDownPos = { x: e.clientX, y: e.clientY };
+    });
+
+    container.addEventListener('pointerup', (e) => {
+      const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+      // Only trigger click action if user didn't drag to orbit camera
+      if (dist < 6 && hoveredAction) {
+        if (hoveredAction === 'power') {
+          togglePower();
+        } else if (hoveredAction === 'tune') {
+          tuneStation(state.currentIndex + 1, true);
+        } else if (hoveredAction === 'volume') {
+          const nextVol = state.volume >= 0.95 ? 0.35 : Math.min(1, state.volume + 0.25);
+          setVolume(nextVol);
+          playMechanicalClick();
+        } else if (hoveredAction === 'antenna') {
+          // Toggle antenna extension between compact (0.2) and full (1.0)
+          const nextExt = state.antennaExtension > 0.8 ? 0.25 : 1.0;
+          state.antennaExtension = nextExt;
+          document.getElementById('antenna-ext-slider').value = Math.round(nextExt * 100);
+          update3DAntennaGeometry();
+          playMechanicalClick();
+          showToast(nextExt > 0.8 ? '3D Antenna Fully Extended (Max Gain)' : '3D Antenna Retracted');
+        }
+      }
+    });
+
+    /**
+     * ============================================================================
+     * 8. CAMERA PRESET TRANSITIONS
+     * ============================================================================
+     */
+    let targetCamPos = null;
+    let targetLookAt = null;
+
+    const CAMERA_PRESETS = {
+      hero: { pos: new THREE.Vector3(4.6, 2.5, 7.6), target: new THREE.Vector3(0, 1.35, 0) },
+      front: { pos: new THREE.Vector3(0, 1.65, 6.4), target: new THREE.Vector3(0, 1.5, 0) },
+      antenna: { pos: new THREE.Vector3(3.6, 4.3, 4.8), target: new THREE.Vector3(1.2, 3.1, -0.3) }
+    };
+
+    document.querySelectorAll('.cam-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-cam');
+        const preset = CAMERA_PRESETS[key];
+        if (preset) {
+          targetCamPos = preset.pos.clone();
+          targetLookAt = preset.target.clone();
+        }
+        document.querySelectorAll('.cam-btn').forEach(b => {
+          b.className = 'cam-btn px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:border-royal-gold/40 hover:text-royal-goldLight transition';
+        });
+        btn.className = 'cam-btn px-2.5 py-1.5 rounded-xl text-xs font-medium bg-royal-gold/25 text-royal-goldLight border border-royal-gold/50 hover:bg-royal-gold/35 transition';
+      });
+    });
+
+    // Cancel camera lerp if user manually drags OrbitControls
+    controls.addEventListener('start', () => {
+      targetCamPos = null;
+      targetLookAt = null;
+    });
+
+    /**
+     * ============================================================================
+     * 9. UI CONTROLS, STATION DRAWER & STATE SYNCHRONIZATION
+     * ============================================================================
+     */
+    function setVolume(val) {
+      state.volume = Math.max(0, Math.min(1, val));
+      state.isMuted = state.volume === 0;
+      audioEl.volume = state.isMuted ? 0 : state.volume;
+      document.getElementById('volume-slider').value = Math.round(state.volume * 100);
+      state.volumeKnobAngle = (state.volume - 0.5) * 4.2;
+    }
+
+    function updateUIState() {
+      const station = STATIONS[state.currentIndex];
+      document.getElementById('now-playing-index').textContent = `CH ${String(state.currentIndex + 1).padStart(2, '0')}`;
+      document.getElementById('now-playing-freq').textContent = station.freq;
+      document.getElementById('now-playing-name').textContent = station.name;
+
+      const powerBtn = document.getElementById('power-btn');
+      const powerIcon = document.getElementById('power-icon');
+      const statusDot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+      const playIcon = document.getElementById('play-icon');
+      const pauseIcon = document.getElementById('pause-icon');
+
+      if (state.isPowered) {
+        powerBtn.classList.add('border-emerald-400', 'shadow-emerald-500/30');
+        powerIcon.classList.remove('text-slate-400');
+        powerIcon.classList.add('text-emerald-400');
+
+        if (state.isBuffering) {
+          statusDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+          statusText.textContent = 'TUNING...';
+          statusText.className = 'text-amber-300';
+        } else if (state.isPlaying) {
+          statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+          statusText.textContent = 'ON AIR';
+          statusText.className = 'text-emerald-300 font-semibold';
+        } else {
+          statusDot.className = 'w-2 h-2 rounded-full bg-amber-500';
+          statusText.textContent = 'READY';
+          statusText.className = 'text-amber-200';
+        }
+      } else {
+        powerBtn.classList.remove('border-emerald-400', 'shadow-emerald-500/30');
+        powerIcon.classList.add('text-slate-400');
+        powerIcon.classList.remove('text-emerald-400');
+        statusDot.className = 'w-2 h-2 rounded-full bg-slate-500';
+        statusText.textContent = 'STANDBY';
+        statusText.className = 'text-slate-300';
+      }
+
+      if (state.isPlaying) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+    }
+
+    function renderStationList(filterText = '') {
+      const listEl = document.getElementById('station-list');
+      const query = filterText.trim().toLowerCase();
+      listEl.innerHTML = '';
+
+      STATIONS.forEach((st, idx) => {
+        if (query && !st.name.toLowerCase().includes(query) && !st.freq.toLowerCase().includes(query)) {
+          return;
+        }
+        const isCurrent = idx === state.currentIndex;
+        const btn = document.createElement('button');
+        btn.className = `w-full text-left px-3 py-2.5 rounded-xl border transition flex items-center justify-between gap-2 ${
+          isCurrent
+            ? 'bg-gradient-to-r from-royal-gold/25 to-royal-800/80 border-royal-gold text-white shadow-md'
+            : 'bg-royal-950/50 hover:bg-royal-800/60 border-white/5 hover:border-royal-gold/30 text-slate-300'
+        }`;
+
+        btn.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-[11px] font-mono px-1.5 py-0.5 rounded ${
+              isCurrent ? 'bg-royal-gold text-royal-950 font-bold' : 'bg-white/5 text-slate-400'
+            }">${String(idx + 1).padStart(2, '0')}</span>
+            <div class="min-w-0">
+              <div class="text-xs sm:text-sm font-semibold truncate ${isCurrent ? 'text-royal-goldLight' : 'text-slate-100'}">${st.name}</div>
+              <div class="text-[10px] font-mono text-slate-400">${st.freq}</div>
+            </div>
+          </div>
+          ${isCurrent && state.isPlaying ? `
+            <div class="flex items-end gap-0.5 h-3.5 shrink-0 pr-1">
+              <span class="w-0.5 h-3 bg-emerald-400 eq-bar"></span>
+              <span class="w-0.5 h-3 bg-emerald-400 eq-bar"></span>
+              <span class="w-0.5 h-3 bg-emerald-400 eq-bar"></span>
+              <span class="w-0.5 h-3 bg-emerald-400 eq-bar"></span>
+            </div>
+          ` : `<span class="text-[10px] text-royal-gold/60 shrink-0">TUNE</span>`}
+        `;
+
+        btn.addEventListener('click', () => {
+          tuneStation(idx, true);
+        });
+        listEl.appendChild(btn);
+      });
+    }
+
+    // Event Listeners for Bottom Console & Drawer
+    document.getElementById('power-btn').addEventListener('click', () => togglePower());
+
+    document.getElementById('play-btn').addEventListener('click', () => {
+      if (!state.isPowered) {
+        togglePower(true);
+        return;
+      }
+      if (state.isPlaying) {
+        audioEl.pause();
+        state.isPlaying = false;
+        updateUIState();
+      } else {
+        tuneStation(state.currentIndex, true);
+      }
+    });
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      tuneStation(state.currentIndex - 1, true);
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+      tuneStation(state.currentIndex + 1, true);
+    });
+
+    document.getElementById('volume-slider').addEventListener('input', (e) => {
+      setVolume(Number(e.target.value) / 100);
+    });
+
+    document.getElementById('mute-btn').addEventListener('click', () => {
+      state.isMuted = !state.isMuted;
+      audioEl.volume = state.isMuted ? 0 : state.volume;
+      document.getElementById('vol-icon').style.opacity = state.isMuted ? '0.4' : '1';
+    });
+
+    document.getElementById('antenna-ext-slider').addEventListener('input', (e) => {
+      state.antennaExtension = Number(e.target.value) / 100;
+      update3DAntennaGeometry();
+    });
+
+    document.getElementById('antenna-tilt-slider').addEventListener('input', (e) => {
+      state.antennaTilt = Number(e.target.value);
+      update3DAntennaGeometry();
+    });
+
+    document.getElementById('sfx-toggle-btn').addEventListener('click', () => {
+      state.sfxEnabled = !state.sfxEnabled;
+      document.getElementById('sfx-dot').className = state.sfxEnabled
+        ? 'w-1.5 h-1.5 rounded-full bg-emerald-400'
+        : 'w-1.5 h-1.5 rounded-full bg-slate-500';
+    });
+
+    const drawerEl = document.getElementById('station-drawer');
+    function setDrawerOpen(open) {
+      state.drawerOpen = open;
+      if (open) {
+        drawerEl.classList.remove('translate-x-[115%]', 'opacity-0', 'pointer-events-none');
+      } else {
+        drawerEl.classList.add('translate-x-[115%]', 'opacity-0', 'pointer-events-none');
+      }
+    }
+
+    document.getElementById('toggle-drawer-btn').addEventListener('click', () => {
+      setDrawerOpen(!state.drawerOpen);
+    });
+    document.getElementById('close-drawer-btn').addEventListener('click', () => {
+      setDrawerOpen(false);
+    });
+
+    document.getElementById('station-search').addEventListener('input', (e) => {
+      renderStationList(e.target.value);
+    });
+
+    // Keyboard shortcuts (Left/Right arrows to tune stations, Space to play/pause)
+    window.addEventListener('keydown', (e) => {
+      if (document.activeElement.tagName === 'INPUT') return;
+      if (e.key === 'ArrowRight') tuneStation(state.currentIndex + 1, true);
+      if (e.key === 'ArrowLeft') tuneStation(state.currentIndex - 1, true);
+      if (e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('play-btn').click();
+      }
+    });
+
+    // Window Resize Handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    /**
+     * ============================================================================
+     * 10. ANIMATION LOOP (3D Knobs, Glowing Dial, Magic Eye, Smooth Camera)
+     * ============================================================================
+     */
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
+
+      // 1. Smoothly glide tuning needle on the analog glass dial
+      const needleDiff = state.targetNeedlePos - state.needlePos;
+      if (Math.abs(needleDiff) > 0.0005) {
+        state.needlePos += needleDiff * Math.min(1, dt * 8);
+        updateDialTexture();
+      }
+
+      // 2. Smoothly rotate 3D Volume & Tuning Knobs + Power Toggle Lever
+      volumeKnob.rotation.z += (-state.volumeKnobAngle - volumeKnob.rotation.z) * Math.min(1, dt * 10);
+      tuningKnob.rotation.z += (-state.tuningKnobAngle - tuningKnob.rotation.z) * Math.min(1, dt * 10);
+
+      const targetSwitchRot = state.isPowered ? Math.PI * 0.14 : Math.PI * 0.38;
+      switchLever.rotation.x += (targetSwitchRot - switchLever.rotation.x) * Math.min(1, dt * 12);
+
+      // 3. Vacuum Tube Dial Glow & Magic Eye 6E5 Emerald Pulse
+      const targetDialIntensity = state.isPowered ? 1.15 : 0.0;
+      dialScreenMat.emissiveIntensity += (targetDialIntensity - dialScreenMat.emissiveIntensity) * Math.min(1, dt * 6);
+      dialGlowLight.intensity = dialScreenMat.emissiveIntensity * 1.4;
+
+      const targetPilotIntensity = state.isPowered ? 1.8 : 0.0;
+      pilotLampMat.emissiveIntensity += (targetPilotIntensity - pilotLampMat.emissiveIntensity) * Math.min(1, dt * 8);
+
+      if (state.isPowered) {
+        const pulse = state.isPlaying
+          ? 1.1 + Math.sin(elapsed * 7.5) * 0.35 + Math.cos(elapsed * 13) * 0.2
+          : 0.75 + Math.sin(elapsed * 2.5) * 0.15;
+        magicEyeMat.emissiveIntensity = pulse;
+      } else {
+        magicEyeMat.emissiveIntensity *= 0.85;
+      }
+
+      // 4. Smooth Camera Preset Interpolation
+      if (targetCamPos && targetLookAt) {
+        camera.position.lerp(targetCamPos, Math.min(1, dt * 4.5));
+        controls.target.lerp(targetLookAt, Math.min(1, dt * 4.5));
+        if (camera.position.distanceTo(targetCamPos) < 0.03) {
+          targetCamPos = null;
+          targetLookAt = null;
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Initialize everything on window load
+    window.onload = function () {
+      update3DAntennaGeometry();
+      updateDialTexture();
+      renderStationList();
+      updateUIState();
+      animate();
+    };
+  </script>
 </body>
 </html>
