@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamVault — Sequential MP4 Player (176000 - 200100)</title>
+    <title>January(176000 - 200100)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter & Hind Siliguri -->
@@ -64,7 +64,7 @@
                     <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                         StreamVault Player
                     </h1>
-                    <p class="text-xs text-slate-400 hidden sm:block">Range: 178090 — 198090 (20,001 Videos)</p>
+                    <p class="text-xs text-slate-400 hidden sm:block">Range: 176000 — 200100 (24,101 Videos)</p>
                 </div>
             </div>
 
@@ -74,9 +74,9 @@
                     <input 
                         type="number" 
                         id="jumpInput" 
-                        min="178090" 
-                        max="198090" 
-                        placeholder="ID লিখুন (178090-198090)" 
+                        min="176000" 
+                        max="200100" 
+                        placeholder="ID লিখুন (176000-200100)" 
                         class="w-full bg-slate-850 border border-slate-700 text-slate-100 text-sm rounded-xl px-3.5 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition placeholder:text-slate-500"
                     >
                 </div>
@@ -114,7 +114,7 @@
                     <!-- Loading Spinner Overlay -->
                     <div id="loadingOverlay" class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3 hidden pointer-events-none">
                         <div class="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-                        <p class="text-sm font-medium text-slate-300">ভিডিও লোড হচ্ছে (ID: <span id="loadingIdText">178090</span>)...</p>
+                        <p class="text-sm font-medium text-slate-300">ভিডিও লোড হচ্ছে (ID: <span id="loadingIdText">176000</span>)...</p>
                     </div>
 
                     <!-- Error / Broken Link Banner Overlay -->
@@ -124,7 +124,7 @@
                         </div>
                         <h3 class="text-lg font-bold text-white mb-1">ভিডিওটি পাওয়া যায়নি (404 / Stream Error)</h3>
                         <p class="text-sm text-slate-400 max-w-md mb-4">
-                            ID <span id="errorIdText" class="text-rose-400 font-semibold">178090</span> সার্ভারে উপলব্ধ নয় অথবা লোড হতে সমস্যা হচ্ছে।
+                            ID <span id="errorIdText" class="text-rose-400 font-semibold">176000</span> সার্ভারে উপলব্ধ নয় অথবা লোড হতে সমস্যা হচ্ছে।
                         </p>
                         
                         <div id="autoSkipCountdownBox" class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-xs text-amber-400 mb-4 hidden">
@@ -150,12 +150,12 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
                         <div class="flex items-center gap-3">
                             <span class="px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 font-bold text-base sm:text-lg tracking-wide">
-                                #<span id="currentIdDisplay">178090</span>
+                                #<span id="currentIdDisplay">176000</span>
                             </span>
                             <div>
-                                <h2 class="text-base sm:text-lg font-semibold text-white">Video Stream #<span id="currentIdTitle">178090</span></h2>
+                                <h2 class="text-base sm:text-lg font-semibold text-white">Video Stream #<span id="currentIdTitle">176000</span></h2>
                                 <p class="text-xs text-slate-400 truncate max-w-[240px] sm:max-w-md" id="currentUrlDisplay">
-                                    https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/178090.mp4
+                                    https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/176000.mp4
                                 </p>
                             </div>
                         </div>
@@ -182,7 +182,7 @@
 
                             <a 
                                 id="directOpenLink" 
-                                href="https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/178090.mp4" 
+                                href="https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/176000.mp4" 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 class="p-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-300 text-sm transition"
@@ -346,7 +346,7 @@
                     </button>
                     
                     <span id="pageIndicator" class="text-xs text-slate-400 font-medium">
-                        Page 1 / 201
+                        Page 1 / 242
                     </span>
 
                     <button 
@@ -364,7 +364,7 @@
 
     <!-- Footer -->
     <footer class="border-t border-slate-900 py-4 text-center text-xs text-slate-500">
-        Sequential MP4 Streamer • IDs <span class="text-slate-400 font-medium">178090</span> to <span class="text-slate-400 font-medium">198090</span> • Keyboard Shortcuts: <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded">←</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded">→</kbd> for Prev/Next
+        Sequential MP4 Streamer • IDs <span class="text-slate-400 font-medium">176000</span> to <span class="text-slate-400 font-medium">200100</span> • Keyboard Shortcuts: <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded">←</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded">→</kbd> for Prev/Next
     </footer>
 
     <!-- Application Logic -->
@@ -373,10 +373,10 @@
         // Configuration & Constants
         // ==========================================
         const BASE_URL = "https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/";
-        const MIN_ID = 178090;
-        const MAX_ID = 198090;
+        const MIN_ID = 176000;
+        const MAX_ID = 200100;
         const ITEMS_PER_PAGE = 100; // 100 IDs per page for fast rendering
-        const TOTAL_ITEMS = MAX_ID - MIN_ID + 1; // 20,001 videos
+        const TOTAL_ITEMS = MAX_ID - MIN_ID + 1; // 24,101 videos
         const TOTAL_PAGES = Math.ceil(TOTAL_ITEMS / ITEMS_PER_PAGE);
 
         // ==========================================
@@ -626,7 +626,7 @@
             if (currentId < MAX_ID) {
                 loadVideo(currentId + 1, true);
             } else {
-                showToast('আপনি শেষ ভিডিওতে (198090) পৌঁছে গেছেন।', 'info');
+                showToast('আপনি শেষ ভিডিওতে (200100) পৌঁছে গেছেন।', 'info');
             }
         }
 
@@ -634,7 +634,7 @@
             if (currentId > MIN_ID) {
                 loadVideo(currentId - 1, true);
             } else {
-                showToast('এটিই প্রথম ভিডিও (178090)।', 'info');
+                showToast('এটিই প্রথম ভিডিও (176000)।', 'info');
             }
         }
 
@@ -798,7 +798,7 @@
 
             if (currentTab === 'all') {
                 if (searchQuery) {
-                    // Search matching IDs across the entire 20,001 range (limit to 100 matches for speed)
+                    // Search matching IDs across the entire 24,101 range (limit to 100 matches for speed)
                     for (let id = MIN_ID; id <= MAX_ID; id++) {
                         if (String(id).includes(searchQuery)) {
                             idsToRender.push(id);
