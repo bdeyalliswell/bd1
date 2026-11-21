@@ -142,7 +142,7 @@
       width: 280px;
       box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       z-index: 900;
       animation: dropFade 0.2s ease forwards;
     }
@@ -163,6 +163,8 @@
     }
 
     .dropdown-filter-panel label {
+      display: block;
+      margin-bottom: 6px;
       font-size: 0.78rem;
       font-weight: 700;
       color: #94a3b8;
@@ -420,10 +422,21 @@
   <!-- Top Red Navbar -->
   <header class="navbar">
     <!-- Triple Dot Menu Button -->
-    <div class="nav-left" id="menuToggleBtn" title="Search & Categories">⋮</div>
+    <div class="nav-left" id="menuToggleBtn" title="Playlists, Search & Categories">⋮</div>
     
     <!-- Hidden Dropdown Filter Panel -->
     <div class="dropdown-filter-panel" id="dropdownFilter">
+      <div>
+        <label for="playlist-select">Select Playlist</label>
+        <select id="playlist-select" class="category-select" onchange="changePlaylist()">
+          <option value="india.m3u">India</option>
+          <option value="news.m3u">News</option>
+          <option value="travel.m3u">Travel</option>
+          <option value="sport.m3u">Sport</option>
+          <option value="bd.m3u">Bangladesh (BD)</option>
+          <option value="kids.m3u">Kids</option>
+        </select>
+      </div>
       <div>
         <label for="search-box">Search Channel</label>
         <input type="text" id="search-box" class="search-input" placeholder="Search..." oninput="filterChannels()">
@@ -440,7 +453,7 @@
   <!-- Container -->
   <main class="container">
     <div class="header-bar">
-      <h1 class="page-title">Live Channels</h1>
+      <h1 class="page-title" id="page-title">India - Live Channels</h1>
     </div>
 
     <!-- Circle Grid -->
@@ -467,12 +480,13 @@
   </div>
 
   <script>
-    const M3U_URL = 'tv.m3u';
     const PROXY_BASE = "https://bdtv.balaramdey.workers.dev/?url=";
 
     const channelGrid = document.getElementById('channel-grid');
+    const playlistSelect = document.getElementById('playlist-select');
     const categorySelect = document.getElementById('category-filter');
     const searchBox = document.getElementById('search-box');
+    const pageTitle = document.getElementById('page-title');
     const menuToggleBtn = document.getElementById('menuToggleBtn');
     const dropdownFilter = document.getElementById('dropdownFilter');
     const dynamicBg = document.getElementById('dynamicBg');
@@ -503,22 +517,37 @@
       dropdownFilter.classList.remove('active');
     });
 
-    async function loadM3U() {
+    // Handle Playlist Change
+    function changePlaylist() {
+      const selectedFile = playlistSelect.value;
+      const selectedLabel = playlistSelect.options[playlistSelect.selectedIndex].text;
+      pageTitle.textContent = `${selectedLabel} - Live Channels`;
+      searchBox.value = '';
+      loadM3U(selectedFile);
+    }
+
+    async function loadM3U(fileName) {
+      channelGrid.innerHTML = '<p style="color:#94a3b8; grid-column: 1 / -1;">Loading channels...</p>';
       try {
-        let response = await fetch(M3U_URL);
+        let response = await fetch(fileName);
         if (!response.ok) {
-          response = await fetch('https://bdeyalliswell.github.io/travelvtt/indiantv/tv.m3u');
+          response = await fetch(`https://bdeyalliswell.github.io/travelvtt/indiantv/${fileName}`);
+        }
+        if (!response.ok) {
+          throw new Error(`Could not load ${fileName}`);
         }
         const text = await response.text();
         allChannels = parseM3U(text);
 
         if (allChannels.length === 0) {
-          throw new Error("No channels found in M3U file!");
+          throw new Error(`No channels found in ${fileName}!`);
         }
 
         buildCategoryDropdown();
         renderGrid(allChannels);
       } catch (err) {
+        allChannels = [];
+        categorySelect.innerHTML = '<option value="ALL">All Categories</option>';
         channelGrid.innerHTML = `<p style="color:#ef4444; grid-column: 1 / -1;">Error: ${err.message}</p>`;
       }
     }
@@ -701,7 +730,10 @@
       }
     });
 
-    window.addEventListener('DOMContentLoaded', loadM3U);
+    // Load default playlist on startup
+    window.addEventListener('DOMContentLoaded', () => {
+      loadM3U(playlistSelect.value);
+    });
   </script>
 </body>
 </html>
