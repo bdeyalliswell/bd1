@@ -152,14 +152,8 @@
     }
 
     @keyframes dropFade {
-      from {
-        opacity: 0;
-        transform: translateY(-8px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .dropdown-filter-panel label {
@@ -201,24 +195,71 @@
       max-width: 1200px;
       width: 100%;
       margin: 0 auto;
-      padding: 24px 16px;
+      padding: 20px 16px;
       flex: 1;
       position: relative;
       z-index: 10;
+    }
+
+    /* Playlist Tabs Bar (For Multiple M3U Files) */
+    .playlist-tabs {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+      scrollbar-width: none; /* Firefox */
+    }
+
+    .playlist-tabs::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+
+    .playlist-tab-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.25s ease;
+    }
+
+    .playlist-tab-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+
+    .playlist-tab-btn.active {
+      background: #e11d48;
+      color: #ffffff;
+      border-color: #fb7185;
+      box-shadow: 0 4px 14px rgba(225, 29, 72, 0.45);
     }
 
     .header-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .page-title {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 700;
       color: #f8fafc;
       letter-spacing: 0.5px;
+    }
+
+    .channel-count {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 4px 12px;
+      border-radius: 12px;
     }
 
     /* Circular Channel Grid */
@@ -383,24 +424,10 @@
     }
 
     @media (max-width: 600px) {
-      .root-home-btn {
-        top: 8px;
-        right: 10px;
-        width: 38px;
-        height: 38px;
-      }
-      .root-home-btn img {
-        width: 19px;
-        height: 19px;
-      }
-      .top-logo {
-        top: 8px;
-        max-height: 36px;
-      }
-      .dropdown-filter-panel {
-        width: calc(100vw - 28px);
-        left: 14px;
-      }
+      .root-home-btn { top: 8px; right: 10px; width: 38px; height: 38px; }
+      .root-home-btn img { width: 19px; height: 19px; }
+      .top-logo { top: 8px; max-height: 36px; }
+      .dropdown-filter-panel { width: calc(100vw - 28px); left: 14px; }
     }
   </style>
 </head>
@@ -429,7 +456,7 @@
         <input type="text" id="search-box" class="search-input" placeholder="Search..." oninput="filterChannels()">
       </div>
       <div>
-        <label for="category-filter">Category</label>
+        <label for="category-filter">Sub-Category</label>
         <select id="category-filter" class="category-select" onchange="filterChannels()">
           <option value="ALL">All Categories</option>
         </select>
@@ -439,8 +466,12 @@
 
   <!-- Container -->
   <main class="container">
+    <!-- Playlist Switcher Tabs -->
+    <div id="playlist-tabs" class="playlist-tabs"></div>
+
     <div class="header-bar">
-      <h1 class="page-title">Live Channels</h1>
+      <h1 id="page-title" class="page-title">Live Channels</h1>
+      <span id="channel-count" class="channel-count">0 channels</span>
     </div>
 
     <!-- Circle Grid -->
@@ -467,9 +498,49 @@
   </div>
 
   <script>
-    const M3U_URL = 'https://raw.githubusercontent.com/bdeyalliswell/bd1/main/june/india.m3u';
+    // ==========================================
+    // এখানে আপনার সব M3U ফাইলের লিংক যোগ করুন
+    // ==========================================
+    const PLAYLISTS = [
+      { 
+        name: "India TV", 
+        url: "https://raw.githubusercontent.com/bdeyalliswell/bd1/main/june/india.m3u" 
+      },
+      { 
+        name: "News", 
+        url: "https://raw.githubusercontent.com/bdeyalliswell/bd1/main/june/news.m3u" 
+      },
+      { 
+        name: "Movies", 
+        url: "https://raw.githubusercontent.com/bdeyalliswell/bd1/main/june/movies.m3u" 
+      },
+      { 
+        name: "Cinema", 
+        url: "https://raw.githubusercontent.com/bdeyalliswell/bd1/main/june/cinema.m3u" 
+      },
+      { 
+        name: "Sports", 
+        url: "https://raw.githubusercontent.com/bdeyalliswell/bd1/main/june/sports.m3u" 
+      },
+      { 
+        name: "Music", 
+        url: "https://raw.githubusercontent.com/bdeyalliswell/bd1/main/june/music.m3u" 
+      },
+      { 
+        name: "Kids", 
+        url: "https://raw.githubusercontent.com/bdeyalliswell/bd1/main/june/kids.m3u" 
+      },
+      { 
+        name: "Bangla", 
+        url: "https://raw.githubusercontent.com/bdeyalliswell/bd1/main/june/bangla.m3u" 
+      }
+    ];
+
     const PROXY_BASE = "https://bdtv.balaramdey.workers.dev/?url=";
 
+    const playlistTabsContainer = document.getElementById('playlist-tabs');
+    const pageTitle = document.getElementById('page-title');
+    const channelCount = document.getElementById('channel-count');
     const channelGrid = document.getElementById('channel-grid');
     const categorySelect = document.getElementById('category-filter');
     const searchBox = document.getElementById('search-box');
@@ -498,27 +569,53 @@
       e.stopPropagation();
     });
 
-    // Close dropdown on outside click
     document.addEventListener('click', () => {
       dropdownFilter.classList.remove('active');
     });
 
-    async function loadM3U() {
+    // Build Top Playlist Tabs
+    function initPlaylistTabs() {
+      playlistTabsContainer.innerHTML = '';
+      PLAYLISTS.forEach((pl, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'playlist-tab-btn' + (index === 0 ? ' active' : '');
+        btn.textContent = pl.name;
+        btn.onclick = () => {
+          document.querySelectorAll('.playlist-tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          searchBox.value = '';
+          loadM3U(pl);
+        };
+        playlistTabsContainer.appendChild(btn);
+      });
+
+      // Load the first playlist by default
+      if (PLAYLISTS.length > 0) {
+        loadM3U(PLAYLISTS[0]);
+      }
+    }
+
+    async function loadM3U(playlist) {
+      pageTitle.textContent = playlist.name;
+      channelCount.textContent = "Loading...";
+      channelGrid.innerHTML = '<p style="color:#94a3b8; grid-column: 1 / -1;">Loading channels...</p>';
+
       try {
-        const response = await fetch(M3U_URL);
+        const response = await fetch(playlist.url);
         if (!response.ok) {
-          throw new Error("M3U file load korte somossa hochhe!");
+          throw new Error(`"${playlist.name}" M3U file পাওয়া যায়নি!`);
         }
         const text = await response.text();
         allChannels = parseM3U(text);
 
         if (allChannels.length === 0) {
-          throw new Error("No channels found in M3U file!");
+          throw new Error("এই M3U ফাইলে কোনো চ্যানেল নেই!");
         }
 
         buildCategoryDropdown();
         renderGrid(allChannels);
       } catch (err) {
+        channelCount.textContent = "0 channels";
         channelGrid.innerHTML = `<p style="color:#ef4444; grid-column: 1 / -1;">Error: ${err.message}</p>`;
       }
     }
@@ -581,6 +678,8 @@
 
     function renderGrid(channels) {
       channelGrid.innerHTML = '';
+      channelCount.textContent = `${channels.length} channels`;
+
       if (channels.length === 0) {
         channelGrid.innerHTML = '<p style="color:#94a3b8; grid-column: 1 / -1;">No channels found.</p>';
         return;
@@ -605,7 +704,6 @@
       });
     }
 
-    // Dynamic Color Gradient Generator based on Channel name & logo
     function applyChannelGradient(channel) {
       let hash = 0;
       for (let i = 0; i < channel.name.length; i++) {
@@ -632,9 +730,7 @@
       modalStatus.style.color = "#34d399";
       modal.classList.add('active');
 
-      // Change background gradient based on channel
       applyChannelGradient(channel);
-
       dropdownFilter.classList.remove('active');
       playStream(channel.url);
     }
@@ -701,7 +797,7 @@
       }
     });
 
-    window.addEventListener('DOMContentLoaded', loadM3U);
+    window.addEventListener('DOMContentLoaded', initPlaylistTabs);
   </script>
 </body>
 </html>
