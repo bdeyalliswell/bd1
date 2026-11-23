@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Player (176000 - 200100)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#151e2e',
+                            900: '#0f172a',
+                            950: '#05080f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100dvh;
+            overflow: hidden;
+            background-color: #000;
+        }
+        /* Portrait warning overlay so user rotates phone */
+        #rotatePrompt {
+            display: none;
+        }
+        @media screen and (orientation: portrait) and (max-width: 768px) {
+            #rotatePrompt {
+                display: flex;
+            }
+        }
+        /* Custom thin scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4f46e5;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-black text-white relative w-screen h-[100dvh] overflow-hidden">
+
+    <!-- Rotate Device Prompt (Only shows if phone is held vertically) -->
+    <div id="rotatePrompt" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex-col items-center justify-center p-6 text-center">
+        <i class="fa-solid fa-mobile-screen-button text-5xl text-indigo-500 mb-4 animate-bounce" style="transform: rotate(90deg);"></i>
+        <p class="text-sm font-semibold text-slate-200 mb-4">ফোনটি আড়াআড়ি (Landscape) করুন</p>
+        <button onclick="forceLandscapeFullscreen()" class="px-5 py-2.5 bg-indigo-600 rounded-xl text-xs font-bold tracking-wide shadow-lg">
+            <i class="fa-solid fa-expand mr-1.5"></i> Landscape Fullscreen
+        </button>
+    </div>
+
+    <!-- Fullscreen Video Container -->
+    <div id="playerWrapper" class="relative w-full h-full bg-black flex items-center justify-center">
+        <video 
+            id="videoPlayer" 
+            class="w-full h-full object-contain bg-black" 
+            controls 
+            playsinline
+            preload="metadata"
+        ></video>
+
+        <!-- Minimal Loading Spinner -->
+        <div id="loadingOverlay" class="absolute inset-0 bg-black/60 flex items-center justify-center hidden pointer-events-none z-10">
+            <div class="w-10 h-10 border-3 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+        </div>
+
+        <!-- Minimal Error Overlay -->
+        <div id="errorOverlay" class="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center hidden z-20">
+            <i class="fa-solid fa-triangle-exclamation text-3xl text-rose-500 mb-2"></i>
+            <p class="text-xs text-slate-300 mb-1">#<span id="errorIdText" class="font-bold text-rose-400">176000</span> Error</p>
+            <p id="autoSkipCountdownBox" class="text-[11px] text-amber-400 mb-3 hidden">
+                Skip in <span id="skipTimer" class="font-bold">3</span>s...
+            </p>
+            <div class="flex items-center gap-2">
+                <button onclick="retryCurrentVideo()" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-medium">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button onclick="playNextVideo()" class="px-4 py-1.5 rounded-lg bg-indigo-600 text-xs font-medium">
+                    Next <i class="fa-solid fa-forward ml-1"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Top Floating Minimal Bar (Auto-hides or toggleable) -->
+        <div id="topBar" class="absolute top-0 left-0 right-0 p-2.5 bg-gradient-to-b from-black/85 via-black/40 to-transparent flex items-center justify-between gap-2 z-30 transition-opacity duration-300">
+            
+            <!-- Left: Current ID Badge + Prev/Next + Jump -->
+            <div class="flex items-center gap-1.5">
+                <button onclick="playPrevVideo()" id="prevBtn" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-xs active:scale-95 disabled:opacity-30">
+                    <i class="fa-solid fa-backward-step"></i>
+                </button>
+
+                <span class="px-2.5 py-1 rounded-lg bg-indigo-600/90 backdrop-blur-md text-xs font-bold tracking-wider">
+                    #<span id="currentIdDisplay">176000</span>
+                </span>
+
+                <button onclick="playNextVideo()" id="nextBtn" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-xs active:scale-95 disabled:opacity-30">
+                    <i class="fa-solid fa-forward-step"></i>
+                </button>
+
+                <!-- Quick ID Jump -->
+                <form id="jumpForm" class="flex items-center ml-1">
+                    <input 
+                        type="number" 
+                        id="jumpInput" 
+                        min="176000" 
+                        max="200100" 
+                        placeholder="ID..." 
+                        class="w-20 h-8 bg-black/60 border border-white/20 rounded-l-lg px-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    >
+                    <button type="submit" class="h-8 px-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-r-lg text-xs">
+                        <i class="fa-solid fa-play"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right: Compact Icon Controls -->
+            <div class="flex items-center gap-1.5">
+                <!-- Speed -->
+                <select id="speedSelect" onchange="changePlaybackSpeed(this.value)" class="h-8 px-1.5 rounded-lg bg-white/10 backdrop-blur-md border border-white/15 text-[11px] font-semibold text-white focus:outline-none">
+                    <option value="0.75" class="bg-slate-900">0.75x</option>
+                    <option value="1" selected class="bg-slate-900">1x</option>
+                    <option value="1.25" class="bg-slate-900">1.25x</option>
+                    <option value="1.5" class="bg-slate-900">1.5x</option>
+                    <option value="2" class="bg-slate-900">2x</option>
+                </select>
+
+                <!-- Auto-Next Toggle Icon -->
+                <button id="autoNextBtn" onclick="toggleSetting('autonext')" class="w-8 h-8 rounded-lg bg-indigo-600/80 border border-indigo-400/40 flex items-center justify-center text-xs" title="Auto-Next">
+                    <i class="fa-solid fa-forward"></i>
+                </button>
+
+                <!-- Auto-Skip Error Toggle Icon -->
+                <button id="autoSkipBtn" onclick="toggleSetting('autoskip')" class="w-8 h-8 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center text-xs text-slate-400" title="Auto-Skip Error">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </button>
+
+                <!-- Favorite Button -->
+                <button onclick="toggleFavoriteCurrent()" class="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-xs">
+                    <i id="favIcon" class="fa-regular fa-heart text-rose-400"></i>
+                </button>
+
+                <!-- Copy Link -->
+                <button onclick="copyCurrentUrl()" class="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-xs">
+                    <i class="fa-regular fa-copy"></i>
+                </button>
+
+                <!-- Fullscreen / Landscape Lock -->
+                <button onclick="forceLandscapeFullscreen()" class="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+
+                <!-- Toggle Playlist Drawer -->
+                <button onclick="toggleDrawer()" class="h-8 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 flex items-center gap-1.5 text-xs font-semibold shadow-lg">
+                    <i class="fa-solid fa-list"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide-Over Minimal Playlist Drawer (Hidden by default for full video view) -->
+    <aside id="playlistDrawer" class="fixed top-0 right-0 bottom-0 w-72 sm:w-80 bg-slate-950/95 backdrop-blur-xl border-l border-slate-800 z-40 transform translate-x-full transition-transform duration-300 flex flex-col">
+        
+        <!-- Drawer Header -->
+        <div class="p-2.5 border-b border-slate-800 flex items-center justify-between gap-1">
+            <div class="flex items-center gap-1 flex-1">
+                <button onclick="switchTab('all')" id="tab-all" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-indigo-600 text-white">
+                    <i class="fa-solid fa-grid-2"></i> All
+                </button>
+                <button onclick="switchTab('favorites')" id="tab-favorites" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:bg-slate-800">
+                    <i class="fa-solid fa-heart text-rose-400"></i> <span id="favCount">0</span>
+                </button>
+                <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:bg-slate-800">
+                    <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i>
+                </button>
+            </div>
+            <button onclick="toggleDrawer()" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center text-xs ml-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Range & Search (Compact) -->
+        <div id="allTabControls" class="p-2 border-b border-slate-800 flex gap-1.5">
+            <select id="rangeBlockSelect" onchange="selectRangeBlock(this.value)" class="w-1/2 bg-slate-900 border border-slate-700 text-slate-200 text-[11px] rounded-lg px-2 py-1.5 focus:outline-none"></select>
+            <input 
+                type="text" 
+                id="playlistSearchInput" 
+                oninput="handlePlaylistSearch(this.value)"
+                placeholder="Search ID..." 
+                class="w-1/2 bg-slate-900 border border-slate-700 text-slate-200 text-[11px] rounded-lg px-2 py-1.5 focus:outline-none"
+            >
+        </div>
+
+        <!-- Clear Button for Fav/History -->
+        <div id="secondaryTabHeader" class="px-2.5 py-1.5 border-b border-slate-800 flex items-center justify-between hidden">
+            <span id="secondaryTabLabel" class="text-[11px] text-slate-400">Saved</span>
+            <button onclick="clearSecondaryList()" class="text-[11px] text-rose-400 px-2 py-0.5 rounded bg-rose-500/10">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+
+        <!-- Compact ID Grid -->
+        <div id="playlistContainer" class="flex-1 overflow-y-auto p-2 grid grid-cols-3 gap-1.5 content-start"></div>
+
+        <!-- Compact Pagination -->
+        <div id="paginationFooter" class="p-2 border-t border-slate-800 flex items-center justify-between text-[11px]">
+            <button id="prevPageBtn" onclick="changePage(-1)" class="px-2.5 py-1 rounded bg-slate-800 disabled:opacity-30">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span id="pageIndicator" class="text-slate-400 font-medium">1 / 242</span>
+            <button id="nextPageBtn" onclick="changePage(1)" class="px-2.5 py-1 rounded bg-slate-800 disabled:opacity-30">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Minimal Toast -->
+    <div id="toastContainer" class="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-1 pointer-events-none"></div>
+
+    <script>
+        const BASE_URL = "https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/";
+        const MIN_ID = 176000;
+        const MAX_ID = 200100;
+        const ITEMS_PER_PAGE = 100;
+        const TOTAL_ITEMS = MAX_ID - MIN_ID + 1;
+        const TOTAL_PAGES = Math.ceil(TOTAL_ITEMS / ITEMS_PER_PAGE);
+
+        let currentId = parseInt(localStorage.getItem('sv_last_id')) || MIN_ID;
+        if (currentId < MIN_ID || currentId > MAX_ID) currentId = MIN_ID;
+
+        let currentPage = Math.floor((currentId - MIN_ID) / ITEMS_PER_PAGE) + 1;
+        let currentTab = 'all';
+        let searchQuery = '';
+        let favorites = JSON.parse(localStorage.getItem('sv_favorites') || '[]');
+        let historyList = JSON.parse(localStorage.getItem('sv_history') || '[]');
+        let workingIds = new Set(JSON.parse(localStorage.getItem('sv_working') || '[]'));
+        let brokenIds = new Set(JSON.parse(localStorage.getItem('sv_broken') || '[]'));
+        let autoSkipTimerInterval = null;
+        let isDrawerOpen = false;
+        let hideBarTimeout = null;
+
+        let autoNextEnabled = localStorage.getItem('sv_autonext') !== 'false';
+        let autoSkipEnabled = localStorage.getItem('sv_autoskip') === 'true';
+
+        const videoPlayer = document.getElementById('videoPlayer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const errorOverlay = document.getElementById('errorOverlay');
+        const errorIdText = document.getElementById('errorIdText');
+        const autoSkipCountdownBox = document.getElementById('autoSkipCountdownBox');
+        const skipTimerSpan = document.getElementById('skipTimer');
+        const currentIdDisplay = document.getElementById('currentIdDisplay');
+        const favIcon = document.getElementById('favIcon');
+        const favCount = document.getElementById('favCount');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const rangeBlockSelect = document.getElementById('rangeBlockSelect');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const pageIndicator = document.getElementById('pageIndicator');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const topBar = document.getElementById('topBar');
+
+        // Attempt Landscape Orientation & Fullscreen
+        async function forceLandscapeFullscreen() {
+            try {
+                const docEl = document.documentElement;
+                if (!document.fullscreenElement) {
+                    if (docEl.requestFullscreen) await docEl.requestFullscreen();
+                    else if (docEl.webkitRequestFullscreen) await docEl.webkitRequestFullscreen();
+                }
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                }
+            } catch (e) {
+                // Browser requires user gesture or iOS Safari manual rotation
+            }
+        }
+
+        function init() {
+            updateSettingButtonsUI();
+            populateRangeDropdown();
+            updateFavCount();
+            setupVideoEvents();
+            loadVideo(currentId, true);
+            renderPlaylist();
+
+            // Try locking landscape on first touch anywhere
+            document.body.addEventListener('touchstart', () => {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(() => {});
+                }
+            }, { once: true });
+
+            // Auto-hide top bar after 4s of inactivity while playing
+            resetTopBarTimer();
+            document.getElementById('playerWrapper').addEventListener('mousemove', resetTopBarTimer);
+            document.getElementById('playerWrapper').addEventListener('touchstart', resetTopBarTimer);
+        }
+
+        function resetTopBarTimer() {
+            topBar.style.opacity = '1';
+            topBar.style.pointerEvents = 'auto';
+            clearTimeout(hideBarTimeout);
+            hideBarTimeout = setTimeout(() => {
+                if (!videoPlayer.paused && !isDrawerOpen && document.activeElement.tagName !== 'INPUT') {
+                    topBar.style.opacity = '0';
+                    topBar.style.pointerEvents = 'none';
+                }
+            }, 4000);
+        }
+
+        function toggleDrawer() {
+            isDrawerOpen = !isDrawerOpen;
+            const drawer = document.getElementById('playlistDrawer');
+            if (isDrawerOpen) {
+                drawer.classList.remove('translate-x-full');
+                resetTopBarTimer();
+            } else {
+                drawer.classList.add('translate-x-full');
+            }
+        }
+
+        function toggleSetting(type) {
+            if (type === 'autonext') {
+                autoNextEnabled = !autoNextEnabled;
+                localStorage.setItem('sv_autonext', autoNextEnabled);
+                showToast(autoNextEnabled ? 'Auto-Next: ON' : 'Auto-Next: OFF');
+            } else if (type === 'autoskip') {
+                autoSkipEnabled = !autoSkipEnabled;
+                localStorage.setItem('sv_autoskip', autoSkipEnabled);
+                showToast(autoSkipEnabled ? 'Auto-Skip: ON' : 'Auto-Skip: OFF');
+            }
+            updateSettingButtonsUI();
+        }
+
+        function updateSettingButtonsUI() {
+            const nextB = document.getElementById('autoNextBtn');
+            const skipB = document.getElementById('autoSkipBtn');
+            nextB.className = autoNextEnabled 
+                ? 'w-8 h-8 rounded-lg bg-indigo-600 border border-indigo-400/50 flex items-center justify-center text-xs text-white'
+                : 'w-8 h-8 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center text-xs text-slate-400';
+            skipB.className = autoSkipEnabled 
+                ? 'w-8 h-8 rounded-lg bg-amber-600 border border-amber-400/50 flex items-center justify-center text-xs text-white'
+                : 'w-8 h-8 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center text-xs text-slate-400';
+        }
+
+        function populateRangeDropdown() {
+            rangeBlockSelect.innerHTML = '';
+            for (let start = MIN_ID; start <= MAX_ID; start += 1000) {
+                const end = Math.min(start + 999, MAX_ID);
+                const option = document.createElement('option');
+                option.value = start;
+                option.textContent = `${start}-${end}`;
+                option.className = 'bg-slate-900';
+                rangeBlockSelect.appendChild(option);
+            }
+            syncRangeDropdownWithPage();
+        }
+
+        function syncRangeDropdownWithPage() {
+            const pageStartId = MIN_ID + (currentPage - 1) * ITEMS_PER_PAGE;
+            const blockStart = Math.floor((pageStartId - MIN_ID) / 1000) * 1000 + MIN_ID;
+            rangeBlockSelect.value = blockStart;
+        }
+
+        function getStreamUrl(id) {
+            return `${BASE_URL}${id}.mp4`;
+        }
+
+        function clearAutoSkipTimer() {
+            if (autoSkipTimerInterval) {
+                clearInterval(autoSkipTimerInterval);
+                autoSkipTimerInterval = null;
+            }
+            autoSkipCountdownBox.classList.add('hidden');
+        }
+
+        function loadVideo(id, shouldAutoPlay = true) {
+            id = parseInt(id);
+            if (isNaN(id) || id < MIN_ID || id > MAX_ID) {
+                showToast(`${MIN_ID} - ${MAX_ID}`);
+                return;
+            }
+
+            clearAutoSkipTimer();
+            currentId = id;
+            localStorage.setItem('sv_last_id', currentId);
+
+            currentIdDisplay.textContent = currentId;
+            errorIdText.textContent = currentId;
+
+            prevBtn.disabled = currentId <= MIN_ID;
+            nextBtn.disabled = currentId >= MAX_ID;
+
+            updateFavoriteButtonUI();
+            errorOverlay.classList.add('hidden');
+            loadingOverlay.classList.remove('hidden');
+
+            videoPlayer.src = getStreamUrl(currentId);
+            videoPlayer.playbackRate = parseFloat(document.getElementById('speedSelect').value) || 1.0;
+            videoPlayer.load();
+
+            if (shouldAutoPlay) {
+                const p = videoPlayer.play();
+                if (p !== undefined) {
+                    p.catch(() => loadingOverlay.classList.add('hidden'));
+                }
+            }
+
+            addToHistory(currentId);
+
+            if (currentTab === 'all' && !searchQuery) {
+                const targetPage = Math.floor((currentId - MIN_ID) / ITEMS_PER_PAGE) + 1;
+                if (targetPage !== currentPage) {
+                    currentPage = targetPage;
+                    syncRangeDropdownWithPage();
+                }
+            }
+            renderPlaylist();
+        }
+
+        function setupVideoEvents() {
+            videoPlayer.addEventListener('loadeddata', () => {
+                loadingOverlay.classList.add('hidden');
+                errorOverlay.classList.add('hidden');
+                clearAutoSkipTimer();
+                if (!workingIds.has(currentId)) {
+                    workingIds.add(currentId);
+                    brokenIds.delete(currentId);
+                    saveStatusSets();
+                    renderPlaylist();
+                }
+            });
+
+            videoPlayer.addEventListener('playing', () => {
+                loadingOverlay.classList.add('hidden');
+                errorOverlay.classList.add('hidden');
+                resetTopBarTimer();
+            });
+
+            videoPlayer.addEventListener('waiting', () => {
+                loadingOverlay.classList.remove('hidden');
+            });
+
+            videoPlayer.addEventListener('ended', () => {
+                if (autoNextEnabled && currentId < MAX_ID) {
+                    playNextVideo();
+                }
+            });
+
+            videoPlayer.addEventListener('error', () => {
+                loadingOverlay.classList.add('hidden');
+                errorOverlay.classList.remove('hidden');
+                if (!brokenIds.has(currentId)) {
+                    brokenIds.add(currentId);
+                    workingIds.delete(currentId);
+                    saveStatusSets();
+                    renderPlaylist();
+                }
+                if (autoSkipEnabled && currentId < MAX_ID) {
+                    startAutoSkipCountdown();
+                }
+            });
+        }
+
+        function startAutoSkipCountdown() {
+            clearAutoSkipTimer();
+            let secondsLeft = 3;
+            skipTimerSpan.textContent = secondsLeft;
+            autoSkipCountdownBox.classList.remove('hidden');
+
+            autoSkipTimerInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    clearAutoSkipTimer();
+                    playNextVideo();
+                } else {
+                    skipTimerSpan.textContent = secondsLeft;
+                }
+            }, 1000);
+        }
+
+        function retryCurrentVideo() {
+            loadVideo(currentId, true);
+        }
+
+        function playNextVideo() {
+            if (currentId < MAX_ID) loadVideo(currentId + 1, true);
+        }
+
+        function playPrevVideo() {
+            if (currentId > MIN_ID) loadVideo(currentId - 1, true);
+        }
+
+        function changePlaybackSpeed(speed) {
+            videoPlayer.playbackRate = parseFloat(speed);
+            showToast(`${speed}x`);
+        }
+
+        document.getElementById('jumpForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = parseInt(document.getElementById('jumpInput').value);
+            if (!isNaN(val) && val >= MIN_ID && val <= MAX_ID) {
+                loadVideo(val, true);
+                document.getElementById('jumpInput').value = '';
+                document.getElementById('jumpInput').blur();
+            }
+        });
+
+        function copyCurrentUrl() {
+            const url = getStreamUrl(currentId);
+            const tempInput = document.createElement('input');
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast(`Copied #${currentId}`);
+            } catch (err) {}
+            document.body.removeChild(tempInput);
+        }
+
+        function toggleFavoriteCurrent() {
+            const index = favorites.indexOf(currentId);
+            if (index === -1) {
+                favorites.unshift(currentId);
+                showToast(`★ #${currentId}`);
+            } else {
+                favorites.splice(index, 1);
+            }
+            localStorage.setItem('sv_favorites', JSON.stringify(favorites));
+            updateFavoriteButtonUI();
+            updateFavCount();
+            if (currentTab === 'favorites') renderPlaylist();
+        }
+
+        function updateFavoriteButtonUI() {
+            favIcon.className = favorites.includes(currentId) 
+                ? 'fa-solid fa-heart text-rose-500' 
+                : 'fa-regular fa-heart text-rose-400';
+        }
+
+        function updateFavCount() {
+            favCount.textContent = favorites.length;
+        }
+
+        function addToHistory(id) {
+            historyList = historyList.filter(item => item !== id);
+            historyList.unshift(id);
+            if (historyList.length > 100) historyList.pop();
+            localStorage.setItem('sv_history', JSON.stringify(historyList));
+        }
+
+        function saveStatusSets() {
+            localStorage.setItem('sv_working', JSON.stringify(Array.from(workingIds).slice(-500)));
+            localStorage.setItem('sv_broken', JSON.stringify(Array.from(brokenIds).slice(-500)));
+        }
+
+        function clearSecondaryList() {
+            if (currentTab === 'favorites') {
+                favorites = [];
+                localStorage.setItem('sv_favorites', '[]');
+                updateFavoriteButtonUI();
+                updateFavCount();
+            } else if (currentTab === 'history') {
+                historyList = [];
+                localStorage.setItem('sv_history', '[]');
+            }
+            renderPlaylist();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            ['all', 'favorites', 'history'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                btn.className = t === tab 
+                    ? 'flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-indigo-600 text-white'
+                    : 'flex-1 py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:bg-slate-800';
+            });
+
+            const allControls = document.getElementById('allTabControls');
+            const secHeader = document.getElementById('secondaryTabHeader');
+            const paginationFooter = document.getElementById('paginationFooter');
+
+            if (tab === 'all') {
+                allControls.classList.remove('hidden');
+                paginationFooter.classList.remove('hidden');
+                secHeader.classList.add('hidden');
+            } else {
+                allControls.classList.add('hidden');
+                paginationFooter.classList.add('hidden');
+                secHeader.classList.remove('hidden');
+            }
+            renderPlaylist();
+        }
+
+        function selectRangeBlock(startIdStr) {
+            currentPage = Math.floor((parseInt(startIdStr) - MIN_ID) / ITEMS_PER_PAGE) + 1;
+            searchQuery = '';
+            document.getElementById('playlistSearchInput').value = '';
+            renderPlaylist();
+        }
+
+        function handlePlaylistSearch(query) {
+            searchQuery = query.trim();
+            renderPlaylist();
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= TOTAL_PAGES) {
+                currentPage = newPage;
+                syncRangeDropdownWithPage();
+                renderPlaylist();
+                playlistContainer.scrollTop = 0;
+            }
+        }
+
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            let idsToRender = [];
+
+            if (currentTab === 'all') {
+                if (searchQuery) {
+                    for (let id = MIN_ID; id <= MAX_ID; id++) {
+                        if (String(id).includes(searchQuery)) {
+                            idsToRender.push(id);
+                            if (idsToRender.length >= 100) break;
+                        }
+                    }
+                    pageIndicator.textContent = `${idsToRender.length}`;
+                    prevPageBtn.disabled = true;
+                    nextPageBtn.disabled = true;
+                } else {
+                    const startId = MIN_ID + (currentPage - 1) * ITEMS_PER_PAGE;
+                    const endId = Math.min(startId + ITEMS_PER_PAGE - 1, MAX_ID);
+                    for (let id = startId; id <= endId; id++) idsToRender.push(id);
+                    pageIndicator.textContent = `${currentPage} / ${TOTAL_PAGES}`;
+                    prevPageBtn.disabled = currentPage <= 1;
+                    nextPageBtn.disabled = currentPage >= TOTAL_PAGES;
+                }
+            } else if (currentTab === 'favorites') {
+                idsToRender = favorites;
+            } else if (currentTab === 'history') {
+                idsToRender = historyList;
+            }
+
+            if (idsToRender.length === 0) {
+                playlistContainer.innerHTML = `<div class="col-span-3 py-8 text-center text-slate-600 text-xs"><i class="fa-regular fa-folder-open text-xl"></i></div>`;
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            idsToRender.forEach(id => {
+                const isCurrent = id === currentId;
+                const isWorking = workingIds.has(id);
+                const isBroken = brokenIds.has(id);
+                const isFav = favorites.includes(id);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => {
+                    loadVideo(id, true);
+                    if (window.innerWidth < 900) toggleDrawer(); // Auto-close drawer on mobile after picking video
+                };
+
+                let cls = 'flex items-center justify-between px-2 py-2 rounded-lg border text-[11px] font-semibold transition ';
+                if (isCurrent) {
+                    cls += 'bg-indigo-600 border-indigo-400 text-white';
+                } else if (isBroken) {
+                    cls += 'bg-slate-900/50 border-rose-900/40 text-slate-500';
+                } else {
+                    cls += 'bg-slate-900 border-slate-800 text-slate-300 hover:border-indigo-500';
+                }
+                btn.className = cls;
+
+                let dot = '';
+                if (isCurrent) dot = '<i class="fa-solid fa-play text-[9px]"></i>';
+                else if (isWorking) dot = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>';
+                else if (isBroken) dot = '<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>';
+
+                btn.innerHTML = `
+                    <span class="truncate">${id}${isFav ? '♥' : ''}</span>
+                    ${dot}
+                `;
+                fragment.appendChild(btn);
+            });
+
+            playlistContainer.appendChild(fragment);
+        }
+
+        function showToast(msg) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'px-3 py-1 rounded-full bg-black/80 border border-white/20 text-white text-[11px] font-medium shadow-lg transition-opacity duration-300';
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+            if (e.key === 'ArrowRight') playNextVideo();
+            else if (e.key === 'ArrowLeft') playPrevVideo();
+        });
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
