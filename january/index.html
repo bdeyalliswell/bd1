@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Six Seasons Portal - bdcy.online</title>
+    <title>Six Seasons Portal - Pattern Lock</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         body {
@@ -26,11 +28,11 @@
             overflow-x: hidden;
         }
 
-        /* --- LOGIN OVERLAY --- */
-        #login-screen {
+        /* --- PATTERN LOCK OVERLAY --- */
+        #lock-screen {
             position: fixed;
             inset: 0;
-            background: rgba(8, 10, 9, 0.92);
+            background: rgba(8, 10, 9, 0.94);
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
             display: flex;
@@ -40,91 +42,117 @@
             padding: 20px;
         }
 
-        .login-box {
-            background: rgba(20, 22, 21, 0.85);
+        .lock-box {
+            background: rgba(20, 22, 21, 0.88);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
-            border-radius: 24px;
-            padding: 40px 32px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.85);
+            border-radius: 28px;
+            padding: 36px 28px;
             width: 100%;
-            max-width: 380px;
+            max-width: 360px;
             text-align: center;
         }
 
-        .login-logo {
-            width: 56px;
-            height: 56px;
+        .lock-logo {
+            width: 52px;
+            height: 52px;
             background: #f5c518;
             color: #000;
             font-weight: 900;
-            font-size: 24px;
+            font-size: 22px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
             box-shadow: 0 0 20px rgba(245, 197, 24, 0.4);
         }
 
-        .login-box h2 {
-            font-size: 22px;
+        .lock-box h2 {
+            font-size: 20px;
             margin-bottom: 6px;
             font-weight: 600;
-            letter-spacing: 0.5px;
         }
 
-        .login-box p {
+        #status-text {
             font-size: 13px;
-            color: #8e9692;
-            margin-bottom: 24px;
-        }
-
-        .input-group {
-            margin-bottom: 16px;
-            text-align: left;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 14px 16px;
-            background: rgba(10, 12, 11, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: #fff;
-            font-size: 15px;
-            outline: none;
-            transition: border-color 0.25s, box-shadow 0.25s;
-        }
-
-        .input-group input:focus {
-            border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
-        }
-
-        .login-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            border: none;
-            border-radius: 12px;
-            color: #fff;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
-        }
-
-        #error-msg {
-            color: #f87171;
-            font-size: 13px;
-            margin-top: 14px;
+            color: #9ca3af;
+            margin-bottom: 20px;
             min-height: 18px;
+            transition: color 0.2s;
+        }
+
+        /* --- 3x3 PATTERN PAD --- */
+        .pattern-wrapper {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin: 0 auto;
+            touch-action: none; /* Prevents scrolling while drawing on mobile */
+        }
+
+        #pattern-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .dots-grid {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            z-index: 2;
+        }
+
+        .dot-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .dot {
+            width: 18px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.28);
+            border-radius: 50%;
+            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .dot::after {
+            content: '';
+            position: absolute;
+            inset: -14px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .dot-cell.active .dot {
+            background: #10b981;
+            transform: scale(1.25);
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.8);
+        }
+
+        .dot-cell.active .dot::after {
+            border-color: rgba(16, 185, 129, 0.45);
+        }
+
+        .dot-cell.error .dot {
+            background: #ef4444;
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.8);
+        }
+
+        .dot-cell.error .dot::after {
+            border-color: rgba(239, 68, 68, 0.45);
         }
 
         /* --- MAIN DASHBOARD --- */
@@ -155,7 +183,6 @@
             border-radius: 50px;
             letter-spacing: -0.5px;
             box-shadow: 0 0 18px rgba(245, 197, 24, 0.35);
-            user-select: none;
         }
 
         .logout-btn {
@@ -203,8 +230,6 @@
                         border-color 0.28s, 
                         box-shadow 0.28s,
                         background 0.28s;
-            position: relative;
-            overflow: hidden;
         }
 
         .season-card:hover {
@@ -241,7 +266,6 @@
             margin-top: 3px;
         }
 
-        /* Responsive Layout */
         @media (max-width: 720px) {
             .grid-container {
                 grid-template-columns: repeat(2, 1fr);
@@ -257,22 +281,27 @@
 </head>
 <body>
 
-    <!-- PASSWORD LOCK OVERLAY -->
-    <div id="login-screen">
-        <div class="login-box">
-            <div class="login-logo">BD</div>
-            <h2>Protected Access</h2>
-            <p>Enter credentials to unlock the 6 Seasons hub</p>
-            <form id="login-form">
-                <div class="input-group">
-                    <input type="text" id="userid" placeholder="User ID" autocomplete="off" required>
+    <!-- PATTERN LOCK OVERLAY -->
+    <div id="lock-screen">
+        <div class="lock-box">
+            <div class="lock-logo">BD</div>
+            <h2>Draw Pattern</h2>
+            <p id="status-text">Connect dots to unlock the 6 Seasons hub</p>
+            
+            <div class="pattern-wrapper" id="pattern-area">
+                <canvas id="pattern-canvas" width="260" height="260"></canvas>
+                <div class="dots-grid">
+                    <div class="dot-cell" data-id="1"><div class="dot"></div></div>
+                    <div class="dot-cell" data-id="2"><div class="dot"></div></div>
+                    <div class="dot-cell" data-id="3"><div class="dot"></div></div>
+                    <div class="dot-cell" data-id="4"><div class="dot"></div></div>
+                    <div class="dot-cell" data-id="5"><div class="dot"></div></div>
+                    <div class="dot-cell" data-id="6"><div class="dot"></div></div>
+                    <div class="dot-cell" data-id="7"><div class="dot"></div></div>
+                    <div class="dot-cell" data-id="8"><div class="dot"></div></div>
+                    <div class="dot-cell" data-id="9"><div class="dot"></div></div>
                 </div>
-                <div class="input-group">
-                    <input type="password" id="password" placeholder="Password" required>
-                </div>
-                <button type="submit" class="login-btn">Unlock</button>
-                <div id="error-msg"></div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -280,7 +309,7 @@
     <div id="dashboard">
         <div class="top-header">
             <div class="brand-badge">BD</div>
-            <button class="logout-btn" onclick="logout()">Lock</button>
+            <button class="logout-btn" onclick="lockPortal()">Lock</button>
         </div>
 
         <div class="grid-container">
@@ -346,7 +375,6 @@
             <a href="lateautumn.html" class="season-card">
                 <div class="icon-wrap">
                     <svg viewBox="0 0 100 100" width="100%" height="100%">
-                        <!-- Golden Harvest Wheat / Leaf -->
                         <path d="M25 75 C25 40, 55 20, 80 20 C80 50, 60 75, 25 75 Z" fill="#f59e0b"/>
                         <path d="M22 78 L72 28" stroke="#fef3c7" stroke-width="4" stroke-linecap="round"/>
                         <path d="M42 58 L42 40 M55 45 L55 30 M48 52 L65 52 M36 64 L52 64" stroke="#fef3c7" stroke-width="3" stroke-linecap="round"/>
@@ -364,7 +392,6 @@
                             <line x1="50" y1="14" x2="50" y2="86"/>
                             <line x1="19" y1="32" x2="81" y2="68"/>
                             <line x1="81" y1="32" x2="19" y2="68"/>
-                            <!-- Branches -->
                             <polyline points="42,24 50,32 58,24" fill="none"/>
                             <polyline points="42,76 50,68 58,76" fill="none"/>
                             <polyline points="24,42 34,40 31,30" fill="none"/>
@@ -383,7 +410,6 @@
             <a href="spring.html" class="season-card">
                 <div class="icon-wrap">
                     <svg viewBox="0 0 100 100" width="100%" height="100%">
-                        <!-- Blossom Flower -->
                         <circle cx="50" cy="27" r="14" fill="#f472b6"/>
                         <circle cx="72" cy="43" r="14" fill="#ec4899"/>
                         <circle cx="64" cy="69" r="14" fill="#f472b6"/>
@@ -400,46 +426,164 @@
     </div>
 
     <script>
-        const VALID_ID = "balaramd";
-        const VALID_PW = "8311";
+        // --- SET YOUR PATTERN HERE ---
+        // Grid layout:
+        // 1  2  3
+        // 4  5  6
+        // 7  8  9
+        // "14789" draws an "L" shape from top-left to bottom-right
+        const CORRECT_PATTERN = "152698";
 
-        const loginScreen = document.getElementById("login-screen");
+        const lockScreen = document.getElementById("lock-screen");
         const dashboard = document.getElementById("dashboard");
-        const loginForm = document.getElementById("login-form");
-        const errorMsg = document.getElementById("error-msg");
+        const statusText = document.getElementById("status-text");
+        const patternArea = document.getElementById("pattern-area");
+        const canvas = document.getElementById("pattern-canvas");
+        const ctx = canvas.getContext("2d");
+        const dotCells = document.querySelectorAll(".dot-cell");
 
-        // Check if already unlocked in this browser session
-        if (sessionStorage.getItem("bd_unlocked") === "true") {
+        let isDrawing = false;
+        let selectedDots = [];
+        let currentPointer = null;
+
+        // Check session state
+        if (sessionStorage.getItem("bd_pattern_unlocked") === "true") {
             unlockPortal();
         }
 
-        loginForm.addEventListener("submit", function (e) {
-            e.preventDefault();
-            const enteredId = document.getElementById("userid").value.trim();
-            const enteredPw = document.getElementById("password").value.trim();
+        function getDotCenter(cell) {
+            const areaRect = patternArea.getBoundingClientRect();
+            const cellRect = cell.getBoundingClientRect();
+            return {
+                x: (cellRect.left - areaRect.left) + cellRect.width / 2,
+                y: (cellRect.top - areaRect.top) + cellRect.height / 2
+            };
+        }
 
-            if (enteredId === VALID_ID && enteredPw === VALID_PW) {
-                sessionStorage.setItem("bd_unlocked", "true");
-                unlockPortal();
-            } else {
-                errorMsg.textContent = "Invalid ID or Password!";
-                document.getElementById("password").value = "";
+        function getPointerPos(e) {
+            const areaRect = patternArea.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - areaRect.left,
+                y: clientY - areaRect.top
+            };
+        }
+
+        function checkHit(pos) {
+            dotCells.forEach(cell => {
+                const id = cell.dataset.id;
+                if (!selectedDots.includes(id)) {
+                    const center = getDotCenter(cell);
+                    const dist = Math.hypot(pos.x - center.x, pos.y - center.y);
+                    if (dist < 32) { // Hit radius
+                        selectedDots.push(id);
+                        cell.classList.add("active");
+                    }
+                }
+            });
+        }
+
+        function drawLines(color = "#10b981") {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (selectedDots.length === 0) return;
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+
+            selectedDots.forEach((id, index) => {
+                const cell = document.querySelector(`.dot-cell[data-id="${id}"]`);
+                const center = getDotCenter(cell);
+                if (index === 0) ctx.moveTo(center.x, center.y);
+                else ctx.lineTo(center.x, center.y);
+            });
+
+            if (isDrawing && currentPointer) {
+                ctx.lineTo(currentPointer.x, currentPointer.y);
             }
-        });
+            ctx.stroke();
+        }
+
+        function startDraw(e) {
+            resetPattern();
+            isDrawing = true;
+            const pos = getPointerPos(e);
+            currentPointer = pos;
+            checkHit(pos);
+            drawLines();
+        }
+
+        function moveDraw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const pos = getPointerPos(e);
+            currentPointer = pos;
+            checkHit(pos);
+            drawLines();
+        }
+
+        function endDraw() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            currentPointer = null;
+
+            const drawnPattern = selectedDots.join("");
+            if (drawnPattern.length === 0) return;
+
+            if (drawnPattern === CORRECT_PATTERN) {
+                drawLines("#10b981");
+                statusText.textContent = "Unlocked!";
+                statusText.style.color = "#10b981";
+                setTimeout(() => {
+                    sessionStorage.setItem("bd_pattern_unlocked", "true");
+                    unlockPortal();
+                    resetPattern();
+                }, 250);
+            } else {
+                drawLines("#ef4444");
+                dotCells.forEach(c => {
+                    if (c.classList.contains("active")) {
+                        c.classList.remove("active");
+                        c.classList.add("error");
+                    }
+                });
+                statusText.textContent = "Wrong pattern! Try again.";
+                statusText.style.color = "#f87171";
+                setTimeout(resetPattern, 650);
+            }
+        }
+
+        function resetPattern() {
+            selectedDots = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            dotCells.forEach(c => c.classList.remove("active", "error"));
+            statusText.textContent = "Connect dots to unlock the 6 Seasons hub";
+            statusText.style.color = "#9ca3af";
+        }
 
         function unlockPortal() {
-            loginScreen.style.display = "none";
+            lockScreen.style.display = "none";
             dashboard.style.display = "flex";
-            errorMsg.textContent = "";
         }
 
-        function logout() {
-            sessionStorage.removeItem("bd_unlocked");
+        function lockPortal() {
+            sessionStorage.removeItem("bd_pattern_unlocked");
             dashboard.style.display = "none";
-            loginScreen.style.display = "flex";
-            document.getElementById("userid").value = "";
-            document.getElementById("password").value = "";
+            lockScreen.style.display = "flex";
+            resetPattern();
         }
+
+        // Mouse & Touch Event Listeners
+        patternArea.addEventListener("mousedown", startDraw);
+        window.addEventListener("mousemove", moveDraw);
+        window.addEventListener("mouseup", endDraw);
+
+        patternArea.addEventListener("touchstart", startDraw, { passive: false });
+        window.addEventListener("touchmove", moveDraw, { passive: false });
+        window.addEventListener("touchend", endDraw);
     </script>
 
 </body>
