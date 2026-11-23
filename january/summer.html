@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>January(176000 - 200100)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Hind Siliguri -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Hind Siliguri', 'sans-serif'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#151e2e',
+                            900: '#0f172a',
+                            950: '#090d16',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for Playlist */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6366f1;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-play text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                        StreamVault Player
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Range: 176000 — 200100 (24,101 Videos)</p>
+                </div>
+            </div>
+
+            <!-- Direct Jump Input -->
+            <form id="jumpForm" class="flex items-center gap-2 flex-1 max-w-xs sm:max-w-sm justify-end">
+                <div class="relative flex-1">
+                    <input 
+                        type="number" 
+                        id="jumpInput" 
+                        min="176000" 
+                        max="200100" 
+                        placeholder="ID লিখুন (176000-200100)" 
+                        class="w-full bg-slate-850 border border-slate-700 text-slate-100 text-sm rounded-xl px-3.5 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition placeholder:text-slate-500"
+                    >
+                </div>
+                <button 
+                    type="submit" 
+                    class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-sm font-medium px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-md shadow-indigo-600/20 shrink-0"
+                >
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Play</span>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left / Top Section: Video Player & Controls (8 cols on desktop) -->
+            <div class="lg:col-span-8 flex flex-col gap-4">
+                
+                <!-- Video Wrapper -->
+                <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-slate-800 group">
+                    <video 
+                        id="videoPlayer" 
+                        class="w-full h-full object-contain bg-black" 
+                        controls 
+                        playsinline
+                        preload="metadata"
+                    ></video>
+
+                    <!-- Loading Spinner Overlay -->
+                    <div id="loadingOverlay" class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3 hidden pointer-events-none">
+                        <div class="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                        <p class="text-sm font-medium text-slate-300">ভিডিও লোড হচ্ছে (ID: <span id="loadingIdText">176000</span>)...</p>
+                    </div>
+
+                    <!-- Error / Broken Link Banner Overlay -->
+                    <div id="errorOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center hidden z-10">
+                        <div class="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center text-2xl mb-3">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-1">ভিডিওটি পাওয়া যায়নি (404 / Stream Error)</h3>
+                        <p class="text-sm text-slate-400 max-w-md mb-4">
+                            ID <span id="errorIdText" class="text-rose-400 font-semibold">176000</span> সার্ভারে উপলব্ধ নয় অথবা লোড হতে সমস্যা হচ্ছে।
+                        </p>
+                        
+                        <div id="autoSkipCountdownBox" class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-xs text-amber-400 mb-4 hidden">
+                            <i class="fa-solid fa-forward-fast mr-1.5"></i>
+                            Auto-Skip চালু আছে: <span id="skipTimer" class="font-bold text-sm">3</span> সেকেন্ডের মধ্যে পরবর্তী ভিডিওতে যাচ্ছে...
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-center gap-3">
+                            <button onclick="retryCurrentVideo()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition flex items-center gap-2">
+                                <i class="fa-solid fa-rotate-right"></i> আবার চেষ্টা করুন
+                            </button>
+                            <button onclick="playNextVideo()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition flex items-center gap-2">
+                                <span>পরবর্তী ভিডিও (+1)</span> <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Now Playing Info & Primary Controls Card -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-lg">
+                    
+                    <!-- Top Row: Title, Badge, Favorite & Copy URL -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <span class="px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 font-bold text-base sm:text-lg tracking-wide">
+                                #<span id="currentIdDisplay">176000</span>
+                            </span>
+                            <div>
+                                <h2 class="text-base sm:text-lg font-semibold text-white">Video Stream #<span id="currentIdTitle">176000</span></h2>
+                                <p class="text-xs text-slate-400 truncate max-w-[240px] sm:max-w-md" id="currentUrlDisplay">
+                                    https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/176000.mp4
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 self-start sm:self-center">
+                            <button 
+                                id="favToggleBtn" 
+                                onclick="toggleFavoriteCurrent()" 
+                                class="px-3.5 py-2 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2"
+                                title="ফেভারিটে সেভ করুন"
+                            >
+                                <i id="favIcon" class="fa-regular fa-heart text-rose-400"></i>
+                                <span class="hidden sm:inline">Favorite</span>
+                            </button>
+
+                            <button 
+                                onclick="copyCurrentUrl()" 
+                                class="px-3.5 py-2 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2"
+                                title="ভিডিও লিংক কপি করুন"
+                            >
+                                <i class="fa-regular fa-copy text-indigo-400"></i>
+                                <span>Copy URL</span>
+                            </button>
+
+                            <a 
+                                id="directOpenLink" 
+                                href="https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/176000.mp4" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                class="p-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-300 text-sm transition"
+                                title="নতুন ট্যাবে ওপেন করুন"
+                            >
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Navigation & Playback Controls Row -->
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <!-- Prev / Next Buttons -->
+                        <div class="flex items-center gap-2">
+                            <button 
+                                id="prevBtn" 
+                                onclick="playPrevVideo()" 
+                                class="px-4 py-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 active:scale-95 disabled:opacity-40 disabled:pointer-events-none border border-slate-700 text-slate-200 text-sm font-medium transition flex items-center gap-2"
+                            >
+                                <i class="fa-solid fa-backward-step"></i>
+                                <span>Previous (-1)</span>
+                            </button>
+
+                            <button 
+                                id="nextBtn" 
+                                onclick="playNextVideo()" 
+                                class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-white text-sm font-medium transition flex items-center gap-2 shadow-md shadow-indigo-600/20"
+                            >
+                                <span>Next (+1)</span>
+                                <i class="fa-solid fa-forward-step"></i>
+                            </button>
+                        </div>
+
+                        <!-- Speed Selector -->
+                        <div class="flex items-center gap-2 bg-slate-850 border border-slate-700/80 rounded-xl px-3 py-1.5">
+                            <i class="fa-solid fa-gauge-high text-slate-400 text-xs"></i>
+                            <label for="speedSelect" class="text-xs text-slate-400">Speed:</label>
+                            <select id="speedSelect" onchange="changePlaybackSpeed(this.value)" class="bg-transparent text-sm text-slate-200 font-medium focus:outline-none cursor-pointer">
+                                <option value="0.5" class="bg-slate-900">0.5x</option>
+                                <option value="0.75" class="bg-slate-900">0.75x</option>
+                                <option value="1" selected class="bg-slate-900">1.0x</option>
+                                <option value="1.25" class="bg-slate-900">1.25x</option>
+                                <option value="1.5" class="bg-slate-900">1.5x</option>
+                                <option value="2" class="bg-slate-900">2.0x</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Automation Toggles (Autoplay, Auto-Next, Auto-Skip Broken) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <!-- Autoplay Toggle -->
+                        <label class="flex items-center justify-between bg-slate-850/80 border border-slate-800 rounded-xl p-3 cursor-pointer hover:border-slate-700 transition">
+                            <div class="flex items-center gap-2.5">
+                                <i class="fa-solid fa-circle-play text-emerald-400"></i>
+                                <span class="text-xs sm:text-sm font-medium text-slate-300">Autoplay</span>
+                            </div>
+                            <input type="checkbox" id="autoplayToggle" checked class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                        </label>
+
+                        <!-- Auto-Next on Finish Toggle -->
+                        <label class="flex items-center justify-between bg-slate-850/80 border border-slate-800 rounded-xl p-3 cursor-pointer hover:border-slate-700 transition">
+                            <div class="flex items-center gap-2.5">
+                                <i class="fa-solid fa-forward text-indigo-400"></i>
+                                <span class="text-xs sm:text-sm font-medium text-slate-300">Auto-Next (শেষ হলে)</span>
+                            </div>
+                            <input type="checkbox" id="autoNextToggle" checked class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                        </label>
+
+                        <!-- Auto-Skip Broken Links Toggle -->
+                        <label class="flex items-center justify-between bg-slate-850/80 border border-slate-800 rounded-xl p-3 cursor-pointer hover:border-slate-700 transition">
+                            <div class="flex items-center gap-2.5">
+                                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                                <span class="text-xs sm:text-sm font-medium text-slate-300">Auto-Skip Error</span>
+                            </div>
+                            <input type="checkbox" id="autoSkipErrorToggle" class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right / Bottom Section: Paginated Playlist, Favorites & History (4 cols on desktop) -->
+            <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-[620px] shadow-xl overflow-hidden">
+                
+                <!-- Tabs Header -->
+                <div class="grid grid-cols-3 border-b border-slate-800 bg-slate-950/50 p-1.5 gap-1">
+                    <button 
+                        onclick="switchTab('all')" 
+                        id="tab-all" 
+                        class="py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow"
+                    >
+                        <i class="fa-solid fa-list-ol"></i>
+                        <span>সব ভিডিও</span>
+                    </button>
+                    <button 
+                        onclick="switchTab('favorites')" 
+                        id="tab-favorites" 
+                        class="py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    >
+                        <i class="fa-solid fa-heart text-rose-400"></i>
+                        <span>Favorites (<span id="favCount">0</span>)</span>
+                    </button>
+                    <button 
+                        onclick="switchTab('history')" 
+                        id="tab-history" 
+                        class="py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    >
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i>
+                        <span>History</span>
+                    </button>
+                </div>
+
+                <!-- Filter & Range Controls (Visible on 'all' tab) -->
+                <div id="allTabControls" class="p-3 border-b border-slate-800 flex flex-col gap-2.5 bg-slate-900">
+                    <!-- Range Selector Dropdown (1,000 IDs per block) -->
+                    <div class="flex items-center gap-2">
+                        <label for="rangeBlockSelect" class="text-xs text-slate-400 shrink-0">Range:</label>
+                        <select 
+                            id="rangeBlockSelect" 
+                            onchange="selectRangeBlock(this.value)" 
+                            class="w-full bg-slate-850 border border-slate-700 text-slate-200 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500"
+                        ></select>
+                    </div>
+
+                    <!-- Search within range or jump -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input 
+                            type="text" 
+                            id="playlistSearchInput" 
+                            oninput="handlePlaylistSearch(this.value)"
+                            placeholder="ID খুঁজুন (যেমন: 178500)..." 
+                            class="w-full bg-slate-850 border border-slate-700 text-slate-200 text-xs sm:text-sm rounded-xl pl-8 pr-3 py-2 focus:outline-none focus:border-indigo-500 placeholder:text-slate-500"
+                        >
+                    </div>
+                </div>
+
+                <!-- Clear Action Bar for Favorites / History -->
+                <div id="secondaryTabHeader" class="px-3 py-2.5 border-b border-slate-800 flex items-center justify-between bg-slate-900 hidden">
+                    <span id="secondaryTabLabel" class="text-xs text-slate-400 font-medium">সেভ করা ভিডিওসমূহ</span>
+                    <button 
+                        onclick="clearSecondaryList()" 
+                        class="text-xs text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-rose-500/10 transition"
+                    >
+                        <i class="fa-solid fa-trash-can"></i> মুছে ফেলুন
+                    </button>
+                </div>
+
+                <!-- Scrollable List Container -->
+                <div id="playlistContainer" class="flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 content-start">
+                    <!-- Dynamic ID Cards injected via JS -->
+                </div>
+
+                <!-- Pagination Footer (Visible on 'all' tab) -->
+                <div id="paginationFooter" class="p-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between gap-2">
+                    <button 
+                        id="prevPageBtn" 
+                        onclick="changePage(-1)" 
+                        class="px-3 py-1.5 rounded-xl bg-slate-850 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none border border-slate-700 text-xs font-medium text-slate-300 transition"
+                    >
+                        <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+                    </button>
+                    
+                    <span id="pageIndicator" class="text-xs text-slate-400 font-medium">
+                        Page 1 / 242
+                    </span>
+
+                    <button 
+                        id="nextPageBtn" 
+                        onclick="changePage(1)" 
+                        class="px-3 py-1.5 rounded-xl bg-slate-850 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none border border-slate-700 text-xs font-medium text-slate-300 transition"
+                    >
+                        Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 py-4 text-center text-xs text-slate-500">
+        Sequential MP4 Streamer • IDs <span class="text-slate-400 font-medium">176000</span> to <span class="text-slate-400 font-medium">200100</span> • Keyboard Shortcuts: <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded">←</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded">→</kbd> for Prev/Next
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // ==========================================
+        // Configuration & Constants
+        // ==========================================
+        const BASE_URL = "https://cdn.vdcdpstop.lat/movie/play/089e85cc-4531-41f2-8106-61a3b448261e/";
+        const MIN_ID = 176000;
+        const MAX_ID = 200100;
+        const ITEMS_PER_PAGE = 100; // 100 IDs per page for fast rendering
+        const TOTAL_ITEMS = MAX_ID - MIN_ID + 1; // 24,101 videos
+        const TOTAL_PAGES = Math.ceil(TOTAL_ITEMS / ITEMS_PER_PAGE);
+
+        // ==========================================
+        // State Management
+        // ==========================================
+        let currentId = parseInt(localStorage.getItem('sv_last_id')) || MIN_ID;
+        if (currentId < MIN_ID || currentId > MAX_ID) currentId = MIN_ID;
+
+        let currentPage = Math.floor((currentId - MIN_ID) / ITEMS_PER_PAGE) + 1;
+        let currentTab = 'all'; // 'all' | 'favorites' | 'history'
+        let searchQuery = '';
+        let favorites = JSON.parse(localStorage.getItem('sv_favorites') || '[]');
+        let historyList = JSON.parse(localStorage.getItem('sv_history') || '[]');
+        let workingIds = new Set(JSON.parse(localStorage.getItem('sv_working') || '[]'));
+        let brokenIds = new Set(JSON.parse(localStorage.getItem('sv_broken') || '[]'));
+        let autoSkipTimerInterval = null;
+
+        // ==========================================
+        // DOM References
+        // ==========================================
+        const videoPlayer = document.getElementById('videoPlayer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingIdText = document.getElementById('loadingIdText');
+        const errorOverlay = document.getElementById('errorOverlay');
+        const errorIdText = document.getElementById('errorIdText');
+        const autoSkipCountdownBox = document.getElementById('autoSkipCountdownBox');
+        const skipTimerSpan = document.getElementById('skipTimer');
+
+        const currentIdDisplay = document.getElementById('currentIdDisplay');
+        const currentIdTitle = document.getElementById('currentIdTitle');
+        const currentUrlDisplay = document.getElementById('currentUrlDisplay');
+        const directOpenLink = document.getElementById('directOpenLink');
+        const favIcon = document.getElementById('favIcon');
+        const favCount = document.getElementById('favCount');
+
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const autoplayToggle = document.getElementById('autoplayToggle');
+        const autoNextToggle = document.getElementById('autoNextToggle');
+        const autoSkipErrorToggle = document.getElementById('autoSkipErrorToggle');
+
+        const rangeBlockSelect = document.getElementById('rangeBlockSelect');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const pageIndicator = document.getElementById('pageIndicator');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+
+        // ==========================================
+        // Initialization
+        // ==========================================
+        function init() {
+            // Load saved toggle preferences
+            const savedAutoplay = localStorage.getItem('sv_autoplay');
+            const savedAutoNext = localStorage.getItem('sv_autonext');
+            const savedAutoSkip = localStorage.getItem('sv_autoskip');
+
+            if (savedAutoplay !== null) autoplayToggle.checked = savedAutoplay === 'true';
+            if (savedAutoNext !== null) autoNextToggle.checked = savedAutoNext === 'true';
+            if (savedAutoSkip !== null) autoSkipErrorToggle.checked = savedAutoSkip === 'true';
+
+            // Save preferences on change
+            autoplayToggle.addEventListener('change', () => localStorage.setItem('sv_autoplay', autoplayToggle.checked));
+            autoNextToggle.addEventListener('change', () => localStorage.setItem('sv_autonext', autoNextToggle.checked));
+            autoSkipErrorToggle.addEventListener('change', () => localStorage.setItem('sv_autoskip', autoSkipErrorToggle.checked));
+
+            populateRangeDropdown();
+            updateFavCount();
+            setupVideoEvents();
+            loadVideo(currentId, false); // Load last/first video on startup
+            renderPlaylist();
+        }
+
+        // Populate 1,000-step range dropdown for fast navigation
+        function populateRangeDropdown() {
+            rangeBlockSelect.innerHTML = '';
+            const step = 1000;
+            for (let start = MIN_ID; start <= MAX_ID; start += step) {
+                const end = Math.min(start + step - 1, MAX_ID);
+                const option = document.createElement('option');
+                option.value = start;
+                option.textContent = `${start} — ${end}`;
+                option.className = 'bg-slate-900';
+                rangeBlockSelect.appendChild(option);
+            }
+            syncRangeDropdownWithPage();
+        }
+
+        function syncRangeDropdownWithPage() {
+            const pageStartId = MIN_ID + (currentPage - 1) * ITEMS_PER_PAGE;
+            const blockStart = Math.floor((pageStartId - MIN_ID) / 1000) * 1000 + MIN_ID;
+            rangeBlockSelect.value = blockStart;
+        }
+
+        // ==========================================
+        // Video Playback Core
+        // ==========================================
+        function getStreamUrl(id) {
+            return `${BASE_URL}${id}.mp4`;
+        }
+
+        function clearAutoSkipTimer() {
+            if (autoSkipTimerInterval) {
+                clearInterval(autoSkipTimerInterval);
+                autoSkipTimerInterval = null;
+            }
+            autoSkipCountdownBox.classList.add('hidden');
+        }
+
+        function loadVideo(id, shouldAutoPlay = true) {
+            id = parseInt(id);
+            if (isNaN(id) || id < MIN_ID || id > MAX_ID) {
+                showToast(`দয়া করে ${MIN_ID} থেকে ${MAX_ID} এর মধ্যে সঠিক ID দিন।`, 'error');
+                return;
+            }
+
+            clearAutoSkipTimer();
+            currentId = id;
+            localStorage.setItem('sv_last_id', currentId);
+
+            const streamUrl = getStreamUrl(currentId);
+
+            // Update UI Metadata
+            currentIdDisplay.textContent = currentId;
+            currentIdTitle.textContent = currentId;
+            currentUrlDisplay.textContent = streamUrl;
+            directOpenLink.href = streamUrl;
+            loadingIdText.textContent = currentId;
+            errorIdText.textContent = currentId;
+
+            // Update Prev/Next button states
+            prevBtn.disabled = currentId <= MIN_ID;
+            nextBtn.disabled = currentId >= MAX_ID;
+
+            // Update Favorite Button State
+            updateFavoriteButtonUI();
+
+            // Show loading, hide error
+            errorOverlay.classList.add('hidden');
+            loadingOverlay.classList.remove('hidden');
+
+            // Set video source
+            videoPlayer.src = streamUrl;
+            videoPlayer.playbackRate = parseFloat(document.getElementById('speedSelect').value) || 1.0;
+            videoPlayer.load();
+
+            if (shouldAutoPlay && autoplayToggle.checked) {
+                const playPromise = videoPlayer.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(() => {
+                        // Autoplay blocked by browser policy until user interaction
+                        loadingOverlay.classList.add('hidden');
+                    });
+                }
+            }
+
+            // Add to Watch History
+            addToHistory(currentId);
+
+            // Sync Playlist Page if on 'all' tab and not searching
+            if (currentTab === 'all' && !searchQuery) {
+                const targetPage = Math.floor((currentId - MIN_ID) / ITEMS_PER_PAGE) + 1;
+                if (targetPage !== currentPage) {
+                    currentPage = targetPage;
+                    syncRangeDropdownWithPage();
+                }
+                renderPlaylist();
+            } else {
+                renderPlaylist();
+            }
+        }
+
+        function setupVideoEvents() {
+            // Video metadata/data loaded successfully
+            videoPlayer.addEventListener('loadeddata', () => {
+                loadingOverlay.classList.add('hidden');
+                errorOverlay.classList.add('hidden');
+                clearAutoSkipTimer();
+
+                // Mark ID as working
+                if (!workingIds.has(currentId)) {
+                    workingIds.add(currentId);
+                    brokenIds.delete(currentId);
+                    saveStatusSets();
+                    renderPlaylist();
+                }
+            });
+
+            videoPlayer.addEventListener('playing', () => {
+                loadingOverlay.classList.add('hidden');
+                errorOverlay.classList.add('hidden');
+            });
+
+            videoPlayer.addEventListener('waiting', () => {
+                loadingOverlay.classList.remove('hidden');
+            });
+
+            // Auto-Next when video ends
+            videoPlayer.addEventListener('ended', () => {
+                if (autoNextToggle.checked && currentId < MAX_ID) {
+                    showToast(`ভিডিও #${currentId} শেষ হয়েছে। পরবর্তী ভিডিও #${currentId + 1} চালু হচ্ছে...`, 'info');
+                    playNextVideo();
+                }
+            });
+
+            // Handle 404 or Stream Error
+            videoPlayer.addEventListener('error', () => {
+                loadingOverlay.classList.add('hidden');
+                errorOverlay.classList.remove('hidden');
+
+                // Mark ID as broken
+                if (!brokenIds.has(currentId)) {
+                    brokenIds.add(currentId);
+                    workingIds.delete(currentId);
+                    saveStatusSets();
+                    renderPlaylist();
+                }
+
+                // Trigger Auto-Skip countdown if enabled
+                if (autoSkipErrorToggle.checked && currentId < MAX_ID) {
+                    startAutoSkipCountdown();
+                }
+            });
+        }
+
+        function startAutoSkipCountdown() {
+            clearAutoSkipTimer();
+            let secondsLeft = 3;
+            skipTimerSpan.textContent = secondsLeft;
+            autoSkipCountdownBox.classList.remove('hidden');
+
+            autoSkipTimerInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    clearAutoSkipTimer();
+                    playNextVideo();
+                } else {
+                    skipTimerSpan.textContent = secondsLeft;
+                }
+            }, 1000);
+        }
+
+        function retryCurrentVideo() {
+            loadVideo(currentId, true);
+        }
+
+        function playNextVideo() {
+            if (currentId < MAX_ID) {
+                loadVideo(currentId + 1, true);
+            } else {
+                showToast('আপনি শেষ ভিডিওতে (200100) পৌঁছে গেছেন।', 'info');
+            }
+        }
+
+        function playPrevVideo() {
+            if (currentId > MIN_ID) {
+                loadVideo(currentId - 1, true);
+            } else {
+                showToast('এটিই প্রথম ভিডিও (176000)।', 'info');
+            }
+        }
+
+        function changePlaybackSpeed(speed) {
+            videoPlayer.playbackRate = parseFloat(speed);
+            showToast(`Playback speed: ${speed}x`, 'info');
+        }
+
+        // ==========================================
+        // Direct Jump Form
+        // ==========================================
+        document.getElementById('jumpForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = parseInt(document.getElementById('jumpInput').value);
+            if (!isNaN(val) && val >= MIN_ID && val <= MAX_ID) {
+                loadVideo(val, true);
+                document.getElementById('jumpInput').value = '';
+            } else {
+                showToast(`অনুগ্রহ করে ${MIN_ID} থেকে ${MAX_ID} এর মধ্যে সংখ্যা দিন।`, 'error');
+            }
+        });
+
+        // ==========================================
+        // Clipboard Copy (iFrame Safe)
+        // ==========================================
+        function copyCurrentUrl() {
+            const url = getStreamUrl(currentId);
+            const tempInput = document.createElement('input');
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast(`লিংক কপি হয়েছে: #${currentId}.mp4`, 'success');
+            } catch (err) {
+                showToast('লিংক কপি করা সম্ভব হয়নি।', 'error');
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        // ==========================================
+        // Favorites & History Management
+        // ==========================================
+        function toggleFavoriteCurrent() {
+            const index = favorites.indexOf(currentId);
+            if (index === -1) {
+                favorites.unshift(currentId);
+                showToast(`ভিডিও #${currentId} ফেভারিটে যুক্ত হয়েছে!`, 'success');
+            } else {
+                favorites.splice(index, 1);
+                showToast(`ভিডিও #${currentId} ফেভারিট থেকে সরানো হয়েছে।`, 'info');
+            }
+            localStorage.setItem('sv_favorites', JSON.stringify(favorites));
+            updateFavoriteButtonUI();
+            updateFavCount();
+            if (currentTab === 'favorites') renderPlaylist();
+        }
+
+        function updateFavoriteButtonUI() {
+            const isFav = favorites.includes(currentId);
+            if (isFav) {
+                favIcon.className = 'fa-solid fa-heart text-rose-500';
+            } else {
+                favIcon.className = 'fa-regular fa-heart text-rose-400';
+            }
+        }
+
+        function updateFavCount() {
+            favCount.textContent = favorites.length;
+        }
+
+        function addToHistory(id) {
+            historyList = historyList.filter(item => item !== id);
+            historyList.unshift(id);
+            if (historyList.length > 100) historyList.pop(); // Keep last 100 watched
+            localStorage.setItem('sv_history', JSON.stringify(historyList));
+        }
+
+        function saveStatusSets() {
+            // Keep max 500 cached status indicators in localStorage
+            localStorage.setItem('sv_working', JSON.stringify(Array.from(workingIds).slice(-500)));
+            localStorage.setItem('sv_broken', JSON.stringify(Array.from(brokenIds).slice(-500)));
+        }
+
+        function clearSecondaryList() {
+            if (currentTab === 'favorites') {
+                favorites = [];
+                localStorage.setItem('sv_favorites', '[]');
+                updateFavoriteButtonUI();
+                updateFavCount();
+                showToast('সব ফেভারিট মুছে ফেলা হয়েছে।', 'info');
+            } else if (currentTab === 'history') {
+                historyList = [];
+                localStorage.setItem('sv_history', '[]');
+                showToast('ওয়াচ হিস্ট্রি মুছে ফেলা হয়েছে।', 'info');
+            }
+            renderPlaylist();
+        }
+
+        // ==========================================
+        // Playlist Tabs, Pagination & Rendering
+        // ==========================================
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Update Tab Button Styles
+            ['all', 'favorites', 'history'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = 'py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow';
+                } else {
+                    btn.className = 'py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60';
+                }
+            });
+
+            const allControls = document.getElementById('allTabControls');
+            const secHeader = document.getElementById('secondaryTabHeader');
+            const paginationFooter = document.getElementById('paginationFooter');
+            const secLabel = document.getElementById('secondaryTabLabel');
+
+            if (tab === 'all') {
+                allControls.classList.remove('hidden');
+                paginationFooter.classList.remove('hidden');
+                secHeader.classList.add('hidden');
+            } else {
+                allControls.classList.add('hidden');
+                paginationFooter.classList.add('hidden');
+                secHeader.classList.remove('hidden');
+                secLabel.textContent = tab === 'favorites' ? 'ফেভারিট ভিডিও তালিকা' : 'সাম্প্রতিক দেখা ভিডিওসমূহ';
+            }
+
+            renderPlaylist();
+        }
+
+        function selectRangeBlock(startIdStr) {
+            const startId = parseInt(startIdStr);
+            currentPage = Math.floor((startId - MIN_ID) / ITEMS_PER_PAGE) + 1;
+            searchQuery = '';
+            document.getElementById('playlistSearchInput').value = '';
+            renderPlaylist();
+        }
+
+        function handlePlaylistSearch(query) {
+            searchQuery = query.trim();
+            renderPlaylist();
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= TOTAL_PAGES) {
+                currentPage = newPage;
+                syncRangeDropdownWithPage();
+                renderPlaylist();
+                playlistContainer.scrollTop = 0;
+            }
+        }
+
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            let idsToRender = [];
+
+            if (currentTab === 'all') {
+                if (searchQuery) {
+                    // Search matching IDs across the entire 24,101 range (limit to 100 matches for speed)
+                    for (let id = MIN_ID; id <= MAX_ID; id++) {
+                        if (String(id).includes(searchQuery)) {
+                            idsToRender.push(id);
+                            if (idsToRender.length >= 100) break;
+                        }
+                    }
+                    pageIndicator.textContent = `Search: ${idsToRender.length} match(es)`;
+                    prevPageBtn.disabled = true;
+                    nextPageBtn.disabled = true;
+                } else {
+                    const startId = MIN_ID + (currentPage - 1) * ITEMS_PER_PAGE;
+                    const endId = Math.min(startId + ITEMS_PER_PAGE - 1, MAX_ID);
+                    for (let id = startId; id <= endId; id++) {
+                        idsToRender.push(id);
+                    }
+                    pageIndicator.textContent = `Page ${currentPage} / ${TOTAL_PAGES}`;
+                    prevPageBtn.disabled = currentPage <= 1;
+                    nextPageBtn.disabled = currentPage >= TOTAL_PAGES;
+                }
+            } else if (currentTab === 'favorites') {
+                idsToRender = favorites;
+            } else if (currentTab === 'history') {
+                idsToRender = historyList;
+            }
+
+            // Empty State
+            if (idsToRender.length === 0) {
+                playlistContainer.className = 'flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center text-center text-slate-500';
+                playlistContainer.innerHTML = `
+                    <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-600"></i>
+                    <p class="text-sm">কোনো ভিডিও পাওয়া যায়নি</p>
+                `;
+                return;
+            }
+
+            // Grid Layout for ID Items
+            playlistContainer.className = 'flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 content-start';
+
+            const fragment = document.createDocumentFragment();
+
+            idsToRender.forEach(id => {
+                const isCurrent = id === currentId;
+                const isWorking = workingIds.has(id);
+                const isBroken = brokenIds.has(id);
+                const isFav = favorites.includes(id);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => loadVideo(id, true);
+
+                let baseClasses = 'flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition group ';
+                if (isCurrent) {
+                    baseClasses += 'bg-indigo-600 border-indigo-400 text-white shadow-md shadow-indigo-600/25';
+                } else if (isBroken) {
+                    baseClasses += 'bg-slate-900/60 border-rose-900/40 text-slate-500 hover:border-rose-700/60 hover:text-slate-300';
+                } else {
+                    baseClasses += 'bg-slate-850 border-slate-800 text-slate-300 hover:border-indigo-500/50 hover:bg-slate-800';
+                }
+                btn.className = baseClasses;
+
+                // Status dot / icon
+                let statusBadge = '';
+                if (isCurrent) {
+                    statusBadge = '<i class="fa-solid fa-volume-high text-xs animate-pulse text-white"></i>';
+                } else if (isWorking) {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-emerald-400" title="Verified Working"></span>';
+                } else if (isBroken) {
+                    statusBadge = '<span class="w-2 h-2 rounded-full bg-rose-500/70" title="Failed to load previously"></span>';
+                } else {
+                    statusBadge = '<i class="fa-solid fa-play text-[10px] text-slate-600 group-hover:text-indigo-400 transition"></i>';
+                }
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-1.5 truncate">
+                        <span class="text-xs sm:text-sm font-semibold tracking-tight">#${id}</span>
+                        ${isFav ? '<i class="fa-solid fa-heart text-[10px] text-rose-400"></i>' : ''}
+                    </div>
+                    ${statusBadge}
+                `;
+
+                fragment.appendChild(btn);
+            });
+
+            playlistContainer.appendChild(fragment);
+        }
+
+        // ==========================================
+        // Toast Notification Helper
+        // ==========================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let colors = 'bg-slate-800 border-slate-700 text-slate-100';
+            let icon = 'fa-circle-info text-indigo-400';
+
+            if (type === 'success') {
+                colors = 'bg-slate-900 border-emerald-500/40 text-emerald-300';
+                icon = 'fa-circle-check text-emerald-400';
+            } else if (type === 'error') {
+                colors = 'bg-slate-900 border-rose-500/40 text-rose-300';
+                icon = 'fa-circle-exclamation text-rose-400';
+            }
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-xl text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${colors}`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ==========================================
+        // Keyboard Shortcuts (Left/Right Arrow)
+        // ==========================================
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+            if (e.key === 'ArrowRight') {
+                playNextVideo();
+            } else if (e.key === 'ArrowLeft') {
+                playPrevVideo();
+            }
+        });
+
+        // Start App
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
