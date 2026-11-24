@@ -1,0 +1,771 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#11182e">
+<title>Public POST-Box</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+:root{
+  --primary:#6558e8;
+  --dark:#11182e;
+  --bg:#f3f5fc;
+}
+
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:#20243a;
+  min-height:100vh;
+}
+
+/* HEADER */
+
+header{
+  background:linear-gradient(130deg,#10172e,#293d76,#6558e8);
+  color:white;
+  padding:48px 15px 55px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+
+header:before,
+header:after{
+  content:"";
+  position:absolute;
+  border:1px solid #ffffff25;
+  border-radius:50%;
+  width:230px;
+  height:230px;
+  animation:float 7s infinite ease-in-out;
+}
+
+header:before{
+  top:-150px;
+  left:-70px;
+}
+
+header:after{
+  bottom:-170px;
+  right:-50px;
+  animation-delay:2s;
+}
+
+header h1{
+  font-size:clamp(30px,6vw,48px);
+  letter-spacing:-1px;
+  position:relative;
+  z-index:1;
+  animation:fadeDown .8s ease;
+}
+
+header p{
+  margin-top:12px;
+  opacity:.85;
+  position:relative;
+  z-index:1;
+  animation:fadeUp 1s ease;
+}
+
+.header-tag{
+  display:inline-block;
+  margin-top:20px;
+  padding:8px 16px;
+  border:1px solid #ffffff55;
+  border-radius:30px;
+  font-size:12px;
+  position:relative;
+  z-index:1;
+}
+
+/* MAIN */
+
+.container{
+  width:100%;
+  max-width:850px;
+  padding:0 16px;
+  margin:30px auto;
+}
+
+.toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:22px;
+}
+
+h2{
+  font-size:21px;
+}
+
+button{
+  border:0;
+  border-radius:9px;
+  padding:12px 18px;
+  background:var(--primary);
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  transition:transform .2s,box-shadow .2s;
+}
+
+button:hover{
+  transform:translateY(-2px);
+  box-shadow:0 5px 15px #6558e844;
+}
+
+button:active{
+  transform:scale(.97);
+}
+
+.hidden{display:none!important}
+
+/* PANELS */
+
+.panel{
+  background:white;
+  border-radius:15px;
+  padding:22px;
+  margin-bottom:22px;
+  box-shadow:0 5px 25px #20243a0b;
+  animation:fadeUp .4s ease;
+}
+
+.panel h2{
+  margin-bottom:16px;
+}
+
+input,textarea{
+  display:block;
+  width:100%;
+  padding:14px;
+  margin:10px 0;
+  border:1px solid #dfe2ec;
+  border-radius:9px;
+  font-size:15px;
+  font-family:inherit;
+  background:#fafbff;
+  outline:none;
+  transition:border .2s,box-shadow .2s;
+}
+
+input:focus,textarea:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px #6558e81c;
+}
+
+textarea{
+  min-height:115px;
+  resize:vertical;
+}
+
+.form-hint{
+  font-size:12px;
+  color:#888;
+  margin:8px 0 14px;
+}
+
+.form-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.secondary{
+  background:#73798d;
+}
+
+.danger{
+  background:#e74b59;
+}
+
+/* POSTS */
+
+.post{
+  background:white;
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:20px;
+  box-shadow:0 5px 22px #20243a0c;
+  animation:fadeUp .5s ease both;
+  transition:transform .25s,box-shadow .25s;
+  overflow:hidden;
+}
+
+.post:hover{
+  transform:translateY(-3px);
+  box-shadow:0 9px 28px #20243a13;
+}
+
+.post img{
+  width:100%;
+  max-height:480px;
+  object-fit:contain;
+  border-radius:10px;
+  margin:12px 0;
+  background:#f0f1f5;
+}
+
+.post-text{
+  white-space:pre-wrap;
+  line-height:1.75;
+  overflow-wrap:anywhere;
+  margin:8px 0;
+}
+
+.post-link{
+  display:inline-block;
+  color:#594be0;
+  text-decoration:none;
+  font-weight:bold;
+  margin:10px 0;
+  overflow-wrap:anywhere;
+}
+
+.post-link:hover{text-decoration:underline}
+
+.post-footer{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  border-top:1px solid #eee;
+  padding-top:13px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+
+.post-footer small{
+  color:#888;
+  font-size:11px;
+}
+
+.expiry{
+  color:#e08b36!important;
+}
+
+.delete{
+  padding:8px 13px;
+  font-size:12px;
+}
+
+.empty{
+  text-align:center;
+  padding:50px 15px;
+  background:white;
+  border-radius:15px;
+  color:#85899a;
+}
+
+.empty .emoji{
+  font-size:40px;
+  margin-bottom:15px;
+}
+
+/* FOOTER */
+
+footer{
+  text-align:center;
+  padding:28px 15px;
+  color:#85899a;
+  font-size:13px;
+}
+
+/* ANIMATIONS */
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+@keyframes fadeDown{
+  from{opacity:0;transform:translateY(-20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+@keyframes float{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(25px)}
+}
+
+/* MOBILE */
+
+@media(max-width:550px){
+
+  header{padding:38px 12px 45px}
+
+  .container{margin:20px auto;padding:0 12px}
+
+  .toolbar{align-items:center}
+
+  h2{font-size:18px}
+
+  .panel,.post{padding:16px;border-radius:12px}
+
+  .toolbar button{padding:10px 12px;font-size:12px}
+
+  .post img{max-height:350px}
+
+  .form-buttons button{flex:1}
+
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Public POST-Box</h1>
+  <p>Share Your Photos, Thoughts & Links</p>
+  <div class="header-tag">✦ PUBLIC POSTING PLATFORM ✦</div>
+</header>
+
+<main class="container">
+
+  <div class="toolbar">
+    <h2>📬 Latest Posts</h2>
+    <button id="loginButton" onclick="showLogin()">
+      🔐 Admin Login
+    </button>
+  </div>
+
+  <!-- LOGIN -->
+  <section id="loginPanel" class="panel hidden">
+    <h2>Admin Login</h2>
+
+    <input id="adminID"
+      placeholder="Enter Admin ID"
+      autocomplete="username">
+
+    <input id="adminPassword"
+      type="password"
+      placeholder="Enter Password"
+      autocomplete="current-password">
+
+    <div class="form-buttons">
+      <button onclick="login()">Login</button>
+      <button class="secondary" onclick="hideLogin()">
+        Cancel
+      </button>
+    </div>
+
+    <p id="loginMessage"></p>
+  </section>
+
+  <!-- ADMIN PANEL -->
+  <section id="adminPanel" class="panel hidden">
+    <h2>✍️ Create New Post</h2>
+
+    <input id="photoURL"
+      type="url"
+      placeholder="Photo URL (https://...)">
+
+    <textarea id="postText"
+      placeholder="Write your post here..."></textarea>
+
+    <input id="websiteURL"
+      type="url"
+      placeholder="Another Website Link (Optional)">
+
+    <p class="form-hint">
+      ⏰ Every post automatically expires after 4 days (96 hours).
+    </p>
+
+    <div class="form-buttons">
+      <button id="publishButton" onclick="publishPost()">
+        🚀 Publish Post
+      </button>
+
+      <button class="secondary" onclick="logout()">
+        Logout
+      </button>
+    </div>
+
+    <p id="postMessage"></p>
+  </section>
+
+  <!-- POSTS -->
+  <div id="postContainer"></div>
+
+</main>
+
+<footer>
+  <p>© 2026 Public POST-Box</p>
+  <p style="margin-top:7px">Made with ❤️</p>
+</footer>
+
+<script>
+
+// =================================
+// ADMIN DETAILS
+// =================================
+
+const ADMIN_ID = "balaramd";
+const ADMIN_PASSWORD = "8311";
+
+// 4 DAYS = 96 HOURS
+const EXPIRY_TIME = 4 * 24 * 60 * 60 * 1000;
+
+const STORAGE_KEY = "publicPostBoxPosts";
+
+// =================================
+// LOGIN
+// =================================
+
+function showLogin(){
+ document.getElementById("loginPanel")
+ .classList.remove("hidden");
+}
+
+function hideLogin(){
+ document.getElementById("loginPanel")
+ .classList.add("hidden");
+}
+
+function login(){
+
+ const id=document.getElementById("adminID").value.trim();
+ const pw=document.getElementById("adminPassword").value;
+
+ if(id===ADMIN_ID && pw===ADMIN_PASSWORD){
+
+  sessionStorage.setItem("postBoxAdmin","yes");
+
+  document.getElementById("loginMessage").textContent="";
+  document.getElementById("adminID").value="";
+  document.getElementById("adminPassword").value="";
+
+  hideLogin();
+  updatePage();
+
+ }else{
+
+  document.getElementById("loginMessage").textContent=
+  "❌ Incorrect ID or Password!";
+
+ }
+
+}
+
+function logout(){
+ sessionStorage.removeItem("postBoxAdmin");
+ updatePage();
+}
+
+function isAdmin(){
+ return sessionStorage.getItem("postBoxAdmin")==="yes";
+}
+
+// =================================
+// URL VALIDATION
+// =================================
+
+function validURL(value){
+
+ try{
+  const url=new URL(value);
+
+  return url.protocol==="https:" ||
+         url.protocol==="http:";
+
+ }catch(e){
+  return false;
+ }
+
+}
+
+// =================================
+// STORAGE
+// =================================
+
+function getPosts(){
+
+ try{
+  return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+ }catch(e){
+  return [];
+ }
+
+}
+
+function savePosts(posts){
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(posts));
+}
+
+// =================================
+// AUTOMATIC POST EXPIRATION
+// =================================
+
+function cleanExpiredPosts(){
+
+ const now=Date.now();
+
+ const posts=getPosts();
+
+ const activePosts=posts.filter(post=>{
+
+  return Number.isFinite(post.createdAt) &&
+         now-post.createdAt < EXPIRY_TIME;
+
+ });
+
+ if(activePosts.length!==posts.length){
+
+  savePosts(activePosts);
+  renderPosts();
+
+ }
+
+}
+
+// =================================
+// PUBLISH POST
+// =================================
+
+function publishPost(){
+
+ if(!isAdmin()){
+  alert("Admin login required!");
+  return;
+ }
+
+ const photo=document.getElementById("photoURL").value.trim();
+
+ const text=document.getElementById("postText").value.trim();
+
+ const link=document.getElementById("websiteURL").value.trim();
+
+ if(!photo && !text){
+  alert("Please add a photo or text!");
+  return;
+ }
+
+ if(photo && !validURL(photo)){
+  alert("Please enter a valid Photo URL!");
+  return;
+ }
+
+ if(link && !validURL(link)){
+  alert("Please enter a valid Website Link!");
+  return;
+ }
+
+ const posts=getPosts();
+
+ posts.unshift({
+
+  id:crypto.randomUUID(),
+  photo:photo,
+  text:text,
+  link:link,
+  createdAt:Date.now()
+
+ });
+
+ savePosts(posts);
+
+ document.getElementById("photoURL").value="";
+ document.getElementById("postText").value="";
+ document.getElementById("websiteURL").value="";
+
+ document.getElementById("postMessage").textContent=
+ "✅ Your post has been published!";
+
+ renderPosts();
+
+}
+
+// =================================
+// DELETE POST
+// =================================
+
+function deletePost(id){
+
+ if(!isAdmin())return;
+
+ if(confirm("Are you sure you want to delete this post?")){
+
+  const posts=getPosts().filter(post=>post.id!==id);
+
+  savePosts(posts);
+  renderPosts();
+
+ }
+
+}
+
+// =================================
+// CREATE SAFE ELEMENT
+// =================================
+
+function makeElement(tag,className,text){
+
+ const element=document.createElement(tag);
+
+ if(className)element.className=className;
+
+ if(text!==undefined)element.textContent=text;
+
+ return element;
+
+}
+
+// =================================
+// DISPLAY POSTS
+// =================================
+
+function renderPosts(){
+
+ const container=document.getElementById("postContainer");
+
+ container.replaceChildren();
+
+ const posts=getPosts();
+
+ if(posts.length===0){
+
+  const empty=makeElement("div","empty");
+
+  empty.appendChild(makeElement("div","emoji","📭"));
+
+  empty.appendChild(
+   makeElement("h3","","No Posts Yet")
+  );
+
+  empty.appendChild(
+   makeElement("p","","New posts will appear here.")
+  );
+
+  container.appendChild(empty);
+
+  return;
+
+ }
+
+ posts.forEach((post,index)=>{
+
+  const card=makeElement("article","post");
+
+  card.style.animationDelay=(index*0.06)+"s";
+
+  if(post.text){
+
+   card.appendChild(
+    makeElement("p","post-text",post.text)
+   );
+
+  }
+
+  if(post.photo && validURL(post.photo)){
+
+   const img=makeElement("img");
+
+   img.src=post.photo;
+   img.alt="Post Image";
+   img.loading="lazy";
+   img.referrerPolicy="no-referrer";
+
+   img.onerror=()=>{
+    img.alt="Image could not be loaded";
+   };
+
+   card.appendChild(img);
+
+  }
+
+  if(post.link && validURL(post.link)){
+
+   const link=makeElement("a","post-link","Visit Website ↗");
+
+   link.href=post.link;
+   link.target="_blank";
+   link.rel="noopener noreferrer";
+
+   card.appendChild(link);
+
+  }
+
+  const footer=makeElement("div","post-footer");
+
+  const date=makeElement(
+   "small",
+   "",
+   "Posted: "+new Date(post.createdAt).toLocaleString()
+  );
+
+  const remaining=Math.max(
+   0,
+   EXPIRY_TIME-(Date.now()-post.createdAt)
+  );
+
+  const hours=Math.ceil(remaining/(60*60*1000));
+
+  const expiry=makeElement(
+   "small",
+   "expiry",
+   "⏳ Expires in about "+hours+" hours"
+  );
+
+  footer.appendChild(date);
+  footer.appendChild(expiry);
+
+  if(isAdmin()){
+
+   const del=makeElement("button","delete","Delete");
+
+   del.onclick=()=>deletePost(post.id);
+
+   footer.appendChild(del);
+
+  }
+
+  card.appendChild(footer);
+
+  container.appendChild(card);
+
+ });
+
+}
+
+// =================================
+// UPDATE PAGE
+// =================================
+
+function updatePage(){
+
+ const admin=isAdmin();
+
+ document.getElementById("adminPanel")
+ .classList.toggle("hidden",!admin);
+
+ document.getElementById("loginButton")
+ .classList.toggle("hidden",admin);
+
+ renderPosts();
+
+}
+
+// =================================
+// START
+// =================================
+
+cleanExpiredPosts();
+updatePage();
+
+// Check expired posts every minute
+setInterval(cleanExpiredPosts,60000);
+
+</script>
+
+</body>
+</html>
